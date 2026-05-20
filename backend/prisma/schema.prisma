@@ -1,0 +1,455 @@
+// ReachFlow - Complete Prisma Database Schema
+// File: backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?
+  name          String
+  avatar        String?
+  role          UserRole  @default(PROMOTER)
+  status        Status    @default(ACTIVE)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  advertiser    Advertiser?
+  promoter      Promoter?
+  wallet        Wallet?
+  notifications Notification[]
+  sessions      Session[]
+  oauthAccounts OAuthAccount[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  ADVERTISER
+  PROMOTER
+}
+
+enum Status {
+  ACTIVE
+  SUSPENDED
+  PENDING
+  BANNED
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OAuthAccount {
+  id           String @id @default(cuid())
+  userId       String
+  provider     String // google, facebook, tiktok
+  providerAccountId String
+  accessToken  String?
+  refreshToken String?
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+// ─────────────────────────────────────────
+// ADVERTISER
+// ─────────────────────────────────────────
+
+model Advertiser {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  businessName String
+  website     String?
+  category    String
+  country     String
+  verified    Boolean  @default(false)
+  kycStatus   KycStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  user        User       @relation(fields: [userId], references: [id])
+  campaigns   Campaign[]
+
+  @@map("advertisers")
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// ─────────────────────────────────────────
+// PROMOTER / CREATOR
+// ─────────────────────────────────────────
+
+model Promoter {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  bio          String?
+  country      String
+  niche        String[] // fashion, tech, food, etc.
+  totalFollowers Int    @default(0)
+  avgEngagement Float  @default(0)
+  rating       Float   @default(0)
+  totalEarned  Float   @default(0)
+  verified     Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  user            User              @relation(fields: [userId], references: [id])
+  socialAccounts  SocialAccount[]
+  applications    Application[]
+  submissions     Submission[]
+  withdrawals     Withdrawal[]
+
+  @@map("promoters")
+}
+
+model SocialAccount {
+  id           String   @id @default(cuid())
+  promoterId   String
+  platform     Platform
+  username     String
+  profileUrl   String
+  followers    Int      @default(0)
+  engagement   Float    @default(0)
+  verified     Boolean  @default(false)
+  accessToken  String?
+  createdAt    DateTime @default(now())
+
+  promoter     Promoter @relation(fields: [promoterId], references: [id])
+
+  @@map("social_accounts")
+}
+
+enum Platform {
+  FACEBOOK
+  TIKTOK
+  INSTAGRAM
+  YOUTUBE
+  WHATSAPP
+  TELEGRAM
+  TWITTER
+  LINKEDIN
+  THREADS
+}
+
+// ─────────────────────────────────────────
+// CAMPAIGNS
+// ─────────────────────────────────────────
+
+model Campaign {
+  id               String         @id @default(cuid())
+  advertiserId     String
+  title            String
+  description      String
+  productImages    String[]
+  productUrl       String?
+  targetPlatforms  Platform[]
+  category         String
+  targetCountries  String[]
+  targetLanguages  String[]
+  commissionType   CommissionType
+  commissionAmount Float
+  totalBudget      Float
+  spentBudget      Float          @default(0)
+  maxPromoters     Int            @default(50)
+  startDate        DateTime
+  endDate          DateTime
+  status           CampaignStatus @default(DRAFT)
+  requirements     String[]
+  hashtags         String[]
+  aiScore          Float?         // AI quality score
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  advertiser       Advertiser     @relation(fields: [advertiserId], references: [id])
+  applications     Application[]
+  submissions      Submission[]
+  trackingLinks    TrackingLink[]
+  analytics        CampaignAnalytics?
+
+  @@map("campaigns")
+}
+
+enum CommissionType {
+  PER_POST
+  PER_CLICK
+  PER_SALE
+  PER_SIGNUP
+  HYBRID
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────
+// APPLICATIONS & SUBMISSIONS
+// ─────────────────────────────────────────
+
+model Application {
+  id           String            @id @default(cuid())
+  campaignId   String
+  promoterId   String
+  message      String?
+  status       ApplicationStatus @default(PENDING)
+  appliedAt    DateTime          @default(now())
+  reviewedAt   DateTime?
+
+  campaign     Campaign  @relation(fields: [campaignId], references: [id])
+  promoter     Promoter  @relation(fields: [promoterId], references: [id])
+
+  @@unique([campaignId, promoterId])
+  @@map("applications")
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Submission {
+  id             String           @id @default(cuid())
+  campaignId     String
+  promoterId     String
+  platform       Platform
+  postUrl        String
+  screenshot     String
+  caption        String?
+  status         SubmissionStatus @default(PENDING)
+  fraudScore     Float            @default(0) // 0-1, higher = more suspicious
+  clicks         Int              @default(0)
+  reach          Int              @default(0)
+  engagement     Int              @default(0)
+  conversions    Int              @default(0)
+  earnedAmount   Float            @default(0)
+  submittedAt    DateTime         @default(now())
+  reviewedAt     DateTime?
+
+  campaign       Campaign  @relation(fields: [campaignId], references: [id])
+  promoter       Promoter  @relation(fields: [promoterId], references: [id])
+
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+// ─────────────────────────────────────────
+// TRACKING
+// ─────────────────────────────────────────
+
+model TrackingLink {
+  id           String   @id @default(cuid())
+  campaignId   String
+  promoterId   String?
+  shortCode    String   @unique
+  originalUrl  String
+  clicks       Int      @default(0)
+  uniqueClicks Int      @default(0)
+  conversions  Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  campaign     Campaign @relation(fields: [campaignId], references: [id])
+  clickEvents  ClickEvent[]
+
+  @@map("tracking_links")
+}
+
+model ClickEvent {
+  id             String   @id @default(cuid())
+  trackingLinkId String
+  ip             String
+  country        String?
+  device         String?
+  browser        String?
+  referrer       String?
+  converted      Boolean  @default(false)
+  clickedAt      DateTime @default(now())
+
+  trackingLink   TrackingLink @relation(fields: [trackingLinkId], references: [id])
+
+  @@map("click_events")
+}
+
+model CampaignAnalytics {
+  id           String   @id @default(cuid())
+  campaignId   String   @unique
+  totalReach   Int      @default(0)
+  totalClicks  Int      @default(0)
+  totalEngagement Int   @default(0)
+  totalConversions Int  @default(0)
+  totalSpent   Float    @default(0)
+  roi          Float    @default(0)
+  byPlatform   Json     @default("{}")
+  byCountry    Json     @default("{}")
+  byDay        Json     @default("{}")
+  updatedAt    DateTime @updatedAt
+
+  campaign     Campaign @relation(fields: [campaignId], references: [id])
+
+  @@map("campaign_analytics")
+}
+
+// ─────────────────────────────────────────
+// WALLET & PAYMENTS
+// ─────────────────────────────────────────
+
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  balance      Float    @default(0)
+  pending      Float    @default(0)
+  totalEarned  Float    @default(0)
+  currency     String   @default("USD")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  walletId      String
+  type          TransactionType
+  amount        Float
+  currency      String          @default("USD")
+  status        PaymentStatus   @default(PENDING)
+  method        PaymentMethod
+  reference     String?         // external payment ID
+  metadata      Json?
+  description   String?
+  createdAt     DateTime        @default(now())
+
+  wallet        Wallet @relation(fields: [walletId], references: [id])
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  CAMPAIGN_PAYMENT
+  COMMISSION_EARNED
+  PLATFORM_FEE
+  REFUND
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  BKASH
+  NAGAD
+  CRYPTO_USDT
+  BANK_TRANSFER
+  WALLET
+}
+
+model Withdrawal {
+  id          String        @id @default(cuid())
+  promoterId  String
+  amount      Float
+  method      PaymentMethod
+  accountInfo Json          // phone/wallet/bank details
+  status      PaymentStatus @default(PENDING)
+  processedAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  promoter    Promoter @relation(fields: [promoterId], references: [id])
+
+  @@map("withdrawals")
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS & MISC
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // campaign, payment, system
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model Dispute {
+  id          String        @id @default(cuid())
+  raisedBy    String
+  againstId   String
+  campaignId  String?
+  reason      String
+  description String
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+
+  @@map("disputes")
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+model PlatformSettings {
+  id              String  @id @default(cuid())
+  platformFeePercent Float @default(10)
+  minWithdrawal   Float   @default(10)
+  autoPayoutEnabled Boolean @default(true)
+  maintenanceMode Boolean @default(false)
+  updatedAt       DateTime @updatedAt
+
+  @@map("platform_settings")
+}
