@@ -58,6 +58,45 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Get Me
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]
+  if (!token) return res.status(401).json({ error: 'Unauthorized' })
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    req.userId = decoded.userId
+    next()
+  } catch {
+    res.status(401).json({ error: 'Invalid token' })
+  }
+}
+
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { id: true, name: true, email: true, role: true }
+    })
+    res.json({ user })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Update Profile
+app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { name },
+      select: { id: true, name: true, email: true, role: true }
+    })
+    res.json({ user })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
