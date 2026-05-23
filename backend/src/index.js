@@ -5,8 +5,15 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 const app = express()
-
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }))
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://reachflow-lovat.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
 app.use(express.json())
 
 // Test Route
