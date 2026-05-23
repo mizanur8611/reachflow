@@ -15,7 +15,7 @@ export default function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const queryClient = useQueryClient()
   const notifRef = useRef(null)
 
@@ -148,6 +148,14 @@ export default function TopBar() {
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer">
           {user?.name?.[0] ?? 'U'}
         </div>
+        {/* Logout */}
+<button
+  onClick={logout}
+  className="ml-2 text-gray-400 hover:text-red-400 transition-colors text-sm"
+  title="Logout"
+>
+  ⏻
+</button>
       </div>
     </header>
   )
