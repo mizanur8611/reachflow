@@ -143,11 +143,9 @@ export default function Sidebar({ role = 'advertiser' }) {
               </motion.div>
             )}
           </AnimatePresence>
-          {!collapsed && (
-            <button onClick={logout} className="text-gray-500 hover:text-red-400 transition-colors">
-              <LogOut size={14} />
-            </button>
-          )}
+          <button onClick={logout} className="text-gray-500 hover:text-red-400 transition-colors">
+  <LogOut size={14} />
+</button>
         </div>
       </div>
     </motion.aside>
