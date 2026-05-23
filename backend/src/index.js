@@ -97,6 +97,42 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Create Campaign
+app.post('/api/campaigns', authMiddleware, async (req, res) => {
+  try {
+    const { title, description, budget, platforms, commissionType, commissionAmount, category } = req.body
+    const campaign = await prisma.campaign.create({
+      data: {
+        title,
+        description: description || '',
+        totalBudget: parseFloat(budget) || 0,
+        commissionAmount: parseFloat(commissionAmount) || 0,
+        commissionType: commissionType || 'PER_POST',
+        category: category || 'General',
+        targetPlatforms: platforms || [],
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        advertiserId: req.userId,
+        status: 'ACTIVE'
+      }
+    })
+    res.json({ success: true, campaign })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
+// Get Campaigns
+app.get('/api/campaigns', authMiddleware, async (req, res) => {
+  try {
+    const campaigns = await prisma.campaign.findMany({
+      where: { advertiserId: req.userId },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json({ campaigns })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
