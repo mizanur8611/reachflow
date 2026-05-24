@@ -72,10 +72,8 @@ export default function AdvertiserDashboard() {
         >
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
             <h2 className="font-semibold text-white">Recent Campaigns</h2>
-            <Link href="/dashboard/advertiser/campaigns/new">
-  <button className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
-    <Plus size={16} /> New Campaign
-  </button>
+            <Link href="/dashboard/advertiser/campaigns" className="text-violet-400 hover:text-violet-300 text-sm flex items-center gap-1">
+  View All <ChevronRight size={14} />
 </Link>
           </div>
           <table className="w-full">
