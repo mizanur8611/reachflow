@@ -104,7 +104,7 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-3">
             <Link href="/login"><button className="text-gray-300 hover:text-white px-4 py-2 text-sm transition-colors">Sign In</button></Link>
-            <Link href="/login">
+            <Link href="/login?mode=register">
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-5 py-2 rounded-xl text-sm font-semibold transition-all">
                 Get Started Free
               </motion.button>
@@ -122,7 +122,7 @@ export default function LandingPage() {
             {['Features', 'How it Works', 'Pricing'].map(item => (
               <a key={item} href="#" className="block text-gray-300 py-2">{item}</a>
             ))}
-            <Link href="/login"><button className="w-full bg-violet-600 py-3 rounded-xl font-semibold mt-2">Get Started Free</button></Link>
+            <Link href="/login?mode=register"><button className="w-full bg-violet-600 py-3 rounded-xl font-semibold mt-2">Get Started Free</button></Link>
           </motion.div>
         )}
       </nav>

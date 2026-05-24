@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -34,7 +35,8 @@ const STATS = [
 ]
 
 export default function AuthPage() {
-  const [mode, setMode] = useState('login') // login | register
+  const searchParams = useSearchParams()
+  const [mode, setMode] = useState(searchParams.get('mode') || 'login')
   const [showPass, setShowPass] = useState(false)
   const { setUser } = useAuthStore()
   const router = useRouter()
