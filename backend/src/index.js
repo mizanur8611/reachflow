@@ -305,10 +305,49 @@ app.get('/api/submissions/:campaignId', authMiddleware, async (req, res) => {
 app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body
+
     const submission = await prisma.submission.update({
       where: { id: req.params.id },
-      data: { status, reviewedAt: new Date() }
+      data: { status, reviewedAt: new Date() },
+      include: { campaign: true }
     })
+
+    if (status === 'APPROVED') {
+      const amount = submission.campaign.commissionAmount
+
+      const promoter = await prisma.promoter.findUnique({
+        where: { id: submission.promoterId },
+        include: { user: true }
+      })
+
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId: promoter.userId }
+      })
+
+      if (wallet) {
+        await prisma.wallet.update({
+          where: { userId: promoter.userId },
+          data: {
+            balance: { increment: amount },
+            totalEarned: { increment: amount }
+          }
+        })
+      } else {
+        await prisma.wallet.create({
+          data: {
+            userId: promoter.userId,
+            balance: amount,
+            totalEarned: amount
+          }
+        })
+      }
+
+      await prisma.submission.update({
+        where: { id: req.params.id },
+        data: { earnedAmount: amount }
+      })
+    }
+
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
