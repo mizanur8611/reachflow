@@ -143,7 +143,7 @@ if (!advertiser) {
 app.get('/api/campaigns', authMiddleware, async (req, res) => {
   try {
     const campaigns = await prisma.campaign.findMany({
-      where: { advertiserId: req.userId },
+      where: { advertiser: { userId: req.userId } },
       orderBy: { createdAt: 'desc' }
     })
     res.json({ campaigns })
