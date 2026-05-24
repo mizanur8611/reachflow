@@ -35,7 +35,7 @@ export default function CreateCampaignPage() {
 
   const handleSubmit = async () => {
     if (!form.title || !form.budget || form.platforms.length === 0) {
-      setError('Title, Budget এবং কমপক্ষে একটি Platform দিতে হবে')
+      setError('Title, Budget and at least one Platform is required')
       return
     }
     setLoading(true)
@@ -61,10 +61,10 @@ export default function CreateCampaignPage() {
       if (data.success) {
         router.push('/dashboard/advertiser')
       } else {
-        setError(data.error || 'কিছু একটা সমস্যা হয়েছে')
+        setError(data.error || 'Something went wrong')
       }
     } catch (err) {
-      setError('Server এ connect করা যাচ্ছে না')
+      setError('Cannot connect to server')
     } finally {
       setLoading(false)
     }
@@ -80,8 +80,8 @@ export default function CreateCampaignPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">নতুন Campaign তৈরি করো</h1>
-            <p className="text-gray-400 text-sm mt-1">সব তথ্য পূরণ করো</p>
+            <h1 className="text-2xl font-bold">Create New Campaign</h1>
+            <p className="text-gray-400 text-sm mt-1">Fill in all the details</p>
           </div>
         </div>
 
@@ -101,7 +101,7 @@ export default function CreateCampaignPage() {
             <label className="text-sm text-gray-400 mb-2 block">Campaign Title *</label>
             <input
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
-              placeholder="যেমন: Summer Collection Promo"
+              placeholder="e.g. Summer Collection Promo"
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
             />
@@ -109,11 +109,11 @@ export default function CreateCampaignPage() {
 
           {/* Description */}
           <div>
-            <label className="text-sm text-gray-400 mb-2 block">বিবরণ</label>
+            <label className="text-sm text-gray-400 mb-2 block">Description</label>
             <textarea
               rows={3}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 resize-none"
-              placeholder="Campaign সম্পর্কে বিস্তারিত লেখো..."
+              placeholder="Describe your campaign..."
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             />
@@ -122,7 +122,7 @@ export default function CreateCampaignPage() {
           {/* Budget & Commission */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-400 mb-2 block">মোট Budget ($) *</label>
+              <label className="text-sm text-gray-400 mb-2 block">Total Budget ($) *</label>
               <input
                 type="number"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
@@ -177,7 +177,7 @@ export default function CreateCampaignPage() {
 
           {/* Platforms */}
           <div>
-            <label className="text-sm text-gray-400 mb-3 block">Platforms * (যেখানে Promote হবে)</label>
+            <label className="text-sm text-gray-400 mb-3 block">Platforms * (where to promote)</label>
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map(p => (
                 <button
@@ -201,7 +201,7 @@ export default function CreateCampaignPage() {
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 py-3.5 rounded-xl font-semibold transition-all"
           >
-            {loading ? 'তৈরি হচ্ছে...' : <><Plus size={18} /> Campaign তৈরি করো</>}
+            {loading ? 'Creating...' : <><Plus size={18} /> Create Campaign</>}
           </button>
         </motion.div>
       </div>
