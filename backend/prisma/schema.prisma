@@ -242,9 +242,9 @@ model Submission {
   campaignId     String
   applicationId String?
   promoterId     String
-  platform       Platform
+  platform       Platform?
   postUrl        String
-  screenshot     String
+  screenshot     String?
   caption        String?
   status         SubmissionStatus @default(PENDING)
   fraudScore     Float            @default(0) // 0-1, higher = more suspicious
