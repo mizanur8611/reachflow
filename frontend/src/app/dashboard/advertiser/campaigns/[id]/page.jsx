@@ -10,11 +10,12 @@ export default function CampaignDetailsPage() {
   const router = useRouter()
   const [campaign, setCampaign] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [submissions, setSubmissions] = useState([])
   const handleUpdateStatus = async (applicationId, status) => {
   try {
     const token = localStorage.getItem('rf_token')
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${applicationId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -34,6 +35,22 @@ export default function CampaignDetailsPage() {
     console.error(err)
   }
 }
+ const handleSubmissionStatus = async (submissionId, status) => {
+  try {
+    const token = localStorage.getItem('rf_token')
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/${submissionId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ status })
+    })
+    const data = await res.json()
+    if (data.success) {
+      setSubmissions(prev => prev.map(s => s.id === submissionId ? { ...s, status } : s))
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -44,6 +61,11 @@ export default function CampaignDetailsPage() {
         })
         const data = await res.json()
         if (data.campaign) setCampaign(data.campaign)
+          const res2 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const data2 = await res2.json()
+      if (data2.submissions) setSubmissions(data2.submissions)
       } catch (err) {
         console.error(err)
       } finally {
@@ -225,6 +247,70 @@ export default function CampaignDetailsPage() {
             </table>
           )}
         </motion.div>
+        {/* Submissions */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.3 }}
+  className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden mt-6"
+>
+  <div className="px-6 py-4 border-b border-white/5">
+    <h2 className="font-semibold">Submissions</h2>
+    <p className="text-gray-400 text-sm mt-1">{submissions.length} proof submitted</p>
+  </div>
+  {submissions.length === 0 ? (
+    <div className="px-6 py-12 text-center text-gray-500">No submissions yet.</div>
+  ) : (
+    <table className="w-full">
+      <thead>
+        <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
+          <th className="px-6 py-3 text-left">Promoter</th>
+          <th className="px-6 py-3 text-left">Post URL</th>
+          <th className="px-6 py-3 text-left">Caption</th>
+          <th className="px-6 py-3 text-center">Status</th>
+          <th className="px-6 py-3 text-center">Action</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-white/5">
+        {submissions.map((s, i) => (
+          <tr key={i} className="hover:bg-white/[0.02]">
+            <td className="px-6 py-4 text-sm font-medium">{s.promoter?.user?.name || 'Unknown'}</td>
+            <td className="px-6 py-4 text-sm">
+              <a href={s.postUrl} target="_blank" rel="noreferrer"
+                className="text-violet-400 hover:text-violet-300 underline">
+                View Post
+              </a>
+            </td>
+            <td className="px-6 py-4 text-sm text-gray-400">{s.caption || '-'}</td>
+            <td className="px-6 py-4 text-center">
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                s.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' :
+                s.status === 'REJECTED' ? 'bg-red-500/10 text-red-400' :
+                'bg-yellow-500/10 text-yellow-400'
+              }`}>
+                {s.status}
+              </span>
+            </td>
+            <td className="px-6 py-4 text-center">
+              {s.status === 'PENDING' && (
+                <div className="flex gap-2 justify-center">
+                  <button onClick={() => handleSubmissionStatus(s.id, 'APPROVED')}
+                    className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg">
+                    <CheckCircle size={16} />
+                  </button>
+                  <button onClick={() => handleSubmissionStatus(s.id, 'REJECTED')}
+                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg">
+                    <XCircle size={16} />
+                  </button>
+                </div>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</motion.div>
       </div>
     </div>
   )
