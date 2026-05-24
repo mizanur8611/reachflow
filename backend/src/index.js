@@ -270,7 +270,23 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-
+ // Get My Submissions (Promoter)
+app.get('/api/submissions/my', authMiddleware, async (req, res) => {
+  try {
+    const promoter = await prisma.promoter.findUnique({
+      where: { userId: req.userId }
+    })
+    if (!promoter) return res.json({ submissions: [] })
+    const submissions = await prisma.submission.findMany({
+      where: { promoterId: promoter.id },
+      include: { campaign: { select: { title: true } } },
+      orderBy: { submittedAt: 'desc' }
+    })
+    res.json({ submissions })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 // Get Submissions for a campaign (Advertiser)
 app.get('/api/submissions/:campaignId', authMiddleware, async (req, res) => {
   try {
