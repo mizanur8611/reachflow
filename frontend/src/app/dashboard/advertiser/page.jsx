@@ -37,9 +37,11 @@ export default function AdvertiserDashboard() {
                 💰 Wallet: $1,250
               </button>
             </Link>
-            <button className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all">
-              <Plus size={16} /> New Campaign
-            </button>
+            <Link href="/dashboard/advertiser/campaigns/new">
+  <button className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
+    <Plus size={16} /> New Campaign
+  </button>
+</Link>
           </div>
         </div>
 
