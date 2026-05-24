@@ -39,7 +39,7 @@ export default function CampaignDetailsPage() {
   try {
     const token = localStorage.getItem('rf_token')
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/${submissionId}/status`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ status })
     })
