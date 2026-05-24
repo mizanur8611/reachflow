@@ -256,20 +256,12 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
 
     const submission = await prisma.submission.create({
       data: {
-        id: crypto.randomUUID(),
         campaignId: application.campaignId,
         promoterId: promoter.id,
         applicationId,
         postUrl,
         platform: 'FACEBOOK',
-        description,
-        fraudScore: 0,
-        submittedAt: new Date(),
-        clicks: 0,
-        reach: 0,
-        engagement: 0,
-        conversions: 0,
-        earnedAmount: 0,
+        caption: description,   // ← description → caption
         status: 'PENDING'
       }
     })
