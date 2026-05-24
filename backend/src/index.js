@@ -4,6 +4,7 @@ const dotenv = require('dotenv')
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const crypto = require('crypto')
 
 dotenv.config()
 
@@ -255,6 +256,7 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
 
     const submission = await prisma.submission.create({
       data: {
+        id: crypto.randomUUID(),
         campaignId: application.campaignId,
         promoterId: promoter.id,
         applicationId,
