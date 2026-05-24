@@ -435,6 +435,17 @@ app.delete('/api/admin/campaigns/:id', adminMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Get Wallet (Promoter)
+app.get('/api/wallet', authMiddleware, async (req, res) => {
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: req.userId }
+    })
+    res.json({ wallet: wallet || { balance: 0, totalEarned: 0 } })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 
