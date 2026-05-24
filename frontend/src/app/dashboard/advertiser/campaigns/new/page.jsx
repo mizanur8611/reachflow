@@ -192,7 +192,7 @@ export default function CreateCampaignPage() {
                   key={p.value}
                   onClick={() => togglePlatform(p)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                    form.platforms.includes(p)  →  form.platforms.includes(p.value)
+                    form.platforms.includes(p.value)
                       ? 'bg-violet-600 border-violet-500 text-white'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                   }`}
