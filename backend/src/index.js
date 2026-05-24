@@ -354,7 +354,15 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         data: { earnedAmount: amount }
       })
     }
-
+    // Notification পাঠাও
+   await createNotification(
+     promoter.userId,
+    status === 'APPROVED' ? '🎉 Submission Approved!' : '❌ Submission Rejected',
+    status === 'APPROVED'
+      ? `Your post for "${submission.campaign.title}" has been approved! $${submission.campaign.commissionAmount} added to your wallet.`
+      : `Your post for "${submission.campaign.title}" was rejected.`,
+      'submission'
+    )
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -442,6 +450,52 @@ app.get('/api/wallet', authMiddleware, async (req, res) => {
       where: { userId: req.userId }
     })
     res.json({ wallet: wallet || { balance: 0, totalEarned: 0 } })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+ // Notification Helper
+async function createNotification(userId, title, message, type) {
+  await prisma.notification.create({
+    data: { userId, title, message, type }
+  })
+}
+
+// Get Notifications
+app.get('/api/notifications', authMiddleware, async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    })
+    res.json({ notifications })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Mark All as Read
+app.patch('/api/notifications/read-all', authMiddleware, async (req, res) => {
+  try {
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, read: false },
+      data: { read: true }
+    })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Mark One as Read
+app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
+  try {
+    await prisma.notification.update({
+      where: { id: req.params.id },
+      data: { read: true }
+    })
+    res.json({ success: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
