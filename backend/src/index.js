@@ -264,6 +264,12 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
         platform: 'FACEBOOK',
         description,
         fraudScore: 0,
+        submittedAt: new Date(),
+        clicks: 0,
+        reach: 0,
+        engagement: 0,
+        conversions: 0,
+        earnedAmount: 0,
         status: 'PENDING'
       }
     })
