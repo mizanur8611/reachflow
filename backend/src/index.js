@@ -48,6 +48,15 @@ if (role === 'ADVERTISER' || !role) {
     }
   })
 }
+// Auto create Promoter profile
+if (role === 'PROMOTER') {
+  await prisma.promoter.create({
+    data: {
+      userId: user.id,
+      country: 'Bangladesh',
+    }
+  })
+}
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (err) {
