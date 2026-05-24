@@ -4,14 +4,14 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Plus } from 'lucide-react'
 import Link from 'next/link'
-import useAuthStore from '@/store/authStore'
+import { useAuthStore } from '@/store/authStore'
 
 const PLATFORMS = ['Facebook', 'TikTok', 'Instagram', 'YouTube', 'WhatsApp', 'Telegram', 'Twitter']
 const CATEGORIES = ['Fashion', 'Food', 'Tech', 'Beauty', 'Health', 'Education', 'Gaming', 'General']
 
 export default function CreateCampaignPage() {
   const router = useRouter()
-  const { token } = useAuthStore()
+  const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
