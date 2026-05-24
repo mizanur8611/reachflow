@@ -255,6 +255,21 @@ export default function AuthPage() {
                     </div>
                     {registerForm.formState.errors.password && <p className="text-red-400 text-xs mt-1">{registerForm.formState.errors.password.message}</p>}
                   </div>
+                                        <div>
+                        <label className="text-sm text-gray-400 mb-1.5 block">I want to</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${registerForm.watch('role') === 'ADVERTISER' ? 'border-violet-500 bg-violet-500/10' : 'border-white/10 bg-white/5'}`}>
+                            <input {...registerForm.register('role')} type="radio" value="ADVERTISER" className="hidden" />
+                            <span className="text-sm font-medium">Advertiser</span>
+                            <span className="text-xs text-gray-400">I want to promote my product</span>
+                          </label>
+                          <label className={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${registerForm.watch('role') === 'PROMOTER' ? 'border-violet-500 bg-violet-500/10' : 'border-white/10 bg-white/5'}`}>
+                            <input {...registerForm.register('role')} type="radio" value="PROMOTER" className="hidden" />
+                            <span className="text-sm font-medium">Promoter</span>
+                            <span className="text-xs text-gray-400">I want to earn by promoting</span>
+                          </label>
+                        </div>
+                      </div>
 
                   <motion.button
                     whileHover={{ scale: 1.01 }}
