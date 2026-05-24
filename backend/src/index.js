@@ -263,6 +263,7 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
         postUrl,
         platform: 'FACEBOOK',
         description,
+        fraudScore: 0,
         status: 'PENDING'
       }
     })
