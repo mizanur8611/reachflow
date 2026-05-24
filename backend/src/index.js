@@ -240,6 +240,62 @@ app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Submit Content Proof
+app.post('/api/submissions', authMiddleware, async (req, res) => {
+  try {
+    const { applicationId, postUrl, description } = req.body
+    const token = req.headers.authorization?.split(' ')[1]
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const promoter = await prisma.promoter.findUnique({ where: { userId: decoded.userId } })
+    if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
+
+    const application = await prisma.application.findUnique({ where: { id: applicationId } })
+    if (!application) return res.status(404).json({ error: 'Application not found' })
+    if (application.promoterId !== promoter.id) return res.status(403).json({ error: 'Forbidden' })
+
+    const submission = await prisma.submission.create({
+      data: {
+        campaignId: application.campaignId,
+        promoterId: promoter.id,
+        applicationId,
+        postUrl,
+        description,
+        status: 'PENDING'
+      }
+    })
+    res.json({ success: true, submission })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get Submissions for a campaign (Advertiser)
+app.get('/api/submissions/:campaignId', authMiddleware, async (req, res) => {
+  try {
+    const submissions = await prisma.submission.findMany({
+      where: { campaignId: req.params.campaignId },
+      include: { promoter: { include: { user: { select: { name: true, email: true } } } } },
+      orderBy: { submittedAt: 'desc' }
+    })
+    res.json({ submissions })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Update Submission Status (Advertiser approve/reject)
+app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const submission = await prisma.submission.update({
+      where: { id: req.params.id },
+      data: { status, reviewedAt: new Date() }
+    })
+    res.json({ success: true, submission })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 // Admin Middleware
 const adminMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1]

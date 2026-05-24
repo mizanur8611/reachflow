@@ -226,7 +226,7 @@ model Application {
 
   campaign     Campaign  @relation(fields: [campaignId], references: [id])
   promoter     Promoter  @relation(fields: [promoterId], references: [id])
-
+  submissions Submission[]
   @@unique([campaignId, promoterId])
   @@map("applications")
 }
@@ -240,6 +240,7 @@ enum ApplicationStatus {
 model Submission {
   id             String           @id @default(cuid())
   campaignId     String
+  applicationId String?
   promoterId     String
   platform       Platform
   postUrl        String
@@ -257,7 +258,7 @@ model Submission {
 
   campaign       Campaign  @relation(fields: [campaignId], references: [id])
   promoter       Promoter  @relation(fields: [promoterId], references: [id])
-
+  application   Application? @relation(fields: [applicationId], references: [id])
   @@map("submissions")
 }
 

@@ -1,12 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { DollarSign, Target, TrendingUp, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { DollarSign, Target, Clock, CheckCircle, X, Send, Link, FileText } from 'lucide-react'
 
 export default function PromoterDashboard() {
   const [campaigns, setCampaigns] = useState([])
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitModal, setSubmitModal] = useState(null) // { applicationId, campaignTitle }
+  const [submitForm, setSubmitForm] = useState({ postUrl: '', description: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [submissions, setSubmissions] = useState([]) // track submitted applicationIds
 
   useEffect(() => {
     const fetchData = async () => {
@@ -14,12 +18,10 @@ export default function PromoterDashboard() {
         const token = localStorage.getItem('rf_token')
         const headers = { 'Authorization': `Bearer ${token}` }
 
-        // Fetch available campaigns
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/available`, { headers })
         const data = await res.json()
         if (data.campaigns) setCampaigns(data.campaigns)
 
-        // Fetch my applications
         const res2 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/my`, { headers })
         const data2 = await res2.json()
         if (data2.applications) setApplications(data2.applications)
@@ -37,10 +39,7 @@ export default function PromoterDashboard() {
       const token = localStorage.getItem('rf_token')
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ campaignId })
       })
       const data = await res.json()
@@ -55,7 +54,38 @@ export default function PromoterDashboard() {
     }
   }
 
+  const handleSubmitProof = async () => {
+    if (!submitForm.postUrl) return alert('Post URL দাও!')
+    setSubmitting(true)
+    try {
+      const token = localStorage.getItem('rf_token')
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          applicationId: submitModal.applicationId,
+          postUrl: submitForm.postUrl,
+          description: submitForm.description
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSubmissions(prev => [...prev, submitModal.applicationId])
+        setSubmitModal(null)
+        setSubmitForm({ postUrl: '', description: '' })
+        alert('Proof submitted successfully! 🎉')
+      } else {
+        alert(data.error || 'Something went wrong')
+      }
+    } catch (err) {
+      alert('Cannot connect to server')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const isApplied = (campaignId) => applications.some(a => a.campaignId === campaignId)
+  const hasSubmitted = (applicationId) => submissions.includes(applicationId)
 
   const STATS = [
     { label: 'Applied Campaigns', value: applications.length.toString(), icon: Target, color: 'from-violet-500 to-purple-600' },
@@ -77,13 +107,8 @@ export default function PromoterDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
           {STATS.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5"
-            >
+            <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <s.icon size={18} className="text-white" />
               </div>
@@ -103,13 +128,8 @@ export default function PromoterDashboard() {
           ) : (
             <div className="grid grid-cols-2 gap-4">
               {campaigns.map((c, i) => (
-                <motion.div
-                  key={c.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6"
-                >
+                <motion.div key={c.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                  className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <h3 className="font-semibold text-white">{c.title}</h3>
@@ -132,8 +152,7 @@ export default function PromoterDashboard() {
                     onClick={() => !isApplied(c.id) && handleApply(c.id)}
                     disabled={isApplied(c.id)}
                     className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                      isApplied(c.id)
-                        ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                      isApplied(c.id) ? 'bg-white/5 text-gray-500 cursor-not-allowed'
                         : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white'
                     }`}
                   >
@@ -147,11 +166,8 @@ export default function PromoterDashboard() {
 
         {/* My Applications */}
         {applications.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-white/5">
               <h2 className="font-semibold">My Applications</h2>
             </div>
@@ -160,6 +176,7 @@ export default function PromoterDashboard() {
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
                   <th className="px-6 py-3 text-left">Campaign</th>
                   <th className="px-6 py-3 text-center">Status</th>
+                  <th className="px-6 py-3 text-center">Action</th>
                   <th className="px-6 py-3 text-right">Applied</th>
                 </tr>
               </thead>
@@ -176,6 +193,20 @@ export default function PromoterDashboard() {
                         {a.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      {a.status === 'APPROVED' && (
+                        hasSubmitted(a.id) ? (
+                          <span className="text-xs text-emerald-400 font-medium">✓ Submitted</span>
+                        ) : (
+                          <button
+                            onClick={() => setSubmitModal({ applicationId: a.id, campaignTitle: a.campaign?.title })}
+                            className="text-xs bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg font-medium transition-all"
+                          >
+                            Submit Proof
+                          </button>
+                        )
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right text-sm text-gray-400">
                       {new Date(a.appliedAt).toLocaleDateString()}
                     </td>
@@ -186,6 +217,67 @@ export default function PromoterDashboard() {
           </motion.div>
         )}
       </div>
+
+      {/* Submit Proof Modal */}
+      <AnimatePresence>
+        {submitModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={(e) => e.target === e.currentTarget && setSubmitModal(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#1a1b23] border border-white/10 rounded-2xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-lg">Submit Proof</h3>
+                  <p className="text-gray-400 text-sm mt-0.5">{submitModal.campaignTitle}</p>
+                </div>
+                <button onClick={() => setSubmitModal(null)} className="text-gray-500 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 flex items-center gap-1.5">
+                    <Link size={14} /> Post URL *
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://facebook.com/your-post..."
+                    value={submitForm.postUrl}
+                    onChange={(e) => setSubmitForm(prev => ({ ...prev, postUrl: e.target.value }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 flex items-center gap-1.5">
+                    <FileText size={14} /> Description (optional)
+                  </label>
+                  <textarea
+                    placeholder="কী পোস্ট করেছ সংক্ষেপে লেখো..."
+                    value={submitForm.description}
+                    onChange={(e) => setSubmitForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setSubmitModal(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all">
+                  Cancel
+                </button>
+                <button onClick={handleSubmitProof} disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                  <Send size={14} />
+                  {submitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
