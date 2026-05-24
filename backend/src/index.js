@@ -353,16 +353,27 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         where: { id: req.params.id },
         data: { earnedAmount: amount }
       })
+      await createNotification(
+  promoter.userId,
+  '🎉 Submission Approved!',
+  `Your post for "${submission.campaign.title}" has been approved! $${submission.campaign.commissionAmount} added to your wallet.`,
+  'submission'
+)
     }
-    // Notification পাঠাও
-   await createNotification(
-     promoter.userId,
-    status === 'APPROVED' ? '🎉 Submission Approved!' : '❌ Submission Rejected',
-    status === 'APPROVED'
-      ? `Your post for "${submission.campaign.title}" has been approved! $${submission.campaign.commissionAmount} added to your wallet.`
-      : `Your post for "${submission.campaign.title}" was rejected.`,
+    if (status === 'REJECTED') {
+  const rejPromoter = await prisma.promoter.findUnique({
+    where: { id: submission.promoterId },
+    include: { user: true }
+  })
+  if (rejPromoter) {
+    await createNotification(
+      rejPromoter.userId,
+      '❌ Submission Rejected',
+      `Your post for "${submission.campaign.title}" was rejected.`,
       'submission'
     )
+  }
+}
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
