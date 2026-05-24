@@ -151,6 +151,53 @@ app.get('/api/campaigns', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Get Available Campaigns (for promoters)
+app.get('/api/campaigns/available', authMiddleware, async (req, res) => {
+  try {
+    const campaigns = await prisma.campaign.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json({ campaigns })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Apply to Campaign
+app.post('/api/applications', authMiddleware, async (req, res) => {
+  try {
+    const { campaignId } = req.body
+    const promoter = await prisma.promoter.findUnique({
+      where: { userId: req.userId }
+    })
+    if (!promoter) return res.status(400).json({ error: 'Promoter profile not found.' })
+    const application = await prisma.application.create({
+      data: { campaignId, promoterId: promoter.id }
+    })
+    res.json({ success: true, application })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get My Applications
+app.get('/api/applications/my', authMiddleware, async (req, res) => {
+  try {
+    const promoter = await prisma.promoter.findUnique({
+      where: { userId: req.userId }
+    })
+    if (!promoter) return res.json({ applications: [] })
+    const applications = await prisma.application.findMany({
+      where: { promoterId: promoter.id },
+      include: { campaign: true },
+      orderBy: { appliedAt: 'desc' }
+    })
+    res.json({ applications })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 // Get Single Campaign
 app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
   try {
