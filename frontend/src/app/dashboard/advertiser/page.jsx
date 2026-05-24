@@ -5,20 +5,18 @@ import { motion } from 'framer-motion'
 import { DollarSign, Users, MousePointer, TrendingUp, Eye, Target, Plus, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
-const STATS = [
-  { label: 'Total Campaigns', value: '0', change: '+0%', icon: Target, color: 'from-violet-500 to-purple-600' },
-  { label: 'Total Spent', value: '$0', change: '+0%', icon: DollarSign, color: 'from-blue-500 to-cyan-600' },
-  { label: 'Total Reach', value: '0', change: '+0%', icon: Eye, color: 'from-emerald-500 to-teal-600' },
-  { label: 'Total Clicks', value: '0', change: '+0%', icon: MousePointer, color: 'from-pink-500 to-rose-600' },
-  { label: 'Conversions', value: '0', change: '+0%', icon: TrendingUp, color: 'from-orange-500 to-amber-600' },
-  { label: 'Avg Engagement', value: '0%', change: '+0%', icon: Users, color: 'from-indigo-500 to-blue-600' },
-]
-
 export default function AdvertiserDashboard() {
   const [campaigns, setCampaigns] = useState([])
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-
+const STATS = [
+  { label: 'Total Campaigns', value: campaigns.length.toString(), icon: Target, color: 'from-violet-500 to-purple-600' },
+  { label: 'Total Spent', value: '$0', icon: DollarSign, color: 'from-blue-500 to-cyan-600' },
+  { label: 'Total Reach', value: '0', icon: Eye, color: 'from-emerald-500 to-teal-600' },
+  { label: 'Total Clicks', value: '0', icon: MousePointer, color: 'from-pink-500 to-rose-600' },
+  { label: 'Conversions', value: '0', icon: TrendingUp, color: 'from-orange-500 to-amber-600' },
+  { label: 'Avg Engagement', value: '0%', icon: Users, color: 'from-indigo-500 to-blue-600' },
+]
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
