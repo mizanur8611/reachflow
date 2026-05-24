@@ -189,7 +189,7 @@ export default function CreateCampaignPage() {
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map(p => (
                 <button
-                  key={p}  →  key={p.value}
+                  key={p.value}
                   onClick={() => togglePlatform(p)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
                     form.platforms.includes(p)  →  form.platforms.includes(p.value)
