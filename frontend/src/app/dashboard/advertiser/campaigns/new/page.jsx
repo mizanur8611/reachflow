@@ -6,7 +6,15 @@ import { ArrowLeft, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 
-const PLATFORMS = ['Facebook', 'TikTok', 'Instagram', 'YouTube', 'WhatsApp', 'Telegram', 'Twitter']
+const PLATFORMS = [
+  { label: 'Facebook', value: 'FACEBOOK' },
+  { label: 'TikTok', value: 'TIKTOK' },
+  { label: 'Instagram', value: 'INSTAGRAM' },
+  { label: 'YouTube', value: 'YOUTUBE' },
+  { label: 'WhatsApp', value: 'WHATSAPP' },
+  { label: 'Telegram', value: 'TELEGRAM' },
+  { label: 'Twitter', value: 'TWITTER' },
+]
 const CATEGORIES = ['Fashion', 'Food', 'Tech', 'Beauty', 'Health', 'Education', 'Gaming', 'General']
 
 export default function CreateCampaignPage() {
@@ -27,9 +35,9 @@ export default function CreateCampaignPage() {
   const togglePlatform = (p) => {
     setForm(f => ({
       ...f,
-      platforms: f.platforms.includes(p)
-        ? f.platforms.filter(x => x !== p)
-        : [...f.platforms, p]
+      platforms: f.platforms.includes(p.value)
+  ? f.platforms.filter(x => x !== p.value)
+  : [...f.platforms, p.value]
     }))
   }
 
@@ -181,15 +189,15 @@ export default function CreateCampaignPage() {
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map(p => (
                 <button
-                  key={p}
+                  key={p}  →  key={p.value}
                   onClick={() => togglePlatform(p)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                    form.platforms.includes(p)
+                    form.platforms.includes(p)  →  form.platforms.includes(p.value)
                       ? 'bg-violet-600 border-violet-500 text-white'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                   }`}
                 >
-                  {p}
+                  {p}  →  {p.label}
                 </button>
               ))}
             </div>
