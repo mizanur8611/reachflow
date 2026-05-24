@@ -10,6 +10,30 @@ export default function CampaignDetailsPage() {
   const router = useRouter()
   const [campaign, setCampaign] = useState(null)
   const [loading, setLoading] = useState(true)
+  const handleUpdateStatus = async (applicationId, status) => {
+  try {
+    const token = localStorage.getItem('rf_token')
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${applicationId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    })
+    const data = await res.json()
+    if (data.success) {
+      setCampaign(prev => ({
+        ...prev,
+        applications: prev.applications.map(a =>
+          a.id === applicationId ? { ...a, status } : a
+        )
+      }))
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -182,10 +206,14 @@ export default function CampaignDetailsPage() {
                     <td className="px-6 py-4 text-center">
                       {app.status === 'PENDING' && (
                         <div className="flex gap-2 justify-center">
-                          <button className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg">
+                          <button
+                          onClick={() => handleUpdateStatus(app.id, 'APPROVED')}
+                          className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg">
                             <CheckCircle size={16} />
                           </button>
-                          <button className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg">
+                          <button 
+                          onClick={() => handleUpdateStatus(app.id, 'REJECTED')}
+                          className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg">
                             <XCircle size={16} />
                           </button>
                         </div>

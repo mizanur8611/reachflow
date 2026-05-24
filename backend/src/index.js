@@ -207,6 +207,19 @@ app.get('/api/applications/my', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Approve/Reject Application
+app.put('/api/applications/:id', authMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const application = await prisma.application.update({
+      where: { id: req.params.id },
+      data: { status, reviewedAt: new Date() }
+    })
+    res.json({ success: true, application })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 // Get Single Campaign
 app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
   try {
