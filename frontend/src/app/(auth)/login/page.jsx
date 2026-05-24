@@ -49,7 +49,7 @@ export default function AuthPage() {
       localStorage.setItem('rf_token', data.token)
       setUser(data.user)
       toast.success(`Welcome back, ${data.user.name}! 👋`)
-      router.push(data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
+      router.push(data.user.role === 'ADMIN' ? '/admin' : data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
     },
     onError: (err) => toast.error(err.response?.data?.error ?? 'Login failed')
   })
