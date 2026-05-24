@@ -259,6 +259,7 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
         promoterId: promoter.id,
         applicationId,
         postUrl,
+        platform: 'FACEBOOK',
         description,
         status: 'PENDING'
       }
