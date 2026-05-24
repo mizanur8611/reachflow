@@ -197,7 +197,7 @@ export default function CreateCampaignPage() {
                       : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                   }`}
                 >
-                  {p}  →  {p.label}
+                  {p.label}
                 </button>
               ))}
             </div>
