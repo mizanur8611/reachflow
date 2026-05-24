@@ -147,7 +147,7 @@ const markAllRead = async () => {
       {/* Notification Bell */}
 <div className="relative">
   <button
-    onClick={() => { setShowNotif(s => !s); if (!showNotif) markAllRead() }}
+   onClick={() => setShowNotif(s => !s)}
     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all relative"
   >
     <div className="relative">
