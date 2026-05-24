@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { DollarSign, Users, MousePointer, TrendingUp, Eye, Target, Plus, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -15,6 +16,7 @@ const STATS = [
 
 export default function AdvertiserDashboard() {
   const [campaigns, setCampaigns] = useState([])
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function AdvertiserDashboard() {
                 <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">No campaigns yet. <Link href="/dashboard/advertiser/campaigns/new" className="text-violet-400">Create one!</Link></td></tr>
               ) : (
                 campaigns.map((c, i) => (
-                  <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={i} className="hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/advertiser/campaigns/${c.id}`)}>
                     <td className="px-6 py-4 text-white text-sm font-medium">{c.title}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-1 flex-wrap">

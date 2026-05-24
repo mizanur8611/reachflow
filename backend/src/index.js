@@ -151,5 +151,25 @@ app.get('/api/campaigns', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Get Single Campaign
+app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
+  try {
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: req.params.id },
+      include: {
+        applications: {
+          include: {
+            promoter: {
+              include: { user: true }
+            }
+          }
+        }
+      }
+    })
+    res.json({ campaign })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
