@@ -40,8 +40,7 @@ export default function AuthPage() {
   const router = useRouter()
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema) })
-  const registerForm = useForm({ resolver: zodResolver(registerSchema), defaultValues: { role: 'PROMOTER' } })
-
+  const registerForm = useForm({ resolver: zodResolver(registerSchema), defaultValues: { role: 'ADVERTISER' } })
   const loginMutation = useMutation({
     mutationFn: (data) => api.post('/auth/login', data),
     onSuccess: ({ data }) => {
@@ -255,7 +254,6 @@ export default function AuthPage() {
                     </div>
                     {registerForm.formState.errors.password && <p className="text-red-400 text-xs mt-1">{registerForm.formState.errors.password.message}</p>}
                   </div>
-                
 
                   <motion.button
                     whileHover={{ scale: 1.01 }}
