@@ -101,6 +101,12 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 app.post('/api/campaigns', authMiddleware, async (req, res) => {
   try {
     const { title, description, budget, platforms, commissionType, commissionAmount, category } = req.body
+    const advertiser = await prisma.advertiser.findUnique({
+  where: { userId: req.userId }
+})
+if (!advertiser) {
+  return res.status(400).json({ error: 'Advertiser profile not found.' })
+}
     const campaign = await prisma.campaign.create({
       data: {
         title,
@@ -112,7 +118,7 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
         targetPlatforms: platforms || [],
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        advertiserId: req.userId,
+        advertiserId: advertiser.id,
         status: 'ACTIVE'
       }
     })
