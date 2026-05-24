@@ -216,7 +216,7 @@ app.get('/api/applications/my', authMiddleware, async (req, res) => {
   }
 })
 // Approve/Reject Application
-app.put('/api/applications/:id', authMiddleware, async (req, res) => {
+ app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body
     const application = await prisma.application.update({
