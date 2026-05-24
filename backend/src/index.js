@@ -181,7 +181,14 @@ app.post('/api/applications', authMiddleware, async (req, res) => {
     const promoter = await prisma.promoter.findUnique({
       where: { userId: req.userId }
     })
-    if (!promoter) return res.status(400).json({ error: 'Promoter profile not found.' })
+    if (!promoter) {
+  promoter = await prisma.promoter.create({
+    data: {
+      userId: req.userId,
+      country: 'Bangladesh',
+    }
+  })
+  }
     const application = await prisma.application.create({
       data: { campaignId, promoterId: promoter.id }
     })
