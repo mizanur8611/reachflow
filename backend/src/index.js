@@ -240,5 +240,80 @@ app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Admin Middleware
+const adminMiddleware = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]
+  if (!token) return res.status(401).json({ error: 'Unauthorized' })
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+    if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    req.userId = decoded.userId
+    next()
+  } catch {
+    res.status(401).json({ error: 'Invalid token' })
+  }
+}
+
+// Admin - Get Stats
+app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
+  try {
+    const totalUsers = await prisma.user.count()
+    const totalAdvertisers = await prisma.user.count({ where: { role: 'ADVERTISER' } })
+    const totalPromoters = await prisma.user.count({ where: { role: 'PROMOTER' } })
+    const totalCampaigns = await prisma.campaign.count()
+    const totalApplications = await prisma.application.count()
+    const approvedApplications = await prisma.application.count({ where: { status: 'APPROVED' } })
+    res.json({ totalUsers, totalAdvertisers, totalPromoters, totalCampaigns, totalApplications, approvedApplications })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Admin - Get All Users
+app.get('/api/admin/users', adminMiddleware, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, email: true, role: true, createdAt: true }
+    })
+    res.json({ users })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Admin - Delete User
+app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
+  try {
+    await prisma.user.delete({ where: { id: req.params.id } })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Admin - Get All Campaigns
+app.get('/api/admin/campaigns', adminMiddleware, async (req, res) => {
+  try {
+    const campaigns = await prisma.campaign.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { advertiser: { include: { user: true } }, applications: true }
+    })
+    res.json({ campaigns })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Admin - Delete Campaign
+app.delete('/api/admin/campaigns/:id', adminMiddleware, async (req, res) => {
+  try {
+    await prisma.campaign.delete({ where: { id: req.params.id } })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
