@@ -107,7 +107,7 @@ export default function MySubmissionsPage() {
                 {submissions.map((s, i) => {
                   const config = statusConfig[s.status] || statusConfig.PENDING
                   const Icon = config.icon
-                  const trackUrl = trackingLinks[s.campaign?.id]
+                  const trackUrl = trackingLinks[s.campaignId || s.campaign?.id]
                   return (
                     <tr key={i} className="hover:bg-white/[0.02]">
                       <td className="px-6 py-4 text-sm font-medium">{s.campaign?.title || '-'}</td>
