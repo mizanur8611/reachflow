@@ -451,6 +451,63 @@ app.delete('/api/admin/campaigns/:id', adminMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Admin - User Status Update
+app.patch('/api/admin/users/:id/status', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { status }
+    })
+    res.json({ success: true, user })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Admin - Campaign Status Update
+app.patch('/api/admin/campaigns/:id/status', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const campaign = await prisma.campaign.update({
+      where: { id: req.params.id },
+      data: { status }
+    })
+    res.json({ success: true, campaign })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Admin - Get All Submissions
+app.get('/api/admin/submissions', adminMiddleware, async (req, res) => {
+  try {
+    const submissions = await prisma.submission.findMany({
+      include: {
+        promoter: { include: { user: true } },
+        campaign: true
+      },
+      orderBy: { submittedAt: 'desc' }
+    })
+    res.json({ submissions })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Admin - Update Submission Status
+app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const submission = await prisma.submission.update({
+      where: { id: req.params.id },
+      data: { status, reviewedAt: new Date() }
+    })
+    res.json({ success: true, submission })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
 // Get Wallet (Promoter)
 app.get('/api/wallet', authMiddleware, async (req, res) => {
   try {
