@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 
 dotenv.config()
+const paymentRouter = require('./routes/payment')
 
 const app = express()
 const prisma = new PrismaClient()
@@ -83,6 +84,7 @@ const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
     req.userId = decoded.userId
+    req.user = { id: decoded.userId }
     next()
   } catch {
     res.status(401).json({ error: 'Invalid token' })
@@ -633,6 +635,7 @@ app.get('/c/:shortCode', async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+app.use('/api/payment', paymentRouter)
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 
