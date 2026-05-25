@@ -38,30 +38,27 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await prisma.user.create({
       data: { name, email, password: hashedPassword, role: role || 'ADVERTISER' }
     })
-    // Auto create Advertiser profile
-if (role === 'ADVERTISER' || !role) {
-  await prisma.advertiser.create({
-    data: {
-      userId: user.id,
-      businessName: name,
-      category: 'General',
-      country: 'Bangladesh',
+  // Auto create Advertiser profile
+    if (role === 'ADVERTISER' || !role) {
+      await prisma.advertiser.create({
+        data: { userId: user.id, businessName: name, category: 'General', country: 'Bangladesh' }
+      })
     }
-  })
-}
-// Auto create Promoter profile
-if (role === 'PROMOTER') {
-  await prisma.promoter.create({
-    data: {
-      userId: user.id,
-      country: 'Bangladesh',
+    // Auto create Promoter profile
+    if (role === 'PROMOTER') {
+      await prisma.promoter.create({
+        data: { userId: user.id, country: 'Bangladesh' }
+      })
     }
-  })
-}
+    // Wallet create
+    await prisma.wallet.create({
+      data: { userId: user.id }
+    })
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Registration failed' })
   }
 })
 
