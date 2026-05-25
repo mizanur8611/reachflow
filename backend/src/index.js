@@ -565,6 +565,32 @@ app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Notifications - Get all
+app.get('/api/notification', authMiddleware, async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    })
+    res.json({ notifications })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Notifications - Mark all read
+app.patch('/api/notification/read-all', authMiddleware, async (req, res) => {
+  try {
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, read: false },
+      data: { read: true }
+    })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 
