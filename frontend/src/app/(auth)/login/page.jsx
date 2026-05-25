@@ -47,6 +47,7 @@ export default function AuthPage() {
     mutationFn: (data) => api.post('/auth/login', data),
     onSuccess: ({ data }) => {
       localStorage.setItem('rf_token', data.token)
+      localStorage.setItem('rf_user', JSON.stringify(data.user))
       setUser(data.user)
       toast.success(`Welcome back, ${data.user.name}! 👋`)
       router.push(data.user.role === 'ADMIN' ? '/admin' : data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
