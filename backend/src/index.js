@@ -591,6 +591,48 @@ app.patch('/api/notification/read-all', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Generate Tracking Link for Promoter
+app.post('/api/tracking/generate', authMiddleware, async (req, res) => {
+  try {
+    const { campaignId } = req.body
+    const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
+    if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
+    const existing = await prisma.trackingLink.findFirst({
+      where: { campaignId, promoterId: promoter.id }
+    })
+    if (existing) return res.json({ link: existing })
+    const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } })
+    const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const link = await prisma.trackingLink.create({
+      data: {
+        campaignId,
+        promoterId: promoter.id,
+        shortCode,
+        originalUrl: campaign.productUrl || `https://reachflow-j34o.onrender.com/c/${shortCode}`
+      }
+    })
+    res.json({ link })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Track click
+app.get('/c/:shortCode', async (req, res) => {
+  try {
+    const link = await prisma.trackingLink.findUnique({
+      where: { shortCode: req.params.shortCode }
+    })
+    if (!link) return res.status(404).json({ error: 'Link not found' })
+    await prisma.trackingLink.update({
+      where: { id: link.id },
+      data: { clicks: { increment: 1 } }
+    })
+    res.redirect(link.originalUrl)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 

@@ -1,19 +1,21 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, ExternalLink, Link, Copy, Check } from 'lucide-react'
 
 export default function MySubmissionsPage() {
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [trackingLinks, setTrackingLinks] = useState({})
+  const [copied, setCopied] = useState(null)
+
+  const token = localStorage.getItem('rf_token')
+  const headers = { 'Authorization': `Bearer ${token}` }
 
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const token = localStorage.getItem('rf_token')
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/my`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/my`, { headers })
         const data = await res.json()
         if (data.submissions) setSubmissions(data.submissions)
       } catch (err) {
@@ -24,6 +26,29 @@ export default function MySubmissionsPage() {
     }
     fetchSubmissions()
   }, [])
+
+  const generateLink = async (campaignId) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tracking/generate`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId })
+      })
+      const data = await res.json()
+      if (data.link) {
+        const url = `https://reachflow-j34o.onrender.com/c/${data.link.shortCode}`
+        setTrackingLinks(prev => ({ ...prev, [campaignId]: url }))
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const copyLink = (campaignId, url) => {
+    navigator.clipboard.writeText(url)
+    setCopied(campaignId)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   const statusConfig = {
     APPROVED: { label: 'Approved', color: 'bg-emerald-500/10 text-emerald-400', icon: CheckCircle },
@@ -73,6 +98,7 @@ export default function MySubmissionsPage() {
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
                   <th className="px-6 py-3 text-left">Campaign</th>
                   <th className="px-6 py-3 text-left">Post URL</th>
+                  <th className="px-6 py-3 text-left">Tracking Link</th>
                   <th className="px-6 py-3 text-center">Status</th>
                   <th className="px-6 py-3 text-right">Submitted</th>
                 </tr>
@@ -81,6 +107,7 @@ export default function MySubmissionsPage() {
                 {submissions.map((s, i) => {
                   const config = statusConfig[s.status] || statusConfig.PENDING
                   const Icon = config.icon
+                  const trackUrl = trackingLinks[s.campaign?.id]
                   return (
                     <tr key={i} className="hover:bg-white/[0.02]">
                       <td className="px-6 py-4 text-sm font-medium">{s.campaign?.title || '-'}</td>
@@ -89,6 +116,22 @@ export default function MySubmissionsPage() {
                           className="text-violet-400 hover:text-violet-300 flex items-center gap-1">
                           View Post <ExternalLink size={12} />
                         </a>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {trackUrl ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400 text-xs truncate max-w-[120px]">{trackUrl}</span>
+                            <button onClick={() => copyLink(s.campaign?.id, trackUrl)}
+                              className="p-1 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                              {copied === s.campaign?.id ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => generateLink(s.campaign?.id)}
+                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                            <Link size={12} /> Get Link
+                          </button>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 justify-center w-fit mx-auto ${config.color}`}>
