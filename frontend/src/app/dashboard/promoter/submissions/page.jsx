@@ -9,7 +9,7 @@ export default function MySubmissionsPage() {
   const [trackingLinks, setTrackingLinks] = useState({})
   const [copied, setCopied] = useState(null)
 
-  const token = localStorage.getItem('rf_token')
+  const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : ''
   const headers = { 'Authorization': `Bearer ${token}` }
 
   useEffect(() => {
