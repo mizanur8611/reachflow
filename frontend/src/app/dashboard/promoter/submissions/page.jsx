@@ -127,7 +127,7 @@ export default function MySubmissionsPage() {
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => generateLink(s.campaign?.id)}
+                          <button onClick={() => generateLink(s.campaignId || s.campaign?.id)}
                             className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
                             <Link size={12} /> Get Link
                           </button>
