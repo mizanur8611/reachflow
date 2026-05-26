@@ -2,14 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Wallet, Plus, ArrowUpRight, CreditCard, Smartphone, Globe, Bitcoin, X, Copy, Check, RefreshCw, ArrowDownLeft } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL
-
-const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${getToken()}`
-})
+import { api } from '@/lib/api'
 
 const METHODS = [
   { id: 'stripe', label: 'Credit / Debit Card', icon: CreditCard, color: 'from-blue-500 to-cyan-500', currency: 'USD' },
@@ -53,10 +46,9 @@ export default function WalletPage() {
 
   const fetchWallet = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/payment/wallet`, { headers: authHeaders() })
-      const data = await res.json()
-      if (data.success) setWallet(data.wallet)
-      else showToast(data.error || 'Failed to load wallet', 'error')
+      const res = await api.get('/payment/wallet')
+      if (res.data.success) setWallet(res.data.wallet)
+      else showToast(res.data.error || 'Failed to load wallet', 'error')
     } catch {
       showToast('Failed to load wallet', 'error')
     } finally {
@@ -79,53 +71,33 @@ export default function WalletPage() {
     setPaying(true)
     try {
       if (selected === 'stripe') {
-        const res = await fetch(`${API}/api/payment/stripe/create-intent`, {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount: parseFloat(amount) })
-        })
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
+        const res = await api.post('/payment/stripe/create-intent', { amount: parseFloat(amount) })
+        if (!res.data.success) throw new Error(res.data.error)
         showToast('Stripe: Integrate Stripe.js with clientSecret in production', 'success')
       }
       else if (selected === 'paypal') {
-        const res = await fetch(`${API}/api/payment/paypal/create-order`, {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount: parseFloat(amount) })
-        })
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
+        const res = await api.post('/payment/paypal/create-order', { amount: parseFloat(amount) })
+        if (!res.data.success) throw new Error(res.data.error)
         showToast('PayPal: Integrate PayPal SDK with orderId in production', 'success')
       }
       else if (selected === 'bkash') {
-        const res = await fetch(`${API}/api/payment/bkash/create-payment`, {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount: parseFloat(amount) })
-        })
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
-        window.location.href = data.bkashURL
+        const res = await api.post('/payment/bkash/create-payment', { amount: parseFloat(amount) })
+        if (!res.data.success) throw new Error(res.data.error)
+        window.location.href = res.data.bkashURL
       }
       else if (selected === 'nagad') {
-        const res = await fetch(`${API}/api/payment/nagad/create-payment`, {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount: parseFloat(amount) })
-        })
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
-        window.location.href = data.redirectUrl
+        const res = await api.post('/payment/nagad/create-payment', { amount: parseFloat(amount) })
+        if (!res.data.success) throw new Error(res.data.error)
+        window.location.href = res.data.redirectUrl
       }
       else if (selected === 'crypto') {
-        const res = await fetch(`${API}/api/payment/crypto/create-payment`, {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount: parseFloat(amount) })
-        })
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
-        setCryptoInfo(data)
+        const res = await api.post('/payment/crypto/create-payment', { amount: parseFloat(amount) })
+        if (!res.data.success) throw new Error(res.data.error)
+        setCryptoInfo(res.data)
         setShowModal(false)
       }
     } catch (err) {
-      showToast(err.message || 'Payment failed', 'error')
+      showToast(err.response?.data?.error || err.message || 'Payment failed', 'error')
     } finally {
       setPaying(false)
     }
@@ -308,4 +280,3 @@ export default function WalletPage() {
     </div>
   )
 }
-
