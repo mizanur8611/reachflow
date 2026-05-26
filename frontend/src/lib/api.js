@@ -5,10 +5,11 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' 
-    ? localStorage.getItem('rf_token') 
-    : null
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('rf_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  }
   return config
 })
-
