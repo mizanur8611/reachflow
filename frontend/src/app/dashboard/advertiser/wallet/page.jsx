@@ -40,7 +40,7 @@ export default function WalletPage() {
 
   const fetchWallet = useCallback(async () => {
     try {
-      const res = await fetch('/api/payment/wallet')
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/wallet`)
       const data = await res.json()
       if (data.success) setWallet(data.wallet)
     } catch {
@@ -76,7 +76,7 @@ export default function WalletPage() {
 
       // ── Stripe ──
       if (method === 'stripe') {
-        const res = await fetch('/api/payment/stripe/create-intent', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/stripe/create-intent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(amount) })
@@ -90,7 +90,7 @@ export default function WalletPage() {
 
       // ── PayPal ──
       else if (method === 'paypal') {
-        const res = await fetch('/api/payment/paypal/create-order', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/paypal/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(amount) })
@@ -103,7 +103,7 @@ export default function WalletPage() {
 
       // ── bKash ──
       else if (method === 'bkash') {
-        const res = await fetch('/api/payment/bkash/create-payment', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/bkash/create-payment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(amount) })
@@ -116,7 +116,7 @@ export default function WalletPage() {
 
       // ── Nagad ──
       else if (method === 'nagad') {
-        const res = await fetch('/api/payment/nagad/create-payment', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/nagad/create-payment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(amount) })
@@ -128,7 +128,7 @@ export default function WalletPage() {
 
       // ── Crypto ──
       else if (method === 'crypto') {
-        const res = await fetch('/api/payment/crypto/create-payment', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/crypto/create-payment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(amount) })
