@@ -3,6 +3,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Wallet, Plus, ArrowUpRight, CreditCard, Smartphone, Globe, Bitcoin, X, Copy, Check, RefreshCw, ArrowDownLeft } from 'lucide-react'
 
+const API = process.env.NEXT_PUBLIC_API_URL
+
+const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${getToken()}`
+})
+
 const METHODS = [
   { id: 'stripe', label: 'Credit / Debit Card', icon: CreditCard, color: 'from-blue-500 to-cyan-500', currency: 'USD' },
   { id: 'paypal', label: 'PayPal', icon: Globe, color: 'from-blue-600 to-indigo-600', currency: 'USD' },
@@ -38,11 +46,17 @@ export default function WalletPage() {
   const [copied, setCopied] = useState(false)
   const [toast, setToast] = useState(null)
 
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
   const fetchWallet = useCallback(async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/wallet`)
+      const res = await fetch(`${API}/api/payment/wallet`, { headers: authHeaders() })
       const data = await res.json()
       if (data.success) setWallet(data.wallet)
+      else showToast(data.error || 'Failed to load wallet', 'error')
     } catch {
       showToast('Failed to load wallet', 'error')
     } finally {
@@ -52,85 +66,57 @@ export default function WalletPage() {
 
   useEffect(() => {
     fetchWallet()
-
-    // Check for redirect status (bKash/Nagad callback)
     const params = new URLSearchParams(window.location.search)
     const status = params.get('status')
     const method = params.get('method')
-    if (status === 'success') showToast(`${method?.toUpperCase() || 'Payment'} successful! Balance updated.`, 'success')
+    if (status === 'success') showToast(`${method?.toUpperCase() || 'Payment'} successful!`, 'success')
     if (status === 'failed') showToast('Payment was cancelled or failed.', 'error')
     if (status) window.history.replaceState({}, '', window.location.pathname)
   }, [fetchWallet])
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 4000)
-  }
-
   const handlePay = async () => {
     if (!amount || parseFloat(amount) <= 0) return showToast('Enter a valid amount', 'error')
     setPaying(true)
-
     try {
-      const method = selected
-
-      // ── Stripe ──
-      if (method === 'stripe') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/stripe/create-intent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      if (selected === 'stripe') {
+        const res = await fetch(`${API}/api/payment/stripe/create-intent`, {
+          method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ amount: parseFloat(amount) })
         })
         const data = await res.json()
         if (!data.success) throw new Error(data.error)
-        // TODO: open Stripe Elements with data.clientSecret
-        // For now, show message
-        showToast('Stripe: Redirect to card form (integrate Stripe.js in production)', 'success')
+        showToast('Stripe: Integrate Stripe.js with clientSecret in production', 'success')
       }
-
-      // ── PayPal ──
-      else if (method === 'paypal') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/paypal/create-order`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      else if (selected === 'paypal') {
+        const res = await fetch(`${API}/api/payment/paypal/create-order`, {
+          method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ amount: parseFloat(amount) })
         })
         const data = await res.json()
         if (!data.success) throw new Error(data.error)
-        // TODO: open PayPal button with data.orderId
-        showToast('PayPal: Redirect to PayPal (integrate PayPal SDK in production)', 'success')
+        showToast('PayPal: Integrate PayPal SDK with orderId in production', 'success')
       }
-
-      // ── bKash ──
-      else if (method === 'bkash') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/bkash/create-payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      else if (selected === 'bkash') {
+        const res = await fetch(`${API}/api/payment/bkash/create-payment`, {
+          method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ amount: parseFloat(amount) })
         })
         const data = await res.json()
         if (!data.success) throw new Error(data.error)
-        // Redirect to bKash payment page
         window.location.href = data.bkashURL
       }
-
-      // ── Nagad ──
-      else if (method === 'nagad') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/nagad/create-payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      else if (selected === 'nagad') {
+        const res = await fetch(`${API}/api/payment/nagad/create-payment`, {
+          method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ amount: parseFloat(amount) })
         })
         const data = await res.json()
         if (!data.success) throw new Error(data.error)
         window.location.href = data.redirectUrl
       }
-
-      // ── Crypto ──
-      else if (method === 'crypto') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/crypto/create-payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      else if (selected === 'crypto') {
+        const res = await fetch(`${API}/api/payment/crypto/create-payment`, {
+          method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ amount: parseFloat(amount) })
         })
         const data = await res.json()
@@ -138,7 +124,6 @@ export default function WalletPage() {
         setCryptoInfo(data)
         setShowModal(false)
       }
-
     } catch (err) {
       showToast(err.message || 'Payment failed', 'error')
     } finally {
@@ -166,8 +151,6 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
       <div className="max-w-5xl mx-auto">
-
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">Wallet</h1>
@@ -177,16 +160,13 @@ export default function WalletPage() {
             <button onClick={fetchWallet} className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
               <RefreshCw size={16} className="text-gray-400" />
             </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all"
-            >
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all">
               <Plus size={16} /> Add Money
             </button>
           </div>
         </div>
 
-        {/* Balance Cards */}
         <div className="grid grid-cols-3 gap-5 mb-8">
           {[
             { label: 'Available Balance', value: `$${(wallet?.balance || 0).toFixed(2)}`, icon: Wallet, color: 'from-violet-500 to-purple-600' },
@@ -204,21 +184,16 @@ export default function WalletPage() {
           ))}
         </div>
 
-        {/* Crypto Payment Info */}
         <AnimatePresence>
           {cryptoInfo && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="bg-[#1a1b23] border border-yellow-500/30 rounded-2xl p-6 mb-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-yellow-400 flex items-center gap-2">
-                    <Bitcoin size={18} /> Send USDT (TRC20)
-                  </h3>
-                  <p className="text-gray-400 text-sm mt-1">Send exactly <span className="text-white font-semibold">{cryptoInfo.payAmount} USDT</span> to the address below</p>
+                  <h3 className="font-semibold text-yellow-400 flex items-center gap-2"><Bitcoin size={18} /> Send USDT (TRC20)</h3>
+                  <p className="text-gray-400 text-sm mt-1">Send exactly <span className="text-white font-semibold">{cryptoInfo.payAmount} USDT</span></p>
                 </div>
-                <button onClick={() => setCryptoInfo(null)} className="text-gray-500 hover:text-white">
-                  <X size={18} />
-                </button>
+                <button onClick={() => setCryptoInfo(null)} className="text-gray-500 hover:text-white"><X size={18} /></button>
               </div>
               <div className="bg-black/30 rounded-xl p-4 flex items-center justify-between gap-3">
                 <code className="text-yellow-400 text-sm break-all">{cryptoInfo.payAddress}</code>
@@ -226,12 +201,11 @@ export default function WalletPage() {
                   {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} className="text-yellow-400" />}
                 </button>
               </div>
-              <p className="text-gray-500 text-xs mt-3">Balance will update automatically after network confirmation (usually 1-5 mins)</p>
+              <p className="text-gray-500 text-xs mt-3">Balance updates after network confirmation (1-5 mins)</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Transactions */}
         <div className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
           <div className="px-6 py-4 border-b border-white/5">
             <h2 className="font-semibold text-white">Transaction History</h2>
@@ -257,13 +231,9 @@ export default function WalletPage() {
                         <p className="text-white text-sm">{tx.description || TYPE_LABELS[tx.type] || tx.type}</p>
                         <p className="text-gray-500 text-xs mt-0.5">{new Date(tx.createdAt).toLocaleDateString()}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-white/5 text-gray-400 text-xs px-2 py-1 rounded-full">{tx.method}</span>
-                      </td>
+                      <td className="px-6 py-4"><span className="bg-white/5 text-gray-400 text-xs px-2 py-1 rounded-full">{tx.method}</span></td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`text-xs px-2 py-1 rounded-full ${STATUS_STYLES[tx.status] || 'bg-white/5 text-gray-400'}`}>
-                          {tx.status}
-                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${STATUS_STYLES[tx.status] || 'bg-white/5 text-gray-400'}`}>{tx.status}</span>
                       </td>
                       <td className={`px-6 py-4 text-right font-semibold text-sm ${isCredit ? 'text-emerald-400' : 'text-red-400'}`}>
                         {isCredit ? '+' : '-'}${tx.amount.toFixed(2)}
@@ -277,22 +247,16 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Add Money Modal */}
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
               className="bg-[#12131a] border border-white/10 rounded-2xl w-full max-w-md p-6">
-
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-bold text-white">Add Money</h2>
-                <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-white transition-colors">
-                  <X size={20} />
-                </button>
+                <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
               </div>
-
-              {/* Amount */}
               <div className="mb-4">
                 <label className="text-sm text-gray-400 mb-1.5 block">
                   Amount ({isBDT ? 'BDT' : 'USD'}) {isBDT && <span className="text-gray-500">≈ ${(parseFloat(amount || 0) / 110).toFixed(2)} USD</span>}
@@ -311,8 +275,6 @@ export default function WalletPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Payment Methods */}
               <div className="space-y-2 mb-5">
                 {METHODS.map(m => (
                   <button key={m.id} onClick={() => setSelected(m.id)}
@@ -325,13 +287,9 @@ export default function WalletPage() {
                   </button>
                 ))}
               </div>
-
-              <button
-                onClick={handlePay}
-                disabled={paying || !amount || parseFloat(amount) <= 0}
-                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
-              >
-                {paying ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+              <button onClick={handlePay} disabled={paying || !amount || parseFloat(amount) <= 0}
+                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2">
+                {paying && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Pay {isBDT ? '৳' : '$'}{amount || '0'} via {selectedMethod?.label}
               </button>
             </motion.div>
@@ -339,7 +297,6 @@ export default function WalletPage() {
         )}
       </AnimatePresence>
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
@@ -351,3 +308,4 @@ export default function WalletPage() {
     </div>
   )
 }
+
