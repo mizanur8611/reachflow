@@ -164,7 +164,7 @@ const markAllRead = async () => {
     )}
   </button>
   {showNotif && (
-    <div className="absolute bottom-12 left-full ml-2 w-72 bg-[#1a1b23] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+    <div className="absolute bottom-12 left-0 w-72 bg-[#1a1b23] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
         <span className="text-sm font-semibold text-white">Notifications</span>
         <button onClick={markAllRead} className="text-xs text-violet-400 hover:text-violet-300">Mark all read</button>
