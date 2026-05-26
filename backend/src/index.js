@@ -637,6 +637,82 @@ app.get('/c/:shortCode', async (req, res) => {
   }
 })
 app.use('/api/payment', authMiddleware, paymentRouter)
+
+// Get Users for messaging
+app.get('/api/users', authMiddleware, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { id: { not: req.userId } },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: 'asc' }
+    })
+    res.json({ users })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get Conversations
+app.get('/api/messages/conversations', authMiddleware, async (req, res) => {
+  try {
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [{ senderId: req.userId }, { receiverId: req.userId }]
+      },
+      include: {
+        sender: { select: { id: true, name: true, role: true } },
+        receiver: { select: { id: true, name: true, role: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json({ messages })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get Messages with a specific user
+app.get('/api/messages/:userId', authMiddleware, async (req, res) => {
+  try {
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: req.userId, receiverId: req.params.userId },
+          { senderId: req.params.userId, receiverId: req.userId }
+        ]
+      },
+      include: {
+        sender: { select: { id: true, name: true } },
+        receiver: { select: { id: true, name: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    })
+    await prisma.message.updateMany({
+      where: { senderId: req.params.userId, receiverId: req.userId, read: false },
+      data: { read: true }
+    })
+    res.json({ messages })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Send Message
+app.post('/api/messages', authMiddleware, async (req, res) => {
+  try {
+    const { receiverId, content } = req.body
+    const message = await prisma.message.create({
+      data: { senderId: req.userId, receiverId, content },
+      include: {
+        sender: { select: { id: true, name: true } },
+        receiver: { select: { id: true, name: true } }
+      }
+    })
+    res.json({ message })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 
