@@ -78,7 +78,7 @@ export default function MessagesPage() {
   )
 
   return (
-    <div className="h-screen bg-[#0a0b0f] text-white flex overflow-hidden">
+    <div className="h-full bg-[#0a0b0f] text-white flex overflow-hidden" style={{height: 'calc(100vh)'}}>
       {/* Sidebar */}
       <div className="w-72 border-r border-white/5 flex flex-col shrink-0">
         <div className="p-4 border-b border-white/5">

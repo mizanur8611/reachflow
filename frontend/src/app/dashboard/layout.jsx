@@ -14,7 +14,7 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="flex h-screen bg-[#0a0b0f]">
       <Sidebar role={role} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-hidden flex flex-col">
         {children}
       </main>
     </div>
