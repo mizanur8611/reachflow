@@ -15,12 +15,13 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
+  //  const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
 
   // Fetch all users to message
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        const token = localStorage.getItem('rf_token')
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
           headers: { Authorization: `Bearer ${token}` }
         })
@@ -31,6 +32,7 @@ export default function MessagesPage() {
 
     const fetchConversations = async () => {
       try {
+        const token = localStorage.getItem('rf_token')
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages/conversations`, {
           headers: { Authorization: `Bearer ${token}` }
         })
