@@ -2,26 +2,29 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Send, MessageSquare, Search } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
 
 export default function MessagesPage() {
-  const { user } = useAuthStore()
-  const [conversations, setConversations] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [users, setUsers] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [myId, setMyId] = useState(null)
   const bottomRef = useRef(null)
 
-  //  const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
-
-  // Fetch all users to message
   useEffect(() => {
+    const token = localStorage.getItem('rf_token')
+    if (!token) return
+
+    // Decode JWT to get userId
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      setMyId(payload.userId || payload.id)
+    } catch (e) {}
+
     const fetchUsers = async () => {
       try {
-        const token = localStorage.getItem('rf_token')
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
           headers: { Authorization: `Bearer ${token}` }
         })
@@ -29,35 +32,12 @@ export default function MessagesPage() {
         setUsers(data.users || [])
       } catch (err) {}
     }
-
-    const fetchConversations = async () => {
-      try {
-        const token = localStorage.getItem('rf_token')
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages/conversations`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const data = await res.json()
-        // Get unique users from conversations
-        const seen = new Set()
-        const convUsers = []
-        ;(data.messages || []).forEach(m => {
-          const other = m.senderId === user?.id ? m.receiver : m.sender
-          if (other && !seen.has(other.id)) {
-            seen.add(other.id)
-            convUsers.push({ ...other, lastMessage: m.content, lastTime: m.createdAt })
-          }
-        })
-        setConversations(convUsers)
-      } catch (err) {}
-    }
-
     fetchUsers()
-    fetchConversations()
   }, [])
 
-  // Fetch messages with selected user
   useEffect(() => {
     if (!selectedUser) return
+    const token = localStorage.getItem('rf_token')
     const fetchMessages = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages/${selectedUser.id}`, {
@@ -75,6 +55,7 @@ export default function MessagesPage() {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedUser) return
+    const token = localStorage.getItem('rf_token')
     setLoading(true)
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages`, {
@@ -93,16 +74,13 @@ export default function MessagesPage() {
   }
 
   const filteredUsers = users.filter(u =>
-    u.id !== user?.id &&
     u.name?.toLowerCase().includes(search.toLowerCase())
   )
-
-  const displayUsers = search ? filteredUsers : conversations.length > 0 ? conversations : filteredUsers
 
   return (
     <div className="h-screen bg-[#0a0b0f] text-white flex overflow-hidden">
       {/* Sidebar */}
-      <div className="w-72 border-r border-white/5 flex flex-col">
+      <div className="w-72 border-r border-white/5 flex flex-col shrink-0">
         <div className="p-4 border-b border-white/5">
           <h2 className="font-bold text-lg mb-3">Messages</h2>
           <div className="relative">
@@ -116,10 +94,10 @@ export default function MessagesPage() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {displayUsers.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="p-4 text-center text-gray-500 text-sm">No users found</div>
           ) : (
-            displayUsers.map(u => (
+            filteredUsers.map(u => (
               <div
                 key={u.id}
                 onClick={() => setSelectedUser(u)}
@@ -130,9 +108,6 @@ export default function MessagesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{u.name}</p>
-                  {u.lastMessage && (
-                    <p className="text-xs text-gray-500 truncate">{u.lastMessage}</p>
-                  )}
                   <p className="text-xs text-gray-600 capitalize">{u.role?.toLowerCase()}</p>
                 </div>
               </div>
@@ -142,10 +117,9 @@ export default function MessagesPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {selectedUser ? (
           <>
-            {/* Header */}
             <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-bold">
                 {selectedUser.name?.[0]?.toUpperCase()}
@@ -155,23 +129,13 @@ export default function MessagesPage() {
                 <p className="text-xs text-gray-500 capitalize">{selectedUser.role?.toLowerCase()}</p>
               </div>
             </div>
-
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
               {messages.map((m, i) => {
-                const isMe = m.senderId === user?.id
+                const isMe = m.senderId === myId
                 return (
-                  <motion.div
-                    key={m.id || i}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm ${
-                      isMe
-                        ? 'bg-violet-600 text-white rounded-br-sm'
-                        : 'bg-white/10 text-white rounded-bl-sm'
-                    }`}>
+                  <motion.div key={m.id || i} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-violet-600 text-white rounded-br-sm' : 'bg-white/10 text-white rounded-bl-sm'}`}>
                       <p>{m.content}</p>
                       <p className={`text-xs mt-1 ${isMe ? 'text-violet-200' : 'text-gray-500'}`}>
                         {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -182,8 +146,6 @@ export default function MessagesPage() {
               })}
               <div ref={bottomRef} />
             </div>
-
-            {/* Input */}
             <div className="px-6 py-4 border-t border-white/5 flex items-center gap-3">
               <input
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 text-sm"
@@ -192,11 +154,8 @@ export default function MessagesPage() {
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
               />
-              <button
-                onClick={sendMessage}
-                disabled={loading || !newMessage.trim()}
-                className="p-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors"
-              >
+              <button onClick={sendMessage} disabled={loading || !newMessage.trim()}
+                className="p-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors">
                 <Send size={16} />
               </button>
             </div>
