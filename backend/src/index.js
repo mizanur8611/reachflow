@@ -9,6 +9,18 @@ const crypto = require('crypto')
 dotenv.config()
 const paymentRouter = require('./routes/payment')
 
+const cloudinary = require('cloudinary').v2
+const multer = require('multer')
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+})
+
+const storage = multer.memoryStorage()
+const upload = multer({ storage })
+
 const app = express()
 const prisma = new PrismaClient()
 
@@ -488,6 +500,20 @@ app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
       data: { read: true }
     })
     res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Image Upload
+app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    const b64 = Buffer.from(req.file.buffer).toString('base64')
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: 'reachflow'
+    })
+    res.json({ success: true, url: result.secure_url })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
