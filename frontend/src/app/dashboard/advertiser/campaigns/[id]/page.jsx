@@ -97,7 +97,7 @@ export default function CampaignDetailsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-8 pb-16">
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
