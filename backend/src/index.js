@@ -641,12 +641,26 @@ app.use('/api/payment', authMiddleware, paymentRouter)
 // Get Users for messaging
 app.get('/api/users', authMiddleware, async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      where: { id: { not: req.userId } },
-      select: { id: true, name: true, role: true },
-      orderBy: { name: 'asc' }
+    const allUsers = await prisma.user.findMany({
+     where: { id: { not: req.userId } },
+     select: { id: true, name: true, role: true },
     })
-    res.json({ users })
+
+    const lastMessages = await prisma.message.findMany({
+      where: {
+        OR: [{ senderId: req.userId }, { receiverId: req.userId }]
+         },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['senderId', 'receiverId'],
+    })
+
+    const getLastMessageTime = (userId) => {
+    const msg = lastMessages.find(m => m.senderId === userId || m.receiverId === userId)
+      return msg ? new Date(msg.createdAt).getTime() : 0
+    }
+
+    const users = allUsers.sort((a, b) => getLastMessageTime(b.id) - getLastMessageTime(a.id))
+  res.json({ users })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
