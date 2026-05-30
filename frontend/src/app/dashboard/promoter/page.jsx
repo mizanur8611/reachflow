@@ -1,16 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { DollarSign, Target, Clock, CheckCircle, X, Send, Link, FileText } from 'lucide-react'
+import { DollarSign, Target, Clock, CheckCircle, X, Send, Link, FileText, ExternalLink } from 'lucide-react'
 
 export default function PromoterDashboard() {
   const [campaigns, setCampaigns] = useState([])
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
-  const [submitModal, setSubmitModal] = useState(null) // { applicationId, campaignTitle }
+  const [submitModal, setSubmitModal] = useState(null)
   const [submitForm, setSubmitForm] = useState({ postUrl: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [submissions, setSubmissions] = useState([]) // track submitted applicationIds
+  const [submittedIds, setSubmittedIds] = useState([]) // applicationIds already submitted
+  const [trackingLinks, setTrackingLinks] = useState({}) // campaignId -> shortCode
+  const [generatingLink, setGeneratingLink] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,13 +20,24 @@ export default function PromoterDashboard() {
         const token = localStorage.getItem('rf_token')
         const headers = { 'Authorization': `Bearer ${token}` }
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/available`, { headers })
-        const data = await res.json()
-        if (data.campaigns) setCampaigns(data.campaigns)
+        const [res1, res2, res3] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/available`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/my`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/my`, { headers }),
+        ])
 
-        const res2 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/my`, { headers })
+        const data1 = await res1.json()
         const data2 = await res2.json()
+        const data3 = await res3.json()
+
+        if (data1.campaigns) setCampaigns(data1.campaigns)
         if (data2.applications) setApplications(data2.applications)
+
+        // Track which applications already have submissions
+        if (data3.submissions) {
+          const ids = data3.submissions.map(s => s.applicationId).filter(Boolean)
+          setSubmittedIds(ids)
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -44,13 +57,33 @@ export default function PromoterDashboard() {
       })
       const data = await res.json()
       if (data.success) {
-        alert('Applied successfully!')
         setApplications(prev => [...prev, data.application])
       } else {
         alert(data.error || 'Something went wrong')
       }
     } catch (err) {
       alert('Cannot connect to server')
+    }
+  }
+
+  const handleGenerateLink = async (campaignId) => {
+    setGeneratingLink(campaignId)
+    try {
+      const token = localStorage.getItem('rf_token')
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tracking/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ campaignId })
+      })
+      const data = await res.json()
+      if (data.link) {
+        const trackingUrl = `${process.env.NEXT_PUBLIC_API_URL}/c/${data.link.shortCode}`
+        setTrackingLinks(prev => ({ ...prev, [campaignId]: trackingUrl }))
+      }
+    } catch (err) {
+      alert('Cannot generate link')
+    } finally {
+      setGeneratingLink(null)
     }
   }
 
@@ -70,7 +103,7 @@ export default function PromoterDashboard() {
       })
       const data = await res.json()
       if (data.success) {
-        setSubmissions(prev => [...prev, submitModal.applicationId])
+        setSubmittedIds(prev => [...prev, submitModal.applicationId])
         setSubmitModal(null)
         setSubmitForm({ postUrl: '', description: '' })
         alert('Proof submitted successfully! 🎉')
@@ -85,7 +118,8 @@ export default function PromoterDashboard() {
   }
 
   const isApplied = (campaignId) => applications.some(a => a.campaignId === campaignId)
-  const hasSubmitted = (applicationId) => submissions.includes(applicationId)
+  const hasSubmitted = (applicationId) => submittedIds.includes(applicationId)
+  const getApplication = (campaignId) => applications.find(a => a.campaignId === campaignId)
 
   const STATS = [
     { label: 'Applied Campaigns', value: applications.length.toString(), icon: Target, color: 'from-violet-500 to-purple-600' },
@@ -118,53 +152,105 @@ export default function PromoterDashboard() {
           ))}
         </div>
 
-        {/* Available Campaigns */}
-        <div className="mb-6">
+        {/* Available Campaigns — FIX: scroll হবে */}
+        <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Available Campaigns</h2>
           {loading ? (
             <div className="text-gray-500 text-center py-12">Loading...</div>
           ) : campaigns.length === 0 ? (
             <div className="text-gray-500 text-center py-12">No campaigns available yet.</div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {campaigns.map((c, i) => (
-                <motion.div key={c.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-white">{c.title}</h3>
-                      <p className="text-gray-400 text-xs mt-1">{c.description}</p>
+            <div className="grid grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+              {campaigns.map((c, i) => {
+                const app = getApplication(c.id)
+                const approved = app?.status === 'APPROVED'
+                const trackingUrl = trackingLinks[c.id]
+
+                return (
+                  <motion.div key={c.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-white">{c.title}</h3>
+                        <p className="text-gray-400 text-xs mt-1">{c.description}</p>
+                      </div>
+                      <span className="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full whitespace-nowrap ml-2">
+                        ${c.commissionAmount} / {c.commissionType?.replace('PER_', '')}
+                      </span>
                     </div>
-                    <span className="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full">
-                      ${c.commissionAmount} / {c.commissionType?.replace('PER_', '')}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {c.targetPlatforms?.map(p => (
-                      <span key={p} className="bg-white/5 text-gray-400 text-xs px-2 py-0.5 rounded-full">{p}</span>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                    <span>Budget: ${c.totalBudget}</span>
-                    <span>Category: {c.category}</span>
-                  </div>
-                  <button
-                    onClick={() => !isApplied(c.id) && handleApply(c.id)}
-                    disabled={isApplied(c.id)}
-                    className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                      isApplied(c.id) ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white'
-                    }`}
-                  >
-                    {isApplied(c.id) ? '✓ Applied' : 'Apply Now'}
-                  </button>
-                </motion.div>
-              ))}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {c.targetPlatforms?.map(p => (
+                        <span key={p} className="bg-white/5 text-gray-400 text-xs px-2 py-0.5 rounded-full">{p}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                      <span>Budget: ${c.totalBudget}</span>
+                      <span>Category: {c.category}</span>
+                    </div>
+
+                    {/* Apply Button */}
+                    <button
+                      onClick={() => !isApplied(c.id) && handleApply(c.id)}
+                      disabled={isApplied(c.id)}
+                      className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all mb-2 ${
+                        isApplied(c.id)
+                          ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white'
+                      }`}
+                    >
+                      {isApplied(c.id) ? `✓ Applied (${app?.status})` : 'Apply Now'}
+                    </button>
+
+                    {/* Approved Actions: Get Link + Submit Proof */}
+                    {approved && (
+                      <div className="space-y-2 mt-2">
+                        {/* Tracking Link */}
+                        {trackingUrl ? (
+                          <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2">
+                            <ExternalLink size={12} className="text-violet-400 shrink-0" />
+                            <span className="text-xs text-violet-300 truncate">{trackingUrl}</span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(trackingUrl); alert('Copied!') }}
+                              className="text-xs text-gray-400 hover:text-white ml-auto shrink-0"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleGenerateLink(c.id)}
+                            disabled={generatingLink === c.id}
+                            className="w-full py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-gray-300 transition-all border border-white/10 flex items-center justify-center gap-2"
+                          >
+                            <Link size={12} />
+                            {generatingLink === c.id ? 'Generating...' : 'Get Tracking Link'}
+                          </button>
+                        )}
+
+                        {/* Submit Proof */}
+                        {hasSubmitted(app?.id) ? (
+                          <div className="w-full py-2 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 text-center">
+                            ✓ Proof Submitted
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setSubmitModal({ applicationId: app.id, campaignTitle: c.title })}
+                            className="w-full py-2 rounded-xl text-xs font-medium bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 transition-all border border-violet-500/20 flex items-center justify-center gap-2"
+                          >
+                            <Send size={12} />
+                            Submit Proof
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                )
+              })}
             </div>
           )}
         </div>
 
-        {/* My Applications */}
+        {/* My Applications Table */}
         {applications.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
@@ -281,3 +367,4 @@ export default function PromoterDashboard() {
     </div>
   )
 }
+
