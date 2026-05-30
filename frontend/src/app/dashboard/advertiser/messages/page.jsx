@@ -39,6 +39,8 @@ export default function MessagesPage() {
     } catch (err) {}
   }
   fetchUsers()
+  const usersInterval = setInterval(fetchUsers, 5000)
+  return () => clearInterval(usersInterval)
 }, [])
 // Unread count polling
 useEffect(() => {
