@@ -713,6 +713,19 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// Get Unread Count
+app.get('/api/messages/unread', authMiddleware, async (req, res) => {
+  try {
+    const counts = await prisma.message.groupBy({
+      by: ['senderId'],
+      where: { receiverId: req.userId, read: false },
+      _count: { id: true }
+    })
+    res.json({ counts })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 

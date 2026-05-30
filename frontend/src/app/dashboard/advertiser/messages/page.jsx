@@ -11,6 +11,7 @@ export default function MessagesPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [myId, setMyId] = useState(null)
+  const [unreadCounts, setUnreadCounts] = useState({})
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -38,6 +39,29 @@ export default function MessagesPage() {
     } catch (err) {}
   }
   fetchUsers()
+}, [])
+// Unread count polling
+useEffect(() => {
+  const token = localStorage.getItem('rf_token')
+  if (!token) return
+
+  const fetchUnread = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages/unread`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      const countMap = {}
+      data.counts?.forEach(c => {
+        countMap[c.senderId] = c._count.id
+      })
+      setUnreadCounts(countMap)
+    } catch (e) {}
+  }
+
+  fetchUnread()
+  const interval = setInterval(fetchUnread, 5000)
+  return () => clearInterval(interval)
 }, [])
 
   useEffect(() => {
@@ -115,6 +139,11 @@ export default function MessagesPage() {
                   <p className="text-sm font-medium text-white truncate">{u.name}</p>
                   <p className="text-xs text-gray-600 capitalize">{u.role?.toLowerCase()}</p>
                 </div>
+                {unreadCounts[u.id] > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCounts[u.id]}
+                  </span>
+                )}
               </div>
             ))
           )}
