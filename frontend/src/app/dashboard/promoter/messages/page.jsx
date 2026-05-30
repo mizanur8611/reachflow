@@ -14,29 +14,31 @@ export default function MessagesPage() {
   const bottomRef = useRef(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('rf_token')
-    if (!token) return
+  const token = localStorage.getItem('rf_token')
+  if (!token) return
 
-    // Decode JWT to get userId
+  const fetchMyId = async () => {
     try {
-     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
-         })
-     const data = await res.json()
-        setMyId(data.user?.id || data.id)
-         } catch (e) {}
+      })
+      const data = await res.json()
+      setMyId(data.user?.id || data.id)
+    } catch (e) {}
+  }
+  fetchMyId()
 
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const data = await res.json()
-        setUsers(data.users || [])
-      } catch (err) {}
-    }
-    fetchUsers()
-  }, [])
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      setUsers(data.users || [])
+    } catch (err) {}
+  }
+  fetchUsers()
+}, [])
 
   useEffect(() => {
     if (!selectedUser) return
