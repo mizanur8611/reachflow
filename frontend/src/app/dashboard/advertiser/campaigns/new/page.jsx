@@ -2,9 +2,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, Upload, X } from 'lucide-react'
 import Link from 'next/link'
-import { useAuthStore } from '@/store/authStore'
 
 const PLATFORMS = [
   { label: 'Facebook', value: 'FACEBOOK' },
@@ -22,6 +21,10 @@ export default function CreateCampaignPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('')
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -36,14 +39,51 @@ export default function CreateCampaignPage() {
     setForm(f => ({
       ...f,
       platforms: f.platforms.includes(p.value)
-  ? f.platforms.filter(x => x !== p.value)
-  : [...f.platforms, p.value]
+        ? f.platforms.filter(x => x !== p.value)
+        : [...f.platforms, p.value]
     }))
+  }
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Preview
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result)
+    reader.readAsDataURL(file)
+    setImageFile(file)
+
+    // Upload to Cloudinary via backend
+    setImageUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      })
+      const data = await res.json()
+      if (data.success) {
+        setUploadedImageUrl(data.url)
+      } else {
+        setError('Image upload failed')
+      }
+    } catch (err) {
+      setError('Image upload failed')
+    } finally {
+      setImageUploading(false)
+    }
   }
 
   const handleSubmit = async () => {
     if (!form.title || !form.budget || form.platforms.length === 0) {
       setError('Title, Budget and at least one Platform is required')
+      return
+    }
+    if (imageFile && !uploadedImageUrl) {
+      setError('Image is still uploading, please wait...')
       return
     }
     setLoading(true)
@@ -63,6 +103,7 @@ export default function CreateCampaignPage() {
           commissionType: form.commissionType,
           category: form.category,
           platforms: form.platforms,
+          productImages: uploadedImageUrl ? [uploadedImageUrl] : [],
         })
       })
       const data = await res.json()
@@ -103,6 +144,39 @@ export default function CreateCampaignPage() {
               {error}
             </div>
           )}
+
+          {/* Product Image Upload */}
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Product Image (Facebook thumbnail এর জন্য)</label>
+            {imagePreview ? (
+              <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10">
+                <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => { setImagePreview(null); setImageFile(null); setUploadedImageUrl('') }}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-lg text-white hover:bg-black/80"
+                >
+                  <X size={16} />
+                </button>
+                {imageUploading && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <p className="text-white text-sm">Uploading...</p>
+                  </div>
+                )}
+                {!imageUploading && uploadedImageUrl && (
+                  <div className="absolute bottom-2 left-2 bg-emerald-500/80 text-white text-xs px-2 py-1 rounded-lg">
+                    ✓ Uploaded
+                  </div>
+                )}
+              </div>
+            ) : (
+              <label className="w-full h-36 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-violet-500/50 hover:bg-white/[0.02] transition-all">
+                <Upload size={24} className="text-gray-500 mb-2" />
+                <p className="text-gray-500 text-sm">Click to upload image</p>
+                <p className="text-gray-600 text-xs mt-1">JPG, PNG (max 5MB)</p>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+              </label>
+            )}
+          </div>
 
           {/* Title */}
           <div>
@@ -206,10 +280,10 @@ export default function CreateCampaignPage() {
           {/* Submit */}
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || imageUploading}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 py-3.5 rounded-xl font-semibold transition-all"
           >
-            {loading ? 'Creating...' : <><Plus size={18} /> Create Campaign</>}
+            {loading ? 'Creating...' : imageUploading ? 'Uploading image...' : <><Plus size={18} /> Create Campaign</>}
           </button>
         </motion.div>
       </div>
