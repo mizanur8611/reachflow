@@ -24,60 +24,24 @@ app.use(cors({
 
 app.use(express.json())
 
-// Test Route
-app.get('/', (req, res) => {
-  res.json({ message: '✅ ReachFlow API is running!' })
-})
+// ─────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────
 
-// Register
-app.post('/api/auth/register', async (req, res) => {
+async function createNotification(userId, title, message, type) {
   try {
-    const { name, email, password, role } = req.body
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) return res.status(400).json({ error: 'Email already exists' })
-    const hashedPassword = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, role: role || 'ADVERTISER' }
+    await prisma.notification.create({
+      data: { userId, title, message, type }
     })
-  // Auto create Advertiser profile
-    if (role === 'ADVERTISER' || !role) {
-      await prisma.advertiser.create({
-        data: { userId: user.id, businessName: name, category: 'General', country: 'Bangladesh' }
-      })
-    }
-    // Auto create Promoter profile
-    if (role === 'PROMOTER') {
-      await prisma.promoter.create({
-        data: { userId: user.id, country: 'Bangladesh' }
-      })
-    }
-    // Wallet create
-    await prisma.wallet.create({
-      data: { userId: user.id }
-    })
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
-    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Registration failed' })
-  }
-})
-
-// Login
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' })
-    const valid = await bcrypt.compare(password, user.password)
-    if (!valid) return res.status(400).json({ error: 'Invalid credentials' })
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
-    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('Notification error:', err)
   }
-})
-// Get Me
+}
+
+// ─────────────────────────────────────────
+// MIDDLEWARE
+// ─────────────────────────────────────────
+
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) return res.status(401).json({ error: 'Unauthorized' })
@@ -91,6 +55,79 @@ const authMiddleware = (req, res, next) => {
   }
 }
 
+const adminMiddleware = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]
+  if (!token) return res.status(401).json({ error: 'Unauthorized' })
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+    if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    req.userId = decoded.userId
+    next()
+  } catch {
+    res.status(401).json({ error: 'Invalid token' })
+  }
+}
+
+// ─────────────────────────────────────────
+// TEST
+// ─────────────────────────────────────────
+
+app.get('/', (req, res) => {
+  res.json({ message: '✅ ReachFlow API is running!' })
+})
+
+// ─────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) return res.status(400).json({ error: 'Email already exists' })
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword, role: role || 'ADVERTISER' }
+    })
+
+    if (role === 'ADVERTISER' || !role) {
+      await prisma.advertiser.create({
+        data: { userId: user.id, businessName: name, category: 'General', country: 'Bangladesh' }
+      })
+    }
+
+    if (role === 'PROMOTER') {
+      await prisma.promoter.create({
+        data: { userId: user.id, country: 'Bangladesh' }
+      })
+    }
+
+    await prisma.wallet.create({ data: { userId: user.id } })
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Registration failed' })
+  }
+})
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) return res.status(400).json({ error: 'Invalid credentials' })
+    const valid = await bcrypt.compare(password, user.password)
+    if (!valid) return res.status(400).json({ error: 'Invalid credentials' })
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -103,7 +140,6 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
   }
 })
 
-// Update Profile
 app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   try {
     const { name } = req.body
@@ -117,16 +153,17 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-// Create Campaign
+
+// ─────────────────────────────────────────
+// CAMPAIGNS
+// ─────────────────────────────────────────
+
 app.post('/api/campaigns', authMiddleware, async (req, res) => {
   try {
     const { title, description, budget, platforms, commissionType, commissionAmount, category } = req.body
-    const advertiser = await prisma.advertiser.findUnique({
-  where: { userId: req.userId }
-})
-if (!advertiser) {
-  return res.status(400).json({ error: 'Advertiser profile not found.' })
-}
+    const advertiser = await prisma.advertiser.findUnique({ where: { userId: req.userId } })
+    if (!advertiser) return res.status(400).json({ error: 'Advertiser profile not found.' })
+
     const campaign = await prisma.campaign.create({
       data: {
         title,
@@ -148,7 +185,6 @@ if (!advertiser) {
   }
 })
 
-// Get Campaigns
 app.get('/api/campaigns', authMiddleware, async (req, res) => {
   try {
     const campaigns = await prisma.campaign.findMany({
@@ -160,7 +196,7 @@ app.get('/api/campaigns', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-// Get Available Campaigns (for promoters)
+
 app.get('/api/campaigns/available', authMiddleware, async (req, res) => {
   try {
     const campaigns = await prisma.campaign.findMany({
@@ -173,36 +209,74 @@ app.get('/api/campaigns/available', authMiddleware, async (req, res) => {
   }
 })
 
-// Apply to Campaign
+app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
+  try {
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: req.params.id },
+      include: {
+        applications: {
+          include: {
+            promoter: { include: { user: true } }
+          }
+        }
+      }
+    })
+    res.json({ campaign })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
+// APPLICATIONS
+// ─────────────────────────────────────────
+
+// FIX 1: const → let যাতে reassign করা যায়
 app.post('/api/applications', authMiddleware, async (req, res) => {
   try {
     const { campaignId } = req.body
-    const promoter = await prisma.promoter.findUnique({
-      where: { userId: req.userId }
-    })
+
+    // FIX: const → let
+    let promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) {
-  promoter = await prisma.promoter.create({
-    data: {
-      userId: req.userId,
-      country: 'Bangladesh',
+      promoter = await prisma.promoter.create({
+        data: { userId: req.userId, country: 'Bangladesh' }
+      })
     }
-  })
-  }
+
+    // Already applied check
+    const existing = await prisma.application.findUnique({
+      where: { campaignId_promoterId: { campaignId, promoterId: promoter.id } }
+    })
+    if (existing) return res.status(400).json({ error: 'Already applied to this campaign' })
+
     const application = await prisma.application.create({
       data: { campaignId, promoterId: promoter.id }
     })
+
+    // Advertiser কে notification
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      include: { advertiser: { include: { user: true } } }
+    })
+    if (campaign?.advertiser?.userId) {
+      await createNotification(
+        campaign.advertiser.userId,
+        '📩 New Promoter Application',
+        `Someone applied to your campaign "${campaign.title}". Review their application now.`,
+        'application'
+      )
+    }
+
     res.json({ success: true, application })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// Get My Applications
 app.get('/api/applications/my', authMiddleware, async (req, res) => {
   try {
-    const promoter = await prisma.promoter.findUnique({
-      where: { userId: req.userId }
-    })
+    const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.json({ applications: [] })
     const applications = await prisma.application.findMany({
       where: { promoterId: promoter.id },
@@ -214,51 +288,58 @@ app.get('/api/applications/my', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-// Approve/Reject Application
- app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
+
+// FIX 2: Approve/Reject এ Notification যোগ করা হয়েছে
+app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body
+
     const application = await prisma.application.update({
       where: { id: req.params.id },
-      data: { status, reviewedAt: new Date() }
+      data: { status, reviewedAt: new Date() },
+      include: {
+        promoter: { include: { user: true } },
+        campaign: true
+      }
     })
+
+    // Promoter কে notification পাঠাও
+    if (application.promoter?.userId) {
+      if (status === 'APPROVED') {
+        await createNotification(
+          application.promoter.userId,
+          '🎉 Application Approved!',
+          `Your application for "${application.campaign.title}" has been approved! You can now start promoting.`,
+          'application'
+        )
+      } else if (status === 'REJECTED') {
+        await createNotification(
+          application.promoter.userId,
+          '❌ Application Rejected',
+          `Your application for "${application.campaign.title}" was not accepted this time.`,
+          'application'
+        )
+      }
+    }
+
     res.json({ success: true, application })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
-// Get Single Campaign
-app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
-  try {
-    const campaign = await prisma.campaign.findUnique({
-      where: { id: req.params.id },
-      include: {
-        applications: {
-          include: {
-            promoter: {
-              include: { user: true }
-            }
-          }
-        }
-      }
-    })
-    res.json({ campaign })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-// Submit Content Proof
+
+// ─────────────────────────────────────────
+// SUBMISSIONS
+// ─────────────────────────────────────────
+
 app.post('/api/submissions', authMiddleware, async (req, res) => {
   try {
     const { applicationId, postUrl, description } = req.body
-    const token = req.headers.authorization?.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    const promoter = await prisma.promoter.findUnique({ where: { userId: decoded.userId } })
+    const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
 
     const application = await prisma.application.findUnique({ where: { id: applicationId } })
     if (!application) return res.status(404).json({ error: 'Application not found' })
-    //if (application.promoterId !== promoter.id) return res.status(403).json({ error: 'Forbidden' })
 
     const submission = await prisma.submission.create({
       data: {
@@ -267,7 +348,7 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
         applicationId,
         postUrl,
         platform: 'FACEBOOK',
-        caption: description,   // ← description → caption
+        caption: description,
         status: 'PENDING'
       }
     })
@@ -276,12 +357,10 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
- // Get My Submissions (Promoter)
+
 app.get('/api/submissions/my', authMiddleware, async (req, res) => {
   try {
-    const promoter = await prisma.promoter.findUnique({
-      where: { userId: req.userId }
-    })
+    const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.json({ submissions: [] })
     const submissions = await prisma.submission.findMany({
       where: { promoterId: promoter.id },
@@ -293,7 +372,7 @@ app.get('/api/submissions/my', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-// Get Submissions for a campaign (Advertiser)
+
 app.get('/api/submissions/:campaignId', authMiddleware, async (req, res) => {
   try {
     const submissions = await prisma.submission.findMany({
@@ -307,7 +386,6 @@ app.get('/api/submissions/:campaignId', authMiddleware, async (req, res) => {
   }
 })
 
-// Update Submission Status (Advertiser approve/reject)
 app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body
@@ -321,26 +399,15 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
     if (status === 'APPROVED') {
       const amount = submission.campaign.commissionAmount
 
-
-      const wallet = await prisma.wallet.findUnique({
-        where: { userId: submission.promoter.userId }
-      })
-
+      const wallet = await prisma.wallet.findUnique({ where: { userId: submission.promoter.userId } })
       if (wallet) {
         await prisma.wallet.update({
           where: { userId: submission.promoter.userId },
-          data: {
-            balance: { increment: amount },
-            totalEarned: { increment: amount }
-          }
+          data: { balance: { increment: amount }, totalEarned: { increment: amount } }
         })
       } else {
         await prisma.wallet.create({
-          data: {
-            userId: submission.promoter.userId,
-            balance: amount,
-            totalEarned: amount
-          }
+          data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount }
         })
       }
 
@@ -348,188 +415,47 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         where: { id: req.params.id },
         data: { earnedAmount: amount }
       })
+
       await createNotification(
-  submission.promoter.userId,
-  '🎉 Submission Approved!',
-  `Your post for "${submission.campaign.title}" has been approved! $${submission.campaign.commissionAmount} added to your wallet.`,
-  'submission'
-)
+        submission.promoter.userId,
+        '🎉 Submission Approved!',
+        `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
+        'submission'
+      )
     }
-    if (status === 'REJECTED') {
-  // const rejPromoter = await prisma.promoter.findUnique({
-  //  where: { id: submission.promoterId },
-  //  include: { user: true }
-  //  })
 
-  if (submission.promoter) {
-    await createNotification(
-      submission.promoter.userId,
-      '❌ Submission Rejected',
-      `Your post for "${submission.campaign.title}" was rejected.`,
-      'submission'
-    )
-  }
-}
+    if (status === 'REJECTED' && submission.promoter) {
+      await createNotification(
+        submission.promoter.userId,
+        '❌ Submission Rejected',
+        `Your post for "${submission.campaign.title}" was rejected.`,
+        'submission'
+      )
+    }
+
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
-// Admin Middleware
-const adminMiddleware = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1]
-  if (!token) return res.status(401).json({ error: 'Unauthorized' })
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
-    if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
-    req.userId = decoded.userId
-    next()
-  } catch {
-    res.status(401).json({ error: 'Invalid token' })
-  }
-}
 
-// Admin - Get Stats
-app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
-  try {
-    const totalUsers = await prisma.user.count()
-    const totalAdvertisers = await prisma.user.count({ where: { role: 'ADVERTISER' } })
-    const totalPromoters = await prisma.user.count({ where: { role: 'PROMOTER' } })
-    const totalCampaigns = await prisma.campaign.count()
-    const totalApplications = await prisma.application.count()
-    const approvedApplications = await prisma.application.count({ where: { status: 'APPROVED' } })
-    res.json({ totalUsers, totalAdvertisers, totalPromoters, totalCampaigns, totalApplications, approvedApplications })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
+// ─────────────────────────────────────────
+// WALLET
+// ─────────────────────────────────────────
 
-// Admin - Get All Users
-app.get('/api/admin/users', adminMiddleware, async (req, res) => {
-  try {
-    const users = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, email: true, role: true, createdAt: true }
-    })
-    res.json({ users })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Admin - Delete User
-app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
-  try {
-    await prisma.user.delete({ where: { id: req.params.id } })
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Admin - Get All Campaigns
-app.get('/api/admin/campaigns', adminMiddleware, async (req, res) => {
-  try {
-    const campaigns = await prisma.campaign.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { advertiser: { include: { user: true } }, applications: true }
-    })
-    res.json({ campaigns })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Admin - Delete Campaign
-app.delete('/api/admin/campaigns/:id', adminMiddleware, async (req, res) => {
-  try {
-    await prisma.campaign.delete({ where: { id: req.params.id } })
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-// Admin - User Status Update
-app.patch('/api/admin/users/:id/status', adminMiddleware, async (req, res) => {
-  try {
-    const { status } = req.body
-    const user = await prisma.user.update({
-      where: { id: req.params.id },
-      data: { status }
-    })
-    res.json({ success: true, user })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Admin - Campaign Status Update
-app.patch('/api/admin/campaigns/:id/status', adminMiddleware, async (req, res) => {
-  try {
-    const { status } = req.body
-    const campaign = await prisma.campaign.update({
-      where: { id: req.params.id },
-      data: { status }
-    })
-    res.json({ success: true, campaign })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Admin - Get All Submissions
-app.get('/api/admin/submissions', adminMiddleware, async (req, res) => {
-  try {
-    const submissions = await prisma.submission.findMany({
-      include: {
-        promoter: { include: { user: true } },
-        campaign: true
-      },
-      orderBy: { submittedAt: 'desc' }
-    })
-    res.json({ submissions })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Admin - Update Submission Status
-app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
-  try {
-    const { status } = req.body
-    const submission = await prisma.submission.update({
-      where: { id: req.params.id },
-      data: { status, reviewedAt: new Date() }
-    })
-    res.json({ success: true, submission })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-// Get Wallet (Promoter)
 app.get('/api/wallet', authMiddleware, async (req, res) => {
   try {
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId: req.userId }
-    })
+    const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
     res.json({ wallet: wallet || { balance: 0, totalEarned: 0 } })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
- // Notification Helper
-async function createNotification(userId, title, message, type) {
-  try {
-    await prisma.notification.create({
-      data: { userId, title, message, type }
-    })
-  } catch (err) {
-    console.error('Notification error:', err)
-  }
-}
 
-// Get Notifications
+// ─────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────
+
 app.get('/api/notifications', authMiddleware, async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
@@ -543,7 +469,6 @@ app.get('/api/notifications', authMiddleware, async (req, res) => {
   }
 })
 
-// Mark All as Read
 app.patch('/api/notifications/read-all', authMiddleware, async (req, res) => {
   try {
     await prisma.notification.updateMany({
@@ -556,7 +481,6 @@ app.patch('/api/notifications/read-all', authMiddleware, async (req, res) => {
   }
 })
 
-// Mark One as Read
 app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
   try {
     await prisma.notification.update({
@@ -568,42 +492,22 @@ app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-// Notifications - Get all
-app.get('/api/notification', authMiddleware, async (req, res) => {
-  try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
-      take: 20
-    })
-    res.json({ notifications })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
 
-// Notifications - Mark all read
-app.patch('/api/notification/read-all', authMiddleware, async (req, res) => {
-  try {
-    await prisma.notification.updateMany({
-      where: { userId: req.userId, read: false },
-      data: { read: true }
-    })
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-// Generate Tracking Link for Promoter
+// ─────────────────────────────────────────
+// TRACKING
+// ─────────────────────────────────────────
+
 app.post('/api/tracking/generate', authMiddleware, async (req, res) => {
   try {
     const { campaignId } = req.body
     const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
+
     const existing = await prisma.trackingLink.findFirst({
       where: { campaignId, promoterId: promoter.id }
     })
     if (existing) return res.json({ link: existing })
+
     const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } })
     const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase()
     const link = await prisma.trackingLink.create({
@@ -620,12 +524,9 @@ app.post('/api/tracking/generate', authMiddleware, async (req, res) => {
   }
 })
 
-// Track click
 app.get('/c/:shortCode', async (req, res) => {
   try {
-    const link = await prisma.trackingLink.findUnique({
-      where: { shortCode: req.params.shortCode }
-    })
+    const link = await prisma.trackingLink.findUnique({ where: { shortCode: req.params.shortCode } })
     if (!link) return res.status(404).json({ error: 'Link not found' })
     await prisma.trackingLink.update({
       where: { id: link.id },
@@ -636,43 +537,142 @@ app.get('/c/:shortCode', async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-app.use('/api/payment', authMiddleware, paymentRouter)
 
-// Get Users for messaging
-app.get('/api/users', authMiddleware, async (req, res) => {
+// ─────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────
+
+app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   try {
-    const allUsers = await prisma.user.findMany({
-     where: { id: { not: req.userId } },
-     select: { id: true, name: true, role: true },
-    })
-
-    const lastMessages = await prisma.message.findMany({
-      where: {
-        OR: [{ senderId: req.userId }, { receiverId: req.userId }]
-         },
-      orderBy: { createdAt: 'desc' },
-      distinct: ['senderId', 'receiverId'],
-    })
-
-    const getLastMessageTime = (userId) => {
-    const msg = lastMessages.find(m => m.senderId === userId || m.receiverId === userId)
-      return msg ? new Date(msg.createdAt).getTime() : 0
-    }
-
-    const users = allUsers.sort((a, b) => getLastMessageTime(b.id) - getLastMessageTime(a.id))
-  res.json({ users })
+    const totalUsers = await prisma.user.count()
+    const totalAdvertisers = await prisma.user.count({ where: { role: 'ADVERTISER' } })
+    const totalPromoters = await prisma.user.count({ where: { role: 'PROMOTER' } })
+    const totalCampaigns = await prisma.campaign.count()
+    const totalApplications = await prisma.application.count()
+    const approvedApplications = await prisma.application.count({ where: { status: 'APPROVED' } })
+    res.json({ totalUsers, totalAdvertisers, totalPromoters, totalCampaigns, totalApplications, approvedApplications })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// Get Conversations
+app.get('/api/admin/users', adminMiddleware, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, email: true, role: true, createdAt: true }
+    })
+    res.json({ users })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
+  try {
+    await prisma.user.delete({ where: { id: req.params.id } })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/admin/users/:id/status', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const user = await prisma.user.update({ where: { id: req.params.id }, data: { status } })
+    res.json({ success: true, user })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.get('/api/admin/campaigns', adminMiddleware, async (req, res) => {
+  try {
+    const campaigns = await prisma.campaign.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { advertiser: { include: { user: true } }, applications: true }
+    })
+    res.json({ campaigns })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/admin/campaigns/:id', adminMiddleware, async (req, res) => {
+  try {
+    await prisma.campaign.delete({ where: { id: req.params.id } })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/admin/campaigns/:id/status', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const campaign = await prisma.campaign.update({ where: { id: req.params.id }, data: { status } })
+    res.json({ success: true, campaign })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.get('/api/admin/submissions', adminMiddleware, async (req, res) => {
+  try {
+    const submissions = await prisma.submission.findMany({
+      include: { promoter: { include: { user: true } }, campaign: true },
+      orderBy: { submittedAt: 'desc' }
+    })
+    res.json({ submissions })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body
+    const submission = await prisma.submission.update({
+      where: { id: req.params.id },
+      data: { status, reviewedAt: new Date() }
+    })
+    res.json({ success: true, submission })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ─────────────────────────────────────────
+// MESSAGES
+// ─────────────────────────────────────────
+
+app.get('/api/users', authMiddleware, async (req, res) => {
+  try {
+    const allUsers = await prisma.user.findMany({
+      where: { id: { not: req.userId } },
+      select: { id: true, name: true, role: true },
+    })
+    const lastMessages = await prisma.message.findMany({
+      where: { OR: [{ senderId: req.userId }, { receiverId: req.userId }] },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['senderId', 'receiverId'],
+    })
+    const getLastMessageTime = (userId) => {
+      const msg = lastMessages.find(m => m.senderId === userId || m.receiverId === userId)
+      return msg ? new Date(msg.createdAt).getTime() : 0
+    }
+    const users = allUsers.sort((a, b) => getLastMessageTime(b.id) - getLastMessageTime(a.id))
+    res.json({ users })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.get('/api/messages/conversations', authMiddleware, async (req, res) => {
   try {
     const messages = await prisma.message.findMany({
-      where: {
-        OR: [{ senderId: req.userId }, { receiverId: req.userId }]
-      },
+      where: { OR: [{ senderId: req.userId }, { receiverId: req.userId }] },
       include: {
         sender: { select: { id: true, name: true, role: true } },
         receiver: { select: { id: true, name: true, role: true } }
@@ -684,7 +684,7 @@ app.get('/api/messages/conversations', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-// Get Unread Count
+
 app.get('/api/messages/unread', authMiddleware, async (req, res) => {
   try {
     const counts = await prisma.message.groupBy({
@@ -698,7 +698,6 @@ app.get('/api/messages/unread', authMiddleware, async (req, res) => {
   }
 })
 
-// Get Messages with a specific user
 app.get('/api/messages/:userId', authMiddleware, async (req, res) => {
   try {
     const messages = await prisma.message.findMany({
@@ -724,7 +723,6 @@ app.get('/api/messages/:userId', authMiddleware, async (req, res) => {
   }
 })
 
-// Send Message
 app.post('/api/messages', authMiddleware, async (req, res) => {
   try {
     const { receiverId, content } = req.body
@@ -741,6 +739,17 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
   }
 })
 
+// ─────────────────────────────────────────
+// PAYMENT ROUTER
+// ─────────────────────────────────────────
+
+app.use('/api/payment', authMiddleware, paymentRouter)
+
+// ─────────────────────────────────────────
+// START SERVER
+// ─────────────────────────────────────────
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
+
 
