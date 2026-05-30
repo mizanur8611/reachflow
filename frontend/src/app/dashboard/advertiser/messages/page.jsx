@@ -19,9 +19,12 @@ export default function MessagesPage() {
 
     // Decode JWT to get userId
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      setMyId(payload.userId || payload.id)
-    } catch (e) {}
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+          })
+      const data = await res.json()
+       setMyId(data.user?.id || data.id)
+       } catch (e) {}
 
     const fetchUsers = async () => {
       try {
