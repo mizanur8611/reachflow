@@ -633,10 +633,60 @@ app.get('/api/admin/submissions', adminMiddleware, async (req, res) => {
 app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
   try {
     const { status } = req.body
+
     const submission = await prisma.submission.update({
       where: { id: req.params.id },
-      data: { status, reviewedAt: new Date() }
+      data: { status, reviewedAt: new Date() },
+      include: { campaign: true, promoter: { include: { user: true } } }
     })
+
+    if (status === 'APPROVED') {
+      const amount = submission.campaign.commissionAmount
+
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId: submission.promoter.userId }
+      })
+
+      if (wallet) {
+        await prisma.wallet.update({
+          where: { userId: submission.promoter.userId },
+          data: {
+            balance: { increment: amount },
+            totalEarned: { increment: amount }
+          }
+        })
+      } else {
+        await prisma.wallet.create({
+          data: {
+            userId: submission.promoter.userId,
+            balance: amount,
+            totalEarned: amount
+          }
+        })
+      }
+
+      await prisma.submission.update({
+        where: { id: req.params.id },
+        data: { earnedAmount: amount }
+      })
+
+      await createNotification(
+        submission.promoter.userId,
+        '🎉 Submission Approved!',
+        `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
+        'submission'
+      )
+    }
+
+    if (status === 'REJECTED' && submission.promoter) {
+      await createNotification(
+        submission.promoter.userId,
+        '❌ Submission Rejected',
+        `Your post for "${submission.campaign.title}" was rejected.`,
+        'submission'
+      )
+    }
+
     res.json({ success: true, submission })
   } catch (error) {
     res.status(500).json({ error: error.message })
