@@ -77,7 +77,7 @@ export default function PromoterDashboard() {
       })
       const data = await res.json()
       if (data.link) {
-        const trackingUrl = `${process.env.NEXT_PUBLIC_API_URL}/c/${data.link.shortCode}`
+        const trackingUrl = `${window.location.origin}/go/${data.link.shortCode}`
         setTrackingLinks(prev => ({ ...prev, [campaignId]: trackingUrl }))
       }
     } catch (err) {
