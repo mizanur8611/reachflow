@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   Users, Megaphone, Shield, Trash2, CheckCircle, XCircle,
   BarChart2, AlertTriangle, Ban, UserCheck, Eye, DollarSign,
-  FileText, Clock, TrendingUp, LogOut
+  FileText, Clock, TrendingUp, LogOut, ArrowDownToLine
 } from 'lucide-react'
 
 export default function AdminPanel() {
@@ -14,6 +14,8 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([])
   const [campaigns, setCampaigns] = useState([])
   const [submissions, setSubmissions] = useState([])
+  const [withdrawals, setWithdrawals] = useState([])
+  const [withdrawalStats, setWithdrawalStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authChecked, setAuthChecked] = useState(false)
 
@@ -41,6 +43,7 @@ export default function AdminPanel() {
     fetchUsers()
     fetchCampaigns()
     fetchSubmissions()
+    fetchWithdrawals()
   }, [authChecked])
 
   const fetchStats = async () => {
@@ -71,6 +74,19 @@ export default function AdminPanel() {
     } catch {}
   }
 
+  const fetchWithdrawals = async () => {
+    try {
+      const [wRes, sRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/withdrawals/admin/all`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/withdrawals/admin/stats`, { headers }),
+      ])
+      const wData = await wRes.json()
+      const sData = await sRes.json()
+      if (wData.withdrawals) setWithdrawals(wData.withdrawals)
+      if (sData.success) setWithdrawalStats(sData)
+    } catch {}
+  }
+
   // ── User Actions ─────────────────────────────────────────
   const deleteUser = async (id) => {
     if (!confirm('Delete this user permanently?')) return
@@ -81,9 +97,7 @@ export default function AdminPanel() {
   const suspendUser = async (id, currentStatus) => {
     const newStatus = currentStatus === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED'
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${id}/status`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ status: newStatus })
+      method: 'PATCH', headers, body: JSON.stringify({ status: newStatus })
     })
     if (res.ok) setUsers(users.map(u => u.id === id ? { ...u, status: newStatus } : u))
   }
@@ -97,9 +111,7 @@ export default function AdminPanel() {
 
   const updateCampaignStatus = async (id, status) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/campaigns/${id}/status`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ status })
+      method: 'PATCH', headers, body: JSON.stringify({ status })
     })
     if (res.ok) setCampaigns(campaigns.map(c => c.id === id ? { ...c, status } : c))
   }
@@ -107,11 +119,17 @@ export default function AdminPanel() {
   // ── Submission Actions ────────────────────────────────────
   const updateSubmission = async (id, status) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/submissions/${id}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ status })
+      method: 'PATCH', headers, body: JSON.stringify({ status })
     })
     if (res.ok) setSubmissions(submissions.map(s => s.id === id ? { ...s, status } : s))
+  }
+
+  // ── Withdrawal Actions ────────────────────────────────────
+  const handleWithdrawal = async (id, action, note = '') => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/withdrawals/admin/${id}`, {
+      method: 'PATCH', headers, body: JSON.stringify({ action, note })
+    })
+    if (res.ok) fetchWithdrawals()
   }
 
   const handleLogout = () => {
@@ -130,6 +148,7 @@ export default function AdminPanel() {
     { id: 'users', label: 'Users', icon: Users },
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
     { id: 'submissions', label: 'Submissions', icon: FileText },
+    { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
     { id: 'revenue', label: 'Revenue', icon: DollarSign },
   ]
 
@@ -221,7 +240,6 @@ export default function AdminPanel() {
                         {u.role !== 'ADMIN' && (
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={() => suspendUser(u.id, u.status)}
-                              title={u.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
                               className={`p-1.5 rounded-lg transition-all ${u.status === 'SUSPENDED' ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400'}`}>
                               {u.status === 'SUSPENDED' ? <UserCheck size={15} /> : <Ban size={15} />}
                             </button>
@@ -276,19 +294,16 @@ export default function AdminPanel() {
                         <div className="flex items-center justify-center gap-2">
                           {c.status === 'ACTIVE' ? (
                             <button onClick={() => updateCampaignStatus(c.id, 'PAUSED')}
-                              title="Pause Campaign"
                               className="p-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg">
                               <AlertTriangle size={15} />
                             </button>
                           ) : (
                             <button onClick={() => updateCampaignStatus(c.id, 'ACTIVE')}
-                              title="Activate Campaign"
                               className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg">
                               <CheckCircle size={15} />
                             </button>
                           )}
                           <button onClick={() => updateCampaignStatus(c.id, 'CANCELLED')}
-                            title="Cancel Campaign"
                             className="p-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 rounded-lg">
                             <XCircle size={15} />
                           </button>
@@ -349,17 +364,14 @@ export default function AdminPanel() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={() => updateSubmission(s.id, 'APPROVED')}
-                              title="Approve"
                               className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg">
                               <CheckCircle size={15} />
                             </button>
                             <button onClick={() => updateSubmission(s.id, 'REJECTED')}
-                              title="Reject"
                               className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg">
                               <XCircle size={15} />
                             </button>
                             <button onClick={() => updateSubmission(s.id, 'FLAGGED')}
-                              title="Flag as suspicious"
                               className="p-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 rounded-lg">
                               <AlertTriangle size={15} />
                             </button>
@@ -371,6 +383,100 @@ export default function AdminPanel() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── WITHDRAWALS TAB ── */}
+        {tab === 'withdrawals' && (
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Pending', value: withdrawalStats?.pending || 0, color: 'from-yellow-500 to-orange-500' },
+                { label: 'Completed', value: withdrawalStats?.completed || 0, color: 'from-emerald-500 to-teal-600' },
+                { label: 'Rejected', value: withdrawalStats?.failed || 0, color: 'from-red-500 to-rose-600' },
+                { label: 'Total Paid', value: `$${withdrawalStats?.totalPaidUSD || '0.00'}`, color: 'from-violet-500 to-purple-600' },
+              ].map((s, i) => (
+                <div key={i} className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
+                    <ArrowDownToLine size={18} className="text-white" />
+                  </div>
+                  <p className="text-2xl font-bold">{s.value}</p>
+                  <p className="text-gray-400 text-xs mt-1">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Table */}
+            <div className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-white/5">
+                <h2 className="font-semibold">Withdrawal Requests ({withdrawals.length})</h2>
+              </div>
+              {withdrawals.length === 0 ? (
+                <div className="px-6 py-12 text-center text-gray-500">কোনো withdrawal request নেই।</div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
+                      <th className="px-6 py-3 text-left">Promoter</th>
+                      <th className="px-6 py-3 text-left">Amount</th>
+                      <th className="px-6 py-3 text-left">Method & Account</th>
+                      <th className="px-6 py-3 text-center">Status</th>
+                      <th className="px-6 py-3 text-right">Date</th>
+                      <th className="px-6 py-3 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {withdrawals.map((w, i) => (
+                      <tr key={i} className="hover:bg-white/[0.02]">
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-medium">{w.promoter?.name}</p>
+                          <p className="text-xs text-gray-500">{w.promoter?.email}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-semibold">${w.amount?.toFixed(2)}</p>
+                          <p className="text-xs text-gray-500">৳{w.amountBDT}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-300">{w.method}</p>
+                          <p className="text-xs text-gray-500">{w.accountInfo?.phone || w.accountInfo?.accountNumber || '—'}</p>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            w.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-400' :
+                            w.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' :
+                            'bg-red-500/10 text-red-400'}`}>
+                            {w.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-400">
+                          {new Date(w.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          {w.status === 'PENDING' ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <button onClick={() => handleWithdrawal(w.id, 'approve')}
+                                className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg">
+                                <CheckCircle size={15} />
+                              </button>
+                              <button onClick={() => {
+                                const note = prompt('Reject কারণ (optional):') || ''
+                                handleWithdrawal(w.id, 'reject', note)
+                              }}
+                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg">
+                                <XCircle size={15} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-600 flex justify-center">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         )}
 
