@@ -82,6 +82,56 @@ const adminMiddleware = async (req, res, next) => {
   }
 }
 
+// এই route টা index.js এ add করো
+// (ADMIN section এর আগে যেকোনো জায়গায়)
+
+app.get('/api/leaderboard', authMiddleware, async (req, res) => {
+  try {
+    // Top promoters by totalEarned
+    const promoters = await prisma.promoter.findMany({
+      where: { totalEarned: { gt: 0 } },
+      include: {
+        user: { select: { name: true, avatar: true } },
+        _count: { select: { submissions: { where: { status: 'APPROVED' } } } }
+      },
+      orderBy: { totalEarned: 'desc' },
+      take: 20
+    })
+
+    // Current user's rank
+    const myPromoter = await prisma.promoter.findUnique({
+      where: { userId: req.userId }
+    })
+
+    let myRank = null
+    if (myPromoter) {
+      const rank = await prisma.promoter.count({
+        where: { totalEarned: { gt: myPromoter.totalEarned } }
+      })
+      myRank = {
+        rank: rank + 1,
+        totalEarned: myPromoter.totalEarned
+      }
+    }
+
+    res.json({
+      success: true,
+      promoters: promoters.map(p => ({
+        id: p.id,
+        name: p.user.name,
+        avatar: p.user.avatar,
+        country: p.country,
+        totalEarned: p.totalEarned,
+        submissionCount: p._count.submissions
+      })),
+      myRank
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
 // ─────────────────────────────────────────
 // TEST
 // ─────────────────────────────────────────
