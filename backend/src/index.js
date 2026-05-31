@@ -552,13 +552,43 @@ app.post('/api/tracking/generate', authMiddleware, async (req, res) => {
 
 app.get('/c/:shortCode', async (req, res) => {
   try {
-    const link = await prisma.trackingLink.findUnique({ where: { shortCode: req.params.shortCode } })
+    const link = await prisma.trackingLink.findUnique({
+      where: { shortCode: req.params.shortCode },
+      include: { campaign: true }
+    })
     if (!link) return res.status(404).json({ error: 'Link not found' })
+
     await prisma.trackingLink.update({
       where: { id: link.id },
       data: { clicks: { increment: 1 } }
     })
-    res.redirect(link.originalUrl)
+
+    const campaign = link.campaign
+    const title = campaign?.title || 'Check this out!'
+    const description = campaign?.description || 'Amazing offer for you!'
+    const image = campaign?.productImages?.[0] || 'https://reachflow-lovat.vercel.app/og-default.png'
+    const redirectUrl = link.originalUrl
+
+    res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:image" content="${image}" />
+  <meta property="og:url" content="https://reachflow-j34o.onrender.com/c/${req.params.shortCode}" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${image}" />
+  <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
+  <script>window.location.href = "${redirectUrl}"</script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>`)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
