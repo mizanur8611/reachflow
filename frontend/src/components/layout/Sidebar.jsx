@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Megaphone, Users, BarChart2, Wallet,
   MessageSquare, Settings, HelpCircle, LogOut, ChevronLeft,
-  Star, Plus, TrendingUp, Shield, Bell
+  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
@@ -27,6 +27,7 @@ const PROMOTER_NAV = [
   { label: 'Browse Campaigns', icon: Megaphone, href: '/dashboard/promoter/campaigns' },
   { label: 'My Submissions', icon: TrendingUp, href: '/dashboard/promoter/submissions' },
   { label: 'Earnings', icon: Wallet, href: '/dashboard/promoter/earnings' },
+  { label: 'Withdrawal', icon: ArrowDownToLine, href: '/dashboard/promoter/withdrawal' },
   { label: 'Leaderboard', icon: Star, href: '/dashboard/promoter/leaderboard' },
   { label: 'Messages', icon: MessageSquare, href: '/dashboard/promoter/messages' },
 ]
@@ -36,6 +37,7 @@ const ADMIN_NAV = [
   { label: 'Users', icon: Users, href: '/admin/users' },
   { label: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
   { label: 'Payments', icon: Wallet, href: '/admin/payments' },
+  { label: 'Withdrawals', icon: ArrowDownToLine, href: '/admin/withdrawals' },
   { label: 'Analytics', icon: BarChart2, href: '/admin/analytics' },
   { label: 'Disputes', icon: Shield, href: '/admin/disputes' },
 ]
