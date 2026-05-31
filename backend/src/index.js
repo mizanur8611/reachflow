@@ -594,6 +594,23 @@ app.get('/c/:shortCode', async (req, res) => {
   }
 })
 
+// Branded redirect
+app.get('/api/go/:shortCode', async (req, res) => {
+  try {
+    const link = await prisma.trackingLink.findUnique({
+      where: { shortCode: req.params.shortCode }
+    })
+    if (!link) return res.status(404).json({ error: 'Link not found' })
+    await prisma.trackingLink.update({
+      where: { id: link.id },
+      data: { clicks: { increment: 1 } }
+    })
+    res.json({ url: link.originalUrl })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ─────────────────────────────────────────
 // ADMIN
 // ─────────────────────────────────────────
