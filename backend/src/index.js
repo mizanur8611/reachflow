@@ -8,6 +8,7 @@ const crypto = require('crypto')
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
+const withdrawalRouter = require('./routes/withdrawal') 
 
 const cloudinary = require('cloudinary').v2
 const multer = require('multer')
@@ -867,6 +868,7 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
 // ─────────────────────────────────────────
 
 app.use('/api/payment', authMiddleware, paymentRouter)
+app.use('/api/withdrawals', withdrawalRouter)
 
 // ─────────────────────────────────────────
 // START SERVER
