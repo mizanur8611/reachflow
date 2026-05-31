@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, Megaphone, Users, BarChart2, Wallet,
+  LayoutDashboard, Megaphone, Users, User, BarChart2, Wallet,
   MessageSquare, Settings, HelpCircle, LogOut, ChevronLeft,
   Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const ADVERTISER_NAV = [
 
 const PROMOTER_NAV = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/promoter' },
+  { label: 'My Profile', icon: User, href: '/dashboard/promoter/profile' },
   { label: 'Browse Campaigns', icon: Megaphone, href: '/dashboard/promoter/campaigns' },
   { label: 'My Submissions', icon: TrendingUp, href: '/dashboard/promoter/submissions' },
   { label: 'Earnings', icon: Wallet, href: '/dashboard/promoter/earnings' },
