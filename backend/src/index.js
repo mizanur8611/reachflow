@@ -131,6 +131,140 @@ app.get('/api/leaderboard', authMiddleware, async (req, res) => {
   }
 })
 
+// এই routes গুলো index.js এ add করো
+// (LEADERBOARD section এর নিচে)
+
+// ─────────────────────────────────────────
+// PROMOTER PROFILE
+// ─────────────────────────────────────────
+
+// GET /api/promoter/profile - নিজের profile দেখো
+app.get('/api/promoter/profile', authMiddleware, async (req, res) => {
+  try {
+    const promoter = await prisma.promoter.findUnique({
+      where: { userId: req.userId },
+      include: {
+        user: { select: { name: true, email: true, avatar: true } },
+        socialAccounts: true,
+        _count: {
+          select: {
+            submissions: { where: { status: 'APPROVED' } },
+            applications: true
+          }
+        }
+      }
+    })
+
+    if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
+
+    res.json({
+      success: true,
+      profile: {
+        id: promoter.id,
+        name: promoter.user.name,
+        email: promoter.user.email,
+        avatar: promoter.user.avatar,
+        bio: promoter.bio,
+        country: promoter.country,
+        niche: promoter.niche,
+        totalEarned: promoter.totalEarned,
+        rating: promoter.rating,
+        verified: promoter.verified,
+        approvedSubmissions: promoter._count.submissions,
+        totalApplications: promoter._count.applications,
+        balance: wallet?.balance || 0,
+        socialAccounts: promoter.socialAccounts
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/promoter/profile - profile update করো
+app.put('/api/promoter/profile', authMiddleware, async (req, res) => {
+  try {
+    const { name, bio, country, niche } = req.body
+
+    // User name update
+    if (name) {
+      await prisma.user.update({
+        where: { id: req.userId },
+        data: { name }
+      })
+    }
+
+    // Promoter profile update
+    const promoter = await prisma.promoter.update({
+      where: { userId: req.userId },
+      data: {
+        ...(bio !== undefined && { bio }),
+        ...(country && { country }),
+        ...(niche && { niche })
+      }
+    })
+
+    res.json({ success: true, message: 'Profile updated!' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/promoter/social - social account add করো
+app.post('/api/promoter/social', authMiddleware, async (req, res) => {
+  try {
+    const { platform, username, profileUrl, followers } = req.body
+
+    if (!platform || !username || !profileUrl) {
+      return res.status(400).json({ error: 'platform, username এবং profileUrl দিতে হবে' })
+    }
+
+    const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
+    if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
+
+    // Already exists check
+    const existing = await prisma.socialAccount.findFirst({
+      where: { promoterId: promoter.id, platform }
+    })
+
+    if (existing) {
+      // Update existing
+      const updated = await prisma.socialAccount.update({
+        where: { id: existing.id },
+        data: { username, profileUrl, followers: parseInt(followers) || 0 }
+      })
+      return res.json({ success: true, socialAccount: updated })
+    }
+
+    const socialAccount = await prisma.socialAccount.create({
+      data: {
+        promoterId: promoter.id,
+        platform,
+        username,
+        profileUrl,
+        followers: parseInt(followers) || 0
+      }
+    })
+
+    res.json({ success: true, socialAccount })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/promoter/social/:id - social account delete করো
+app.delete('/api/promoter/social/:id', authMiddleware, async (req, res) => {
+  try {
+    await prisma.socialAccount.delete({ where: { id: req.params.id } })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
 
 // ─────────────────────────────────────────
 // TEST
