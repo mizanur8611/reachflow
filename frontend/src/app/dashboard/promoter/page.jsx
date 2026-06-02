@@ -5,6 +5,7 @@ import { DollarSign, Target, Clock, CheckCircle, X, Send, Link, FileText, Extern
 
 export default function PromoterDashboard() {
   const [campaigns, setCampaigns] = useState([])
+  const [wallet, setWallet] = useState(null)
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitModal, setSubmitModal] = useState(null)
@@ -32,6 +33,10 @@ export default function PromoterDashboard() {
 
         if (data1.campaigns) setCampaigns(data1.campaigns)
         if (data2.applications) setApplications(data2.applications)
+
+        const res4 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wallet`, { headers })
+        const data4 = await res4.json()
+          if (data4.wallet) setWallet(data4.wallet)
 
         // Track which applications already have submissions
         if (data3.submissions) {
@@ -125,7 +130,7 @@ export default function PromoterDashboard() {
     { label: 'Applied Campaigns', value: applications.length.toString(), icon: Target, color: 'from-violet-500 to-purple-600' },
     { label: 'Approved', value: applications.filter(a => a.status === 'APPROVED').length.toString(), icon: CheckCircle, color: 'from-emerald-500 to-teal-600' },
     { label: 'Pending', value: applications.filter(a => a.status === 'PENDING').length.toString(), icon: Clock, color: 'from-orange-500 to-amber-600' },
-    { label: 'Total Earned', value: '$0', icon: DollarSign, color: 'from-blue-500 to-cyan-600' },
+    { label: 'Total Earned', value: `$${wallet?.totalEarned?.toFixed(2) || '0.00'}`, icon: DollarSign, color: 'from-blue-500 to-cyan-600' },
   ]
 
   return (
