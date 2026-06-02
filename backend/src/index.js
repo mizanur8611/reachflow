@@ -9,7 +9,14 @@ const crypto = require('crypto')
 dotenv.config()
 const paymentRouter = require('./routes/payment')
 const withdrawalRouter = require('./routes/withdrawal') 
-
+const {
+  sendWithdrawalRequestEmail,
+  sendWithdrawalApprovedEmail,
+  sendWithdrawalRejectedEmail,
+  sendSubmissionApprovedEmail,
+  sendSubmissionRejectedEmail,
+  sendApplicationApprovedEmail,
+} = require('./services/emailService')
 const cloudinary = require('cloudinary').v2
 const multer = require('multer')
 
@@ -512,6 +519,11 @@ app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
           `Your application for "${application.campaign.title}" has been approved! You can now start promoting.`,
           'application'
         )
+        await sendApplicationApprovedEmail(
+         application.promoter.user.email,
+         application.promoter.user.name,
+         application.campaign.title
+         )
       } else if (status === 'REJECTED') {
         await createNotification(
           application.promoter.userId,
@@ -623,6 +635,13 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         'submission'
       )
     }
+    await sendSubmissionApprovedEmail(
+      submission.promoter.user.email,
+      submission.promoter.user.name,
+      submission.campaign.title,
+       amount
+      )
+
 
     if (status === 'REJECTED' && submission.promoter) {
       await createNotification(
@@ -632,7 +651,11 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         'submission'
       )
     }
-
+    await sendSubmissionRejectedEmail(
+     submission.promoter.user.email,
+     submission.promoter.user.name,
+     submission.campaign.title
+     )
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
