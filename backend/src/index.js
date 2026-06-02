@@ -385,8 +385,11 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
 app.get('/api/campaigns', authMiddleware, async (req, res) => {
   try {
     const campaigns = await prisma.campaign.findMany({
-      where: { advertiser: { userId: req.userId } },
-      orderBy: { createdAt: 'desc' }
+        where: { advertiser: { userId: req.userId } },
+        include: {
+        _count: { select: { applications: true } }
+        },
+       orderBy: { createdAt: 'desc' }
     })
     res.json({ campaigns })
   } catch (err) {
