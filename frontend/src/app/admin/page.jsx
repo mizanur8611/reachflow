@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   Users, Megaphone, Shield, Trash2, CheckCircle, XCircle,
   BarChart2, AlertTriangle, Ban, UserCheck, Eye, DollarSign,
-  FileText, Clock, TrendingUp, LogOut, ArrowDownToLine
+  FileText, Clock, TrendingUp, LogOut, ArrowDownToLine, Settings
 } from 'lucide-react'
 
 export default function AdminPanel() {
@@ -16,6 +16,9 @@ export default function AdminPanel() {
   const [submissions, setSubmissions] = useState([])
   const [withdrawals, setWithdrawals] = useState([])
   const [withdrawalStats, setWithdrawalStats] = useState(null)
+  const [platformSettings, setPlatformSettings] = useState(null)
+  const [settingsForm, setSettingsForm] = useState({ bdtRate: 110, minWithdrawal: 10, platformFeePercent: 10 })
+  const [settingsSaving, setSettingsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [authChecked, setAuthChecked] = useState(false)
 
@@ -44,6 +47,7 @@ export default function AdminPanel() {
     fetchCampaigns()
     fetchSubmissions()
     fetchWithdrawals()
+    fetchSettings() 
   }, [authChecked])
 
   const fetchStats = async () => {
@@ -53,6 +57,21 @@ export default function AdminPanel() {
       setStats(data)
     } finally { setLoading(false) }
   }
+
+  const fetchSettings = async () => {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, { headers })
+    const data = await res.json()
+    if (data.settings) {
+      setPlatformSettings(data.settings)
+      setSettingsForm({
+        bdtRate: data.settings.bdtRate || 110,
+        minWithdrawal: data.settings.minWithdrawal || 10,
+        platformFeePercent: data.settings.platformFeePercent || 10
+      })
+    }
+  } catch {}
+}
 
   const fetchUsers = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, { headers })
@@ -150,6 +169,7 @@ export default function AdminPanel() {
     { id: 'submissions', label: 'Submissions', icon: FileText },
     { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
     { id: 'revenue', label: 'Revenue', icon: DollarSign },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
   return (
@@ -502,6 +522,51 @@ export default function AdminPanel() {
             ))}
           </div>
         )}
+
+        {/* ── SETTINGS TAB ── */}
+          {tab === 'settings' && (
+            <div className="max-w-lg">
+              <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 space-y-5">
+                <h2 className="font-semibold mb-2">Platform Settings</h2>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">BDT Rate (1 USD = ? BDT)</label>
+                  <input type="number" value={settingsForm.bdtRate}
+                    onChange={e => setSettingsForm({ ...settingsForm, bdtRate: parseFloat(e.target.value) })}
+                    className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500/50" />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Minimum Withdrawal (USD)</label>
+                  <input type="number" value={settingsForm.minWithdrawal}
+                    onChange={e => setSettingsForm({ ...settingsForm, minWithdrawal: parseFloat(e.target.value) })}
+                    className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500/50" />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Platform Fee (%)</label>
+                  <input type="number" value={settingsForm.platformFeePercent}
+                    onChange={e => setSettingsForm({ ...settingsForm, platformFeePercent: parseFloat(e.target.value) })}
+                    className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500/50" />
+                </div>
+
+                <button onClick={async () => {
+                  setSettingsSaving(true)
+                  try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, {
+                      method: 'PUT',
+                      headers,
+                      body: JSON.stringify(settingsForm)
+                    })
+                    if (res.ok) alert('Settings saved! ✅')
+                  } catch {} finally { setSettingsSaving(false) }
+                }} disabled={settingsSaving}
+                  className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors">
+                  {settingsSaving ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+            </div>
+          )}
 
       </div>
     </div>
