@@ -359,6 +359,41 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 })
 
 // ─────────────────────────────────────────
+// PASSWORD CHANGE
+// ─────────────────────────────────────────
+
+app.put('/api/auth/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password এবং new password দিতে হবে' })
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password কমপক্ষে ৬ character হতে হবে' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId } })
+    if (!user) return res.status(404).json({ error: 'User found হয়নি' })
+
+    const isValid = await bcrypt.compare(currentPassword, user.password)
+    if (!isValid) {
+      return res.status(400).json({ error: 'Current password সঠিক নয়' })
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { password: hashedPassword }
+    })
+
+    res.json({ success: true, message: 'Password সফলভাবে পরিবর্তন হয়েছে!' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
 // CAMPAIGNS
 // ─────────────────────────────────────────
 
