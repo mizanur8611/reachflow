@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Users, DollarSign, Eye, MousePointer, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { ArrowLeft, Users, DollarSign, Eye, MousePointer, Calendar, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function CampaignDetailsPage() {
@@ -109,6 +109,10 @@ export default function CampaignDetailsPage() {
             <h1 className="text-2xl font-bold">{campaign.title}</h1>
             <p className="text-gray-400 text-sm mt-1">{campaign.description}</p>
           </div>
+            <Link href={`/dashboard/advertiser/campaigns/${id}/analytics`}
+              className="flex items-center gap-2 px-4 py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-xl text-sm font-medium transition-colors">
+              <TrendingUp size={15} /> Analytics
+            </Link>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
             campaign.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
             campaign.status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400' :
