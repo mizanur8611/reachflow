@@ -188,7 +188,7 @@ const markAllRead = async () => {
     </div>
   )}
 </div>
-        <Link href="/settings">
+        <Link href="/dashboard/settings">
           <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all`}>
             <Settings size={18} />
             {!collapsed && <span className="text-sm">Settings</span>}
