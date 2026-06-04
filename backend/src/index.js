@@ -1151,6 +1151,92 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
 })
 
 // ─────────────────────────────────────────
+// PUBLIC PROMOTER PROFILE
+// ─────────────────────────────────────────
+
+app.get('/api/public/promoter/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        role: 'PROMOTER',
+        status: 'ACTIVE',
+        id: identifier,
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        createdAt: true,
+        promoter: {
+          select: {
+            id: true,
+            bio: true,
+            country: true,
+            niche: true,
+            totalFollowers: true,
+            avgEngagement: true,
+            rating: true,
+            totalEarned: true,
+            verified: true,
+            socialAccounts: {
+              select: {
+                platform: true,
+                username: true,
+                profileUrl: true,
+                followers: true,
+                engagement: true,
+                verified: true,
+              }
+            },
+            submissions: {
+              where: { status: 'APPROVED' },
+              take: 6,
+              orderBy: { submittedAt: 'desc' },
+              select: {
+                id: true,
+                platform: true,
+                postUrl: true,
+                earnedAmount: true,
+                clicks: true,
+                reach: true,
+                submittedAt: true,
+                campaign: {
+                  select: {
+                    id: true,
+                    title: true,
+                    category: true,
+                    productImages: true,
+                    advertiser: {
+                      select: { businessName: true }
+                    }
+                  }
+                }
+              }
+            },
+            _count: {
+              select: {
+                submissions: { where: { status: 'APPROVED' } },
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user || !user.promoter) {
+      return res.status(404).json({ success: false, message: 'Promoter not found' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────
 // PAYMENT ROUTER
 // ─────────────────────────────────────────
 
