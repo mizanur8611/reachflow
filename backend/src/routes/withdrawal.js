@@ -3,15 +3,16 @@ const express = require('express')
 const router = express.Router()
 const { PrismaClient } = require('@prisma/client')
 const jwt = require('jsonwebtoken')
+const {
+  sendWithdrawalRequestEmail,
+  sendWithdrawalApprovedEmail,
+  sendWithdrawalRejectedEmail,
+} = require('../services/emailService')
 
 const prisma = new PrismaClient()
 
 const MIN_WITHDRAWAL = 10  // USD
 const BDT_RATE = 110       // 1 USD = 110 BDT
-
-// ─────────────────────────────────────────
-// MIDDLEWARE (index.js এর মতোই)
-// ─────────────────────────────────────────
 
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1]
@@ -42,14 +43,12 @@ const adminMiddleware = async (req, res, next) => {
 
 // ─────────────────────────────────────────
 // POST /api/withdrawals
-// Promoter withdrawal request করবে
 // ─────────────────────────────────────────
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { amount, method, accountInfo } = req.body
 
-    // Validation
     if (!amount || !method || !accountInfo) {
       return res.status(400).json({ error: 'amount, method এবং accountInfo দিতে হবে' })
     }
@@ -62,7 +61,6 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Invalid method. BKASH, NAGAD বা BANK_TRANSFER দাও' })
     }
 
-    // accountInfo validation
     if ((method === 'BKASH' || method === 'NAGAD') && !accountInfo.phone) {
       return res.status(400).json({ error: `${method} এর জন্য phone number দিতে হবে` })
     }
@@ -72,11 +70,9 @@ router.post('/', authMiddleware, async (req, res) => {
       }
     }
 
-    // Promoter খুঁজো
     const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.status(404).json({ error: 'Promoter found হয়নি' })
 
-    // Wallet balance check
     const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
     if (!wallet || wallet.balance < amount) {
       return res.status(400).json({
@@ -84,7 +80,6 @@ router.post('/', authMiddleware, async (req, res) => {
       })
     }
 
-    // Pending withdrawal check
     const pendingWithdrawal = await prisma.withdrawal.findFirst({
       where: { promoterId: promoter.id, status: 'PENDING' }
     })
@@ -94,17 +89,13 @@ router.post('/', authMiddleware, async (req, res) => {
       })
     }
 
-    // Withdrawal create + wallet update
     const [withdrawal] = await prisma.$transaction([
       prisma.withdrawal.create({
         data: { promoterId: promoter.id, amount, method, accountInfo, status: 'PENDING' }
       }),
       prisma.wallet.update({
         where: { userId: req.userId },
-        data: {
-          balance: { decrement: amount },
-          pending: { increment: amount }
-        }
+        data: { balance: { decrement: amount }, pending: { increment: amount } }
       }),
       prisma.transaction.create({
         data: {
@@ -118,7 +109,6 @@ router.post('/', authMiddleware, async (req, res) => {
       })
     ])
 
-    // Notification
     await prisma.notification.create({
       data: {
         userId: req.userId,
@@ -127,6 +117,12 @@ router.post('/', authMiddleware, async (req, res) => {
         type: 'payment'
       }
     })
+
+    // Email notification
+    const user = await prisma.user.findUnique({ where: { id: req.userId } })
+    if (user) {
+      await sendWithdrawalRequestEmail(user.email, user.name, amount, method)
+    }
 
     res.status(201).json({
       success: true,
@@ -148,7 +144,6 @@ router.post('/', authMiddleware, async (req, res) => {
 
 // ─────────────────────────────────────────
 // GET /api/withdrawals/my
-// Promoter নিজের withdrawal history দেখবে
 // ─────────────────────────────────────────
 
 router.get('/my', authMiddleware, async (req, res) => {
@@ -184,11 +179,7 @@ router.get('/my', authMiddleware, async (req, res) => {
         ...w,
         amountBDT: (w.amount * BDT_RATE).toFixed(0)
       })),
-      pagination: {
-        total,
-        page: Number(page),
-        totalPages: Math.ceil(total / Number(limit))
-      }
+      pagination: { total, page: Number(page), totalPages: Math.ceil(total / Number(limit)) }
     })
   } catch (error) {
     console.error('getMyWithdrawals error:', error)
@@ -198,7 +189,6 @@ router.get('/my', authMiddleware, async (req, res) => {
 
 // ─────────────────────────────────────────
 // GET /api/withdrawals/admin/stats
-// Admin dashboard stats
 // ─────────────────────────────────────────
 
 router.get('/admin/stats', adminMiddleware, async (req, res) => {
@@ -207,10 +197,7 @@ router.get('/admin/stats', adminMiddleware, async (req, res) => {
       prisma.withdrawal.count({ where: { status: 'PENDING' } }),
       prisma.withdrawal.count({ where: { status: 'COMPLETED' } }),
       prisma.withdrawal.count({ where: { status: 'FAILED' } }),
-      prisma.withdrawal.aggregate({
-        where: { status: 'COMPLETED' },
-        _sum: { amount: true }
-      })
+      prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } })
     ])
 
     const totalPaid = totalAmountResult._sum.amount || 0
@@ -231,7 +218,6 @@ router.get('/admin/stats', adminMiddleware, async (req, res) => {
 
 // ─────────────────────────────────────────
 // GET /api/withdrawals/admin/all
-// Admin সব withdrawals দেখবে
 // ─────────────────────────────────────────
 
 router.get('/admin/all', adminMiddleware, async (req, res) => {
@@ -246,11 +232,7 @@ router.get('/admin/all', adminMiddleware, async (req, res) => {
       prisma.withdrawal.findMany({
         where,
         include: {
-          promoter: {
-            include: {
-              user: { select: { name: true, email: true, avatar: true } }
-            }
-          }
+          promoter: { include: { user: { select: { name: true, email: true, avatar: true } } } }
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * Number(limit),
@@ -277,11 +259,7 @@ router.get('/admin/all', adminMiddleware, async (req, res) => {
           avatar: w.promoter.user.avatar
         }
       })),
-      pagination: {
-        total,
-        page: Number(page),
-        totalPages: Math.ceil(total / Number(limit))
-      }
+      pagination: { total, page: Number(page), totalPages: Math.ceil(total / Number(limit)) }
     })
   } catch (error) {
     console.error('getAllWithdrawals error:', error)
@@ -291,13 +269,12 @@ router.get('/admin/all', adminMiddleware, async (req, res) => {
 
 // ─────────────────────────────────────────
 // PATCH /api/withdrawals/admin/:id
-// Admin approve বা reject করবে
 // ─────────────────────────────────────────
 
 router.patch('/admin/:id', adminMiddleware, async (req, res) => {
   try {
     const { id } = req.params
-    const { action, note } = req.body // action: "approve" | "reject"
+    const { action, note } = req.body
 
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({ error: "action হবে 'approve' বা 'reject'" })
@@ -314,6 +291,8 @@ router.patch('/admin/:id', adminMiddleware, async (req, res) => {
     }
 
     const userId = withdrawal.promoter.userId
+    const userEmail = withdrawal.promoter.user.email
+    const userName = withdrawal.promoter.user.name
     const wallet = await prisma.wallet.findUnique({ where: { userId } })
 
     if (action === 'approve') {
@@ -341,10 +320,12 @@ router.patch('/admin/:id', adminMiddleware, async (req, res) => {
         }
       })
 
+      // Email notification
+      await sendWithdrawalApprovedEmail(userEmail, userName, withdrawal.amount, withdrawal.method)
+
       res.json({ success: true, message: 'Withdrawal approve করা হয়েছে।' })
 
     } else {
-      // Reject: balance ফেরত দাও
       await prisma.$transaction([
         prisma.withdrawal.update({
           where: { id },
@@ -352,10 +333,7 @@ router.patch('/admin/:id', adminMiddleware, async (req, res) => {
         }),
         prisma.wallet.update({
           where: { userId },
-          data: {
-            balance: { increment: withdrawal.amount },
-            pending: { decrement: withdrawal.amount }
-          }
+          data: { balance: { increment: withdrawal.amount }, pending: { decrement: withdrawal.amount } }
         }),
         prisma.transaction.updateMany({
           where: { walletId: wallet.id, type: 'WITHDRAWAL', status: 'PENDING', amount: withdrawal.amount },
@@ -371,6 +349,9 @@ router.patch('/admin/:id', adminMiddleware, async (req, res) => {
           type: 'payment'
         }
       })
+
+      // Email notification
+      await sendWithdrawalRejectedEmail(userEmail, userName, withdrawal.amount, note)
 
       res.json({ success: true, message: 'Withdrawal reject করা হয়েছে। Balance ফেরত দেওয়া হয়েছে।' })
     }
