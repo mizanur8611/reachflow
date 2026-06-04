@@ -309,7 +309,22 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     await prisma.wallet.create({ data: { userId: user.id } })
-
+      // Referral handle
+      if (req.body.referralCode) {
+        const referrer = await prisma.user.findUnique({
+          where: { referralCode: req.body.referralCode }
+        })
+        if (referrer) {
+          await prisma.referral.create({
+            data: {
+              referrerId: referrer.id,
+              refereeId: user.id,
+              code: req.body.referralCode,
+              status: 'PENDING'
+            }
+          })
+        }
+      }
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (error) {
@@ -712,6 +727,31 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         'submission'
       )
     }
+
+    // Referral reward check
+const referral = await prisma.referral.findUnique({
+  where: { refereeId: submission.promoter.userId }
+})
+if (referral && referral.status === 'PENDING') {
+  await prisma.referral.update({
+    where: { id: referral.id },
+    data: { status: 'REWARDED', completedAt: new Date() }
+  })
+  await prisma.wallet.update({
+    where: { userId: referral.referrerId },
+    data: {
+      balance: { increment: referral.rewardAmount },
+      totalEarned: { increment: referral.rewardAmount }
+    }
+  })
+  await createNotification(
+    referral.referrerId,
+    '🎉 Referral Reward!',
+    `তোমার referred promoter প্রথম campaign complete করেছে! $${referral.rewardAmount} wallet এ add হয়েছে।`,
+    'referral'
+  )
+}
+
     await sendSubmissionApprovedEmail(
       submission.promoter.user.email,
       submission.promoter.user.name,
@@ -1328,6 +1368,56 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
     })
   } catch (err) {
     console.error(err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
+// REFERRAL SYSTEM
+// ─────────────────────────────────────────
+
+// Referral code generate / get করো
+app.get('/api/referral/my', authMiddleware, async (req, res) => {
+  try {
+    let user = await prisma.user.findUnique({ where: { id: req.userId } })
+    
+    // যদি referralCode না থাকে তাহলে generate করো
+    if (!user.referralCode) {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+      user = await prisma.user.update({
+        where: { id: req.userId },
+        data: { referralCode: code }
+      })
+    }
+
+    // আমার referrals
+    const referrals = await prisma.referral.findMany({
+      where: { referrerId: req.userId },
+      include: {
+        // referee info
+      }
+    })
+
+    const totalEarned = referrals
+      .filter(r => r.status === 'REWARDED')
+      .reduce((sum, r) => sum + r.rewardAmount, 0)
+
+    res.json({
+      success: true,
+      referralCode: user.referralCode,
+      referralLink: `${process.env.FRONTEND_URL || 'https://reachflow-lovat.vercel.app'}/register?ref=${user.referralCode}`,
+      totalReferrals: referrals.length,
+      completedReferrals: referrals.filter(r => r.status === 'REWARDED').length,
+      totalEarned,
+      referrals: referrals.map(r => ({
+        id: r.id,
+        status: r.status,
+        rewardAmount: r.rewardAmount,
+        createdAt: r.createdAt,
+        completedAt: r.completedAt,
+      }))
+    })
+  } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })

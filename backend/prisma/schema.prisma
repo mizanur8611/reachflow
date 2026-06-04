@@ -25,6 +25,7 @@ model User {
   emailVerified Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  referralCode  String?  @unique
 
   // Relations
   advertiser    Advertiser?
@@ -472,3 +473,21 @@ model Message {
   @@map("messages")
 }
 
+model Referral {
+  id           String         @id @default(cuid())
+  referrerId   String
+  refereeId    String         @unique
+  code         String         @unique
+  status       ReferralStatus @default(PENDING)
+  rewardAmount Float          @default(5)
+  createdAt    DateTime       @default(now())
+  completedAt  DateTime?
+
+  @@map("referrals")
+}
+
+enum ReferralStatus {
+  PENDING
+  COMPLETED
+  REWARDED
+}
