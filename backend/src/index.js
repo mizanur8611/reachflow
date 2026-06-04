@@ -1237,6 +1237,102 @@ app.get('/api/public/promoter/:identifier', async (req, res) => {
 });
 
 // ─────────────────────────────────────────
+// CAMPAIGN ANALYTICS
+// ─────────────────────────────────────────
+
+app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
+  try {
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: req.params.id },
+      include: {
+        submissions: {
+          where: { status: 'APPROVED' },
+          include: {
+            promoter: {
+              include: { user: { select: { name: true, avatar: true } } }
+            }
+          }
+        },
+        trackingLinks: true,
+        advertiser: true,
+      }
+    })
+
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' })
+
+    // Platform breakdown
+    const platformMap = {}
+    campaign.submissions.forEach(s => {
+      const p = s.platform || 'UNKNOWN'
+      if (!platformMap[p]) platformMap[p] = { clicks: 0, reach: 0, submissions: 0, earned: 0 }
+      platformMap[p].clicks += s.clicks || 0
+      platformMap[p].reach += s.reach || 0
+      platformMap[p].submissions += 1
+      platformMap[p].earned += s.earnedAmount || 0
+    })
+
+    // Top promoters
+    const promoterMap = {}
+    campaign.submissions.forEach(s => {
+      const pid = s.promoterId
+      if (!promoterMap[pid]) {
+        promoterMap[pid] = {
+          id: pid,
+          name: s.promoter?.user?.name || 'Unknown',
+          avatar: s.promoter?.user?.avatar || null,
+          clicks: 0, reach: 0, submissions: 0, earned: 0
+        }
+      }
+      promoterMap[pid].clicks += s.clicks || 0
+      promoterMap[pid].reach += s.reach || 0
+      promoterMap[pid].submissions += 1
+      promoterMap[pid].earned += s.earnedAmount || 0
+    })
+
+    const topPromoters = Object.values(promoterMap)
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, 5)
+
+    // Totals
+    const totalClicks = campaign.submissions.reduce((sum, s) => sum + (s.clicks || 0), 0)
+    const totalReach = campaign.submissions.reduce((sum, s) => sum + (s.reach || 0), 0)
+    const totalEngagement = campaign.submissions.reduce((sum, s) => sum + (s.engagement || 0), 0)
+    const totalEarned = campaign.submissions.reduce((sum, s) => sum + (s.earnedAmount || 0), 0)
+    const totalTrackingClicks = campaign.trackingLinks.reduce((sum, t) => sum + (t.clicks || 0), 0)
+
+    res.json({
+      success: true,
+      data: {
+        campaign: {
+          id: campaign.id,
+          title: campaign.title,
+          status: campaign.status,
+          totalBudget: campaign.totalBudget,
+          commissionAmount: campaign.commissionAmount,
+          startDate: campaign.startDate,
+          endDate: campaign.endDate,
+        },
+        totals: {
+          clicks: totalClicks,
+          reach: totalReach,
+          engagement: totalEngagement,
+          earned: totalEarned,
+          trackingClicks: totalTrackingClicks,
+          submissions: campaign.submissions.length,
+          budgetUsed: totalEarned,
+          budgetRemaining: campaign.totalBudget - totalEarned,
+        },
+        platformBreakdown: platformMap,
+        topPromoters,
+      }
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
 // PAYMENT ROUTER
 // ─────────────────────────────────────────
 
