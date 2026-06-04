@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Megaphone, Users, User, BarChart2, Wallet,
   MessageSquare, Settings, HelpCircle, LogOut, ChevronLeft,
-  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine
+  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine, Gift
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
@@ -30,6 +30,7 @@ const PROMOTER_NAV = [
   { label: 'Earnings', icon: Wallet, href: '/dashboard/promoter/earnings' },
   { label: 'Withdrawal', icon: ArrowDownToLine, href: '/dashboard/promoter/withdrawal' },
   { label: 'Leaderboard', icon: Star, href: '/dashboard/promoter/leaderboard' },
+  { label: 'Referral', icon: Gift, href: '/dashboard/promoter/referral' },
   { label: 'Messages', icon: MessageSquare, href: '/dashboard/promoter/messages' },
 ]
 
