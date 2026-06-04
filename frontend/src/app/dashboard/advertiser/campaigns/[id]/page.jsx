@@ -214,7 +214,20 @@ export default function CampaignDetailsPage() {
               <tbody className="divide-y divide-white/5">
                 {campaign.applications.map((app, i) => (
                   <tr key={i} className="hover:bg-white/[0.02]">
-                    <td className="px-6 py-4 text-sm font-medium">{app.promoter?.user?.name || 'Unknown'}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{app.promoter?.user?.name || 'Unknown'}</span>
+                        {app.promoter?.userId && (
+                          <Link
+                            href={`/promoter/${app.promoter.userId}`}
+                            target="_blank"
+                            className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            <Eye size={11} /> Profile
+                          </Link>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-400">{app.message || '-'}</td>
                     <td className="px-6 py-4 text-center">
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
@@ -274,7 +287,20 @@ export default function CampaignDetailsPage() {
       <tbody className="divide-y divide-white/5">
         {submissions.map((s, i) => (
           <tr key={i} className="hover:bg-white/[0.02]">
-            <td className="px-6 py-4 text-sm font-medium">{s.promoter?.user?.name || 'Unknown'}</td>
+            <td className="px-6 py-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{s.promoter?.user?.name || 'Unknown'}</span>
+                {s.promoter?.userId && (
+                  <Link
+                    href={`/promoter/${s.promoter.userId}`}
+                    target="_blank"
+                    className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    <Eye size={11} /> Profile
+                  </Link>
+                )}
+              </div>
+            </td>
             <td className="px-6 py-4 text-sm">
               <a href={s.postUrl} target="_blank" rel="noreferrer"
                 className="text-violet-400 hover:text-violet-300 underline">
