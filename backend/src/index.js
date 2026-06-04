@@ -394,6 +394,48 @@ app.put('/api/auth/change-password', authMiddleware, async (req, res) => {
 })
 
 // ─────────────────────────────────────────
+// PLATFORM SETTINGS (BDT Rate etc.)
+// ─────────────────────────────────────────
+
+app.get('/api/admin/settings', adminMiddleware, async (req, res) => {
+  try {
+    let settings = await prisma.platformSettings.findFirst()
+    if (!settings) {
+      settings = await prisma.platformSettings.create({
+        data: { platformFeePercent: 10, minWithdrawal: 10, autoPayoutEnabled: true, maintenanceMode: false }
+      })
+    }
+    res.json({ success: true, settings })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/admin/settings', adminMiddleware, async (req, res) => {
+  try {
+    const { bdtRate, minWithdrawal, platformFeePercent } = req.body
+    let settings = await prisma.platformSettings.findFirst()
+    if (!settings) {
+      settings = await prisma.platformSettings.create({
+        data: { platformFeePercent: platformFeePercent || 10, minWithdrawal: minWithdrawal || 10 }
+      })
+    } else {
+      settings = await prisma.platformSettings.update({
+        where: { id: settings.id },
+        data: {
+          ...(platformFeePercent && { platformFeePercent }),
+          ...(minWithdrawal && { minWithdrawal }),
+          ...(bdtRate && { bdtRate })
+        }
+      })
+    }
+    res.json({ success: true, settings })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
 // CAMPAIGNS
 // ─────────────────────────────────────────
 

@@ -450,6 +450,7 @@ model PlatformSettings {
   id              String  @id @default(cuid())
   platformFeePercent Float @default(10)
   minWithdrawal   Float   @default(10)
+  bdtRate         Float   @default(110)
   autoPayoutEnabled Boolean @default(true)
   maintenanceMode Boolean @default(false)
   updatedAt       DateTime @updatedAt
