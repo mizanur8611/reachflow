@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Megaphone, Users, User, BarChart2, Wallet,
   MessageSquare, Settings, HelpCircle, LogOut, ChevronLeft,
-  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine, Gift
+  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine, Gift, UserCheck
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
@@ -42,6 +42,7 @@ const ADMIN_NAV = [
   { label: 'Withdrawals', icon: ArrowDownToLine, href: '/admin/withdrawals' },
   { label: 'Analytics', icon: BarChart2, href: '/admin/analytics' },
   { label: 'Disputes', icon: Shield, href: '/admin/disputes' },
+  { label: 'KYC', icon: UserCheck, href: '/admin/kyc' },
 ]
 
 export default function Sidebar({ role = 'advertiser' }) {
