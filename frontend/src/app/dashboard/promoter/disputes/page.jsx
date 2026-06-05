@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Plus, X, Clock, CheckCircle, XCircle, Eye } from 'lucide-react'
+import { AlertTriangle, Plus, X, Clock, CheckCircle, XCircle, ChevronDown } from 'lucide-react'
 
 const REASONS = [
   'Payment not received',
@@ -11,6 +11,56 @@ const REASONS = [
   'Incorrect commission amount',
   'Other',
 ]
+
+function CustomSelect({ options, value, onChange, placeholder }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-left flex items-center justify-between transition-colors focus:outline-none focus:border-violet-500 hover:border-white/20"
+      >
+        <span className={value ? 'text-white' : 'text-gray-600'}>{value || placeholder}</span>
+        <ChevronDown size={14} className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 w-full mt-1 bg-[#1a1b23] border border-white/10 rounded-xl overflow-hidden shadow-2xl"
+          >
+            {options.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={`w-full px-4 py-2.5 text-sm text-left hover:bg-white/5 transition-colors ${
+                  value === opt.value ? 'text-violet-400 bg-violet-500/10' : 'text-gray-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 export default function DisputePage() {
   const [disputes, setDisputes] = useState([])
@@ -103,6 +153,12 @@ export default function DisputePage() {
     )
   }
 
+  const campaignOptions = [
+    ...campaigns.map(a => ({ value: a.campaignId, label: a.campaign?.title || a.campaignId }))
+  ]
+
+  const reasonOptions = REASONS.map(r => ({ value: r, label: r }))
+
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
       <div className="max-w-4xl mx-auto">
@@ -181,26 +237,22 @@ export default function DisputePage() {
               </div>
 
               <div className="space-y-4">
-                {/* Campaign (optional) */}
+                {/* Campaign */}
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">Related Campaign (optional)</label>
-                  <select
-                    value={form.campaignId}
-                    onChange={(e) => {
-                      const selected = campaigns.find(c => c.campaignId === e.target.value)
+                  <CustomSelect
+                    options={campaignOptions}
+                    value={campaigns.find(c => c.campaignId === form.campaignId)?.campaign?.title || ''}
+                    onChange={(val) => {
+                      const selected = campaigns.find(c => c.campaignId === val)
                       setForm(prev => ({
                         ...prev,
-                        campaignId: e.target.value,
+                        campaignId: val,
                         againstId: selected?.campaign?.advertiserId || prev.againstId,
                       }))
                     }}
-                    className="w-full bg-[#1a1b23] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors [&>option]:bg-[#1a1b23] [&>option]:text-white"
-                  >
-                    <option value="">Select a campaign...</option>
-                    {campaigns.map(a => (
-                      <option key={a.campaignId} value={a.campaignId}>{a.campaign?.title}</option>
-                    ))}
-                  </select>
+                    placeholder="Select a campaign..."
+                  />
                 </div>
 
                 {/* Against User ID */}
@@ -218,16 +270,12 @@ export default function DisputePage() {
                 {/* Reason */}
                 <div>
                   <label className="text-sm text-gray-400 mb-1.5 block">Reason *</label>
-                  <select
+                  <CustomSelect
+                    options={reasonOptions}
                     value={form.reason}
-                    onChange={(e) => setForm(prev => ({ ...prev, reason: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
-                  >
-                    <option value="">Select a reason...</option>
-                    {REASONS.map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setForm(prev => ({ ...prev, reason: val }))}
+                    placeholder="Select a reason..."
+                  />
                 </div>
 
                 {/* Description */}
