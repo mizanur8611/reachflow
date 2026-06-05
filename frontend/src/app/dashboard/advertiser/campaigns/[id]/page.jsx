@@ -194,7 +194,7 @@ export default function CampaignDetailsPage() {
         <EscrowPanel
           campaignId={id}
           campaign={campaign}
-          onUpdate={fetchCampaign}
+          onUpdate={() => window.location.reload()}
         />
 
         {/* Promoter Applications */}
