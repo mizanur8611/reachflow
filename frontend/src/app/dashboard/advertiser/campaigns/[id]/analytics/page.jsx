@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, MousePointer, Eye, Users, DollarSign, TrendingUp, Zap, Target } from 'lucide-react'
 import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import ExportButton from '@/components/ExportButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -109,7 +110,13 @@ export default function CampaignAnalyticsPage() {
             </h1>
             <p className="text-gray-400 text-sm mt-0.5">{campaign.title}</p>
           </div>
-          <span className={`ml-auto px-3 py-1 rounded-full text-xs font-semibold ${
+          <ExportButton
+              type="campaign"
+              campaignId={id}
+              campaignTitle={campaign.title}
+              className="ml-auto mr-3"
+            />
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
             campaign.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
             campaign.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400' :
             'bg-gray-500/10 text-gray-400'
