@@ -1452,7 +1452,7 @@ app.use('/api/withdrawals', withdrawalRouter)
 app.use('/api/kyc', authMiddleware, kycRouter)
 app.use('/api/disputes', authMiddleware, disputeRouter)
 app.use('/api/ratings', authMiddleware, ratingRouter)
-app.use('/api/analytics', authMiddleware, analyticsExportRouter)
+app.use('/api/analytics', analyticsExportRouter)
 
 // ─────────────────────────────────────────
 // START SERVER

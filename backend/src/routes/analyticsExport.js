@@ -7,6 +7,22 @@ const { generateCampaignPDF } = require("../utils/pdfExport");
 
 const prisma = new PrismaClient();
 
+const jwt = require("jsonwebtoken")
+
+router.use(async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+    if (!token) return res.status(401).json({ error: 'Unauthorized' })
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+    if (!user) return res.status(401).json({ error: 'Unauthorized' })
+    req.user = { id: user.id, role: user.role }
+    next()
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' })
+  }
+})
+
 // ─── Middleware: Auth check (replace with your actual auth middleware) ───
 // This assumes you have a verifyToken middleware that sets req.user
 // Example: router.use(verifyToken);
