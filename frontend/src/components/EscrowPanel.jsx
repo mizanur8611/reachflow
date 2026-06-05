@@ -151,7 +151,7 @@ export default function EscrowPanel({ campaignId, campaign, onUpdate }) {
       {/* Actions */}
       <div className="space-y-2">
         {/* Fund Escrow */}
-        {(!escrow || status === 'PENDING') && campaign?.status === 'DRAFT' && (
+        {(!escrow || status === 'PENDING') && (
           <button onClick={handleFund} disabled={funding}
             className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all">
             {funding ? <Loader2 size={15} className="animate-spin" /> : <DollarSign size={15} />}
