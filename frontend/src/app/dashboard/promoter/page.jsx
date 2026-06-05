@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { DollarSign, Target, Clock, CheckCircle, X, Send, Link, FileText, ExternalLink } from 'lucide-react'
+import { DollarSign, Target, Clock, CheckCircle, X, Send, Link, FileText, ExternalLink, Shield } from 'lucide-react'
 
 export default function PromoterDashboard() {
   const [campaigns, setCampaigns] = useState([])
@@ -14,6 +14,7 @@ export default function PromoterDashboard() {
   const [submittedIds, setSubmittedIds] = useState([]) // applicationIds already submitted
   const [trackingLinks, setTrackingLinks] = useState({}) // campaignId -> shortCode
   const [generatingLink, setGeneratingLink] = useState(null)
+  const [kycStatus, setKycStatus] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +44,9 @@ export default function PromoterDashboard() {
           const ids = data3.submissions.map(s => s.applicationId).filter(Boolean)
           setSubmittedIds(ids)
         }
+        const res5 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kyc/status`, { headers })
+        const data5 = await res5.json()
+        setKycStatus(data5)
       } catch (err) {
         console.error(err)
       } finally {
@@ -156,6 +160,24 @@ export default function PromoterDashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* KYC Banner */}
+          {kycStatus && kycStatus.status !== 'VERIFIED' && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Shield size={18} className="text-yellow-400" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-300">KYC Verification Required</p>
+                  <p className="text-xs text-yellow-500">Verify your identity to unlock withdrawals & more</p>
+                </div>
+              </div>
+              <a href="/dashboard/promoter/kyc"
+                className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-all">
+                Verify Now →
+              </a>
+            </motion.div>
+          )}
 
         {/* Available Campaigns — FIX: scroll হবে */}
         <div className="mb-8">

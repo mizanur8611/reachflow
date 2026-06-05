@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
+const kycRouter = require('./routes/kyc')
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -1428,6 +1429,7 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
 
 app.use('/api/payment', authMiddleware, paymentRouter)
 app.use('/api/withdrawals', withdrawalRouter)
+app.use('/api/kyc', authMiddleware, kycRouter)
 
 // ─────────────────────────────────────────
 // START SERVER

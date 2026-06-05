@@ -25,17 +25,18 @@ model User {
   emailVerified Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  referralCode  String?  @unique
+  referralCode  String?   @unique
 
   // Relations
-  advertiser    Advertiser?
-  promoter      Promoter?
-  wallet        Wallet?
-  notifications Notification[]
-  sessions      Session[]
-  oauthAccounts OAuthAccount[]
-  sentMessages     Message[] @relation("MessageSender")
-  receivedMessages Message[] @relation("MessageReceiver")
+  advertiser      Advertiser?
+  promoter        Promoter?
+  wallet          Wallet?
+  notifications   Notification[]
+  sessions        Session[]
+  oauthAccounts   OAuthAccount[]
+  sentMessages    Message[]       @relation("MessageSender")
+  receivedMessages Message[]      @relation("MessageReceiver")
+  kycVerification KycVerification?
 
   @@map("users")
 }
@@ -65,16 +66,44 @@ model Session {
 }
 
 model OAuthAccount {
-  id           String @id @default(cuid())
-  userId       String
-  provider     String // google, facebook, tiktok
+  id                String @id @default(cuid())
+  userId            String
+  provider          String // google, facebook, tiktok
   providerAccountId String
-  accessToken  String?
-  refreshToken String?
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken       String?
+  refreshToken      String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("oauth_accounts")
+}
+
+// ─────────────────────────────────────────
+// KYC VERIFICATION
+// ─────────────────────────────────────────
+
+model KycVerification {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  type          KycType   @default(NID)
+  nidNumber     String?
+  nidFrontUrl   String?
+  nidBackUrl    String?
+  selfieUrl     String?
+  status        KycStatus @default(PENDING)
+  rejectionNote String?
+  submittedAt   DateTime  @default(now())
+  reviewedAt    DateTime?
+  reviewedBy    String?   // Admin userId
+
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@map("kyc_verifications")
+}
+
+enum KycType {
+  NID
+  PASSPORT
 }
 
 // ─────────────────────────────────────────
@@ -82,18 +111,18 @@ model OAuthAccount {
 // ─────────────────────────────────────────
 
 model Advertiser {
-  id          String   @id @default(cuid())
-  userId      String   @unique
+  id           String    @id @default(cuid())
+  userId       String    @unique
   businessName String
-  website     String?
-  category    String
-  country     String
-  verified    Boolean  @default(false)
-  kycStatus   KycStatus @default(PENDING)
-  createdAt   DateTime @default(now())
+  website      String?
+  category     String
+  country      String
+  verified     Boolean   @default(false)
+  kycStatus    KycStatus @default(PENDING)
+  createdAt    DateTime  @default(now())
 
-  user        User       @relation(fields: [userId], references: [id])
-  campaigns   Campaign[]
+  user         User       @relation(fields: [userId], references: [id])
+  campaigns    Campaign[]
 
   @@map("advertisers")
 }
@@ -109,40 +138,40 @@ enum KycStatus {
 // ─────────────────────────────────────────
 
 model Promoter {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  bio          String?
-  country      String
-  niche        String[] // fashion, tech, food, etc.
-  totalFollowers Int    @default(0)
-  avgEngagement Float  @default(0)
-  rating       Float   @default(0)
-  totalEarned  Float   @default(0)
-  verified     Boolean @default(false)
-  createdAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  bio            String?
+  country        String
+  niche          String[] // fashion, tech, food, etc.
+  totalFollowers Int      @default(0)
+  avgEngagement  Float    @default(0)
+  rating         Float    @default(0)
+  totalEarned    Float    @default(0)
+  verified       Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  user            User              @relation(fields: [userId], references: [id])
-  socialAccounts  SocialAccount[]
-  applications    Application[]
-  submissions     Submission[]
-  withdrawals     Withdrawal[]
+  user           User            @relation(fields: [userId], references: [id])
+  socialAccounts SocialAccount[]
+  applications   Application[]
+  submissions    Submission[]
+  withdrawals    Withdrawal[]
 
   @@map("promoters")
 }
 
 model SocialAccount {
-  id           String   @id @default(cuid())
-  promoterId   String
-  platform     Platform
-  username     String
-  profileUrl   String
-  followers    Int      @default(0)
-  engagement   Float    @default(0)
-  verified     Boolean  @default(false)
-  accessToken  String?
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  promoterId  String
+  platform    Platform
+  username    String
+  profileUrl  String
+  followers   Int      @default(0)
+  engagement  Float    @default(0)
+  verified    Boolean  @default(false)
+  accessToken String?
+  createdAt   DateTime @default(now())
 
-  promoter     Promoter @relation(fields: [promoterId], references: [id])
+  promoter    Promoter @relation(fields: [promoterId], references: [id])
 
   @@map("social_accounts")
 }
@@ -184,15 +213,15 @@ model Campaign {
   status           CampaignStatus @default(DRAFT)
   requirements     String[]
   hashtags         String[]
-  aiScore          Float?         // AI quality score
+  aiScore          Float?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  advertiser       Advertiser     @relation(fields: [advertiserId], references: [id])
-  applications     Application[]
-  submissions      Submission[]
-  trackingLinks    TrackingLink[]
-  analytics        CampaignAnalytics?
+  advertiser    Advertiser        @relation(fields: [advertiserId], references: [id])
+  applications  Application[]
+  submissions   Submission[]
+  trackingLinks TrackingLink[]
+  analytics     CampaignAnalytics?
 
   @@map("campaigns")
 }
@@ -219,17 +248,18 @@ enum CampaignStatus {
 // ─────────────────────────────────────────
 
 model Application {
-  id           String            @id @default(cuid())
-  campaignId   String
-  promoterId   String
-  message      String?
-  status       ApplicationStatus @default(PENDING)
-  appliedAt    DateTime          @default(now())
-  reviewedAt   DateTime?
+  id          String            @id @default(cuid())
+  campaignId  String
+  promoterId  String
+  message     String?
+  status      ApplicationStatus @default(PENDING)
+  appliedAt   DateTime          @default(now())
+  reviewedAt  DateTime?
 
-  campaign     Campaign  @relation(fields: [campaignId], references: [id])
-  promoter     Promoter  @relation(fields: [promoterId], references: [id])
+  campaign    Campaign    @relation(fields: [campaignId], references: [id])
+  promoter    Promoter    @relation(fields: [promoterId], references: [id])
   submissions Submission[]
+
   @@unique([campaignId, promoterId])
   @@map("applications")
 }
@@ -241,27 +271,28 @@ enum ApplicationStatus {
 }
 
 model Submission {
-  id             String           @id @default(cuid())
-  campaignId     String
+  id            String           @id @default(cuid())
+  campaignId    String
   applicationId String?
-  promoterId     String
-  platform       Platform?
-  postUrl        String
-  screenshot     String?
-  caption        String?
-  status         SubmissionStatus @default(PENDING)
-  fraudScore     Float            @default(0) // 0-1, higher = more suspicious
-  clicks         Int              @default(0)
-  reach          Int              @default(0)
-  engagement     Int              @default(0)
-  conversions    Int              @default(0)
-  earnedAmount   Float            @default(0)
-  submittedAt    DateTime         @default(now())
-  reviewedAt     DateTime?
+  promoterId    String
+  platform      Platform?
+  postUrl       String
+  screenshot    String?
+  caption       String?
+  status        SubmissionStatus @default(PENDING)
+  fraudScore    Float            @default(0)
+  clicks        Int              @default(0)
+  reach         Int              @default(0)
+  engagement    Int              @default(0)
+  conversions   Int              @default(0)
+  earnedAmount  Float            @default(0)
+  submittedAt   DateTime         @default(now())
+  reviewedAt    DateTime?
 
-  campaign       Campaign  @relation(fields: [campaignId], references: [id])
-  promoter       Promoter  @relation(fields: [promoterId], references: [id])
+  campaign      Campaign     @relation(fields: [campaignId], references: [id])
+  promoter      Promoter     @relation(fields: [promoterId], references: [id])
   application   Application? @relation(fields: [applicationId], references: [id])
+
   @@map("submissions")
 }
 
@@ -287,7 +318,7 @@ model TrackingLink {
   conversions  Int      @default(0)
   createdAt    DateTime @default(now())
 
-  campaign     Campaign @relation(fields: [campaignId], references: [id])
+  campaign     Campaign     @relation(fields: [campaignId], references: [id])
   clickEvents  ClickEvent[]
 
   @@map("tracking_links")
@@ -310,20 +341,20 @@ model ClickEvent {
 }
 
 model CampaignAnalytics {
-  id           String   @id @default(cuid())
-  campaignId   String   @unique
-  totalReach   Int      @default(0)
-  totalClicks  Int      @default(0)
-  totalEngagement Int   @default(0)
-  totalConversions Int  @default(0)
-  totalSpent   Float    @default(0)
-  roi          Float    @default(0)
-  byPlatform   Json     @default("{}")
-  byCountry    Json     @default("{}")
-  byDay        Json     @default("{}")
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(cuid())
+  campaignId       String   @unique
+  totalReach       Int      @default(0)
+  totalClicks      Int      @default(0)
+  totalEngagement  Int      @default(0)
+  totalConversions Int      @default(0)
+  totalSpent       Float    @default(0)
+  roi              Float    @default(0)
+  byPlatform       Json     @default("{}")
+  byCountry        Json     @default("{}")
+  byDay            Json     @default("{}")
+  updatedAt        DateTime @updatedAt
 
-  campaign     Campaign @relation(fields: [campaignId], references: [id])
+  campaign         Campaign @relation(fields: [campaignId], references: [id])
 
   @@map("campaign_analytics")
 }
@@ -342,26 +373,26 @@ model Wallet {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user         User         @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
 
   @@map("wallets")
 }
 
 model Transaction {
-  id            String          @id @default(cuid())
-  walletId      String
-  type          TransactionType
-  amount        Float
-  currency      String          @default("USD")
-  status        PaymentStatus   @default(PENDING)
-  method        PaymentMethod
-  reference     String?         // external payment ID
-  metadata      Json?
-  description   String?
-  createdAt     DateTime        @default(now())
+  id          String          @id @default(cuid())
+  walletId    String
+  type        TransactionType
+  amount      Float
+  currency    String          @default("USD")
+  status      PaymentStatus   @default(PENDING)
+  method      PaymentMethod
+  reference   String?
+  metadata    Json?
+  description String?
+  createdAt   DateTime        @default(now())
 
-  wallet        Wallet @relation(fields: [walletId], references: [id])
+  wallet      Wallet @relation(fields: [walletId], references: [id])
 
   @@map("transactions")
 }
@@ -397,7 +428,7 @@ model Withdrawal {
   promoterId  String
   amount      Float
   method      PaymentMethod
-  accountInfo Json          // phone/wallet/bank details
+  accountInfo Json
   status      PaymentStatus @default(PENDING)
   processedAt DateTime?
   createdAt   DateTime      @default(now())
@@ -416,7 +447,7 @@ model Notification {
   userId    String
   title     String
   message   String
-  type      String   // campaign, payment, system
+  type      String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -448,27 +479,27 @@ enum DisputeStatus {
 }
 
 model PlatformSettings {
-  id              String  @id @default(cuid())
-  platformFeePercent Float @default(10)
-  minWithdrawal   Float   @default(10)
-  bdtRate         Float   @default(110)
-  autoPayoutEnabled Boolean @default(true)
-  maintenanceMode Boolean @default(false)
-  updatedAt       DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  platformFeePercent Float    @default(10)
+  minWithdrawal      Float    @default(10)
+  bdtRate            Float    @default(110)
+  autoPayoutEnabled  Boolean  @default(true)
+  maintenanceMode    Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
 
   @@map("platform_settings")
 }
 
 model Message {
-  id          String   @id @default(cuid())
-  senderId    String
-  receiverId  String
-  content     String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-  sender      User @relation("MessageSender", fields: [senderId], references: [id])
-  receiver    User @relation("MessageReceiver", fields: [receiverId], references: [id])
+  sender     User @relation("MessageSender", fields: [senderId], references: [id])
+  receiver   User @relation("MessageReceiver", fields: [receiverId], references: [id])
 
   @@map("messages")
 }
