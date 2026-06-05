@@ -201,7 +201,7 @@ export default function MySubmissionsPage() {
                               onClick={() => setRatingModal({
                                 campaignId: s.campaignId,
                                 campaignTitle: s.campaign?.title,
-                                advertiserId: s.campaign?.advertiserId,
+                                advertiserId: s.campaign?.advertiser?.userId,
                               })}
                               className="flex items-center gap-1 text-xs px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg transition-all mx-auto"
                             >
