@@ -8,6 +8,7 @@ const crypto = require('crypto')
 const kycRouter = require('./routes/kyc')
 const disputeRouter = require('./routes/dispute')
 const ratingRouter = require('./routes/rating')
+const { calculateFraudScore, getFraudRiskLevel } = require('./services/fraudDetection')
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -659,6 +660,22 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
         status: 'PENDING'
       }
     })
+
+    // Fraud detection
+      const { score, flags } = await calculateFraudScore(submission, promoter.id)
+      if (score > 0) {
+        await prisma.submission.update({
+          where: { id: submission.id },
+          data: {
+            fraudScore: score,
+            status: score >= 0.7 ? 'FLAGGED' : 'PENDING',
+          },
+        })
+        if (score >= 0.7) {
+          console.log(`🚨 High fraud: ${submission.id} | Score: ${score} | Flags: ${flags.join(', ')}`)
+        }
+      }
+
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
