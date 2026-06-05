@@ -171,7 +171,7 @@ async function generateCampaignPDF(data) {
     doc.y += 10;
 
     // Campaign Info grid
-    sectionTitle("📋 Campaign Information");
+    sectionTitle("Campaign Information");
 
     const infoItems = [
       ["Total Budget", `$${campaign.totalBudget?.toFixed(2)}`],
@@ -196,7 +196,7 @@ async function generateCampaignPDF(data) {
     doc.y = infoY + Math.ceil(infoItems.length / 2) * 22 + 10;
 
     // KPI Cards
-    sectionTitle("📈 Performance Summary");
+    sectionTitle("Performance Summary");
 
     const kpis = [
       { label: "Total Reach", value: (analytics?.totalReach || 0).toLocaleString(), color: C.primary },
@@ -221,7 +221,7 @@ async function generateCampaignPDF(data) {
     // ════════════════════════════════════════
     doc.addPage();
     pageHeader();
-    sectionTitle("👥 Promoter Performance");
+    sectionTitle("Promoter Performance");
 
     const promoterRows = (submissions || []).map((sub) => [
       sub.promoter?.user?.name?.substring(0, 16) || "Unknown",
@@ -262,7 +262,7 @@ async function generateCampaignPDF(data) {
     // ════════════════════════════════════════
     doc.addPage();
     pageHeader();
-    sectionTitle("📱 Platform Breakdown");
+    sectionTitle("Platform Breakdown");
 
     // Build platform data
     const platformMap = {};
@@ -288,7 +288,7 @@ async function generateCampaignPDF(data) {
     );
 
     // Daily Performance
-    sectionTitle("📅 Daily Performance");
+    sectionTitle("Daily Performance");
 
     const byDay = analytics?.byDay || {};
     const dailyRows = Object.entries(byDay)
@@ -315,7 +315,7 @@ async function generateCampaignPDF(data) {
     if (transactions?.length) {
       doc.addPage();
       pageHeader();
-      sectionTitle("💳 Transaction History");
+      sectionTitle("Transaction History");
 
       const txRows = transactions.map((tx) => [
         new Date(tx.createdAt).toLocaleDateString("en-BD"),
@@ -448,7 +448,7 @@ async function generatePromoterPDF(data) {
     hrLine(doc.y);
     doc.y += 10;
 
-    sectionTitle("👤 Profile Summary");
+    sectionTitle("Profile Summary");
     const infoItems = [
       ["Email", promoter.user?.email || "-"], ["Verified", promoter.verified ? "Yes" : "No"],
       ["Total Followers", (promoter.totalFollowers || 0).toLocaleString()], ["Avg Engagement", `${promoter.avgEngagement || 0}%`],
@@ -463,7 +463,7 @@ async function generatePromoterPDF(data) {
     });
     doc.y = infoY + Math.ceil(infoItems.length / 2) * 22 + 10;
 
-    sectionTitle("📈 Performance KPIs");
+    sectionTitle("Performance KPIs");
     const totalEarned   = submissions?.reduce((s, x) => s + (x.earnedAmount || 0), 0) || 0;
     const totalClicks   = submissions?.reduce((s, x) => s + (x.clicks || 0), 0) || 0;
     const totalReach    = submissions?.reduce((s, x) => s + (x.reach || 0), 0) || 0;
@@ -487,7 +487,7 @@ async function generatePromoterPDF(data) {
     // ── Page 2: Submissions ──
     doc.addPage();
     pageHeader();
-    sectionTitle("📋 Campaign Submissions");
+    sectionTitle("Campaign Submissions");
     const subRows = (submissions || []).map((s) => [
       s.campaign?.title?.substring(0, 16) || "-",
       s.platform || "-", s.status,
@@ -501,7 +501,7 @@ async function generatePromoterPDF(data) {
 
     // ── Transactions ──
     if (transactions?.length) {
-      sectionTitle("💰 Earnings & Withdrawal History");
+      sectionTitle("Earnings & Withdrawal History");
       const txRows = transactions.map((tx) => [
         new Date(tx.createdAt).toLocaleDateString("en-BD"),
         tx.type, `$${(tx.amount || 0).toFixed(2)}`, tx.method, tx.status,
