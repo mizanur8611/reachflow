@@ -360,6 +360,7 @@ export default function AdminPanel() {
                       <th className="px-6 py-3 text-left">Campaign</th>
                       <th className="px-6 py-3 text-left">Post URL</th>
                       <th className="px-6 py-3 text-left">Status</th>
+                      <th className="px-6 py-3 text-left">Fraud Score</th>
                       <th className="px-6 py-3 text-center">Actions</th>
                     </tr>
                   </thead>
@@ -381,6 +382,16 @@ export default function AdminPanel() {
                             s.status === 'FLAGGED' ? 'bg-orange-500/10 text-orange-400' :
                             'bg-yellow-500/10 text-yellow-400'}`}>
                             {s.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            s.fraudScore >= 0.7 ? 'bg-red-500/10 text-red-400' :
+                            s.fraudScore >= 0.4 ? 'bg-orange-500/10 text-orange-400' :
+                            s.fraudScore >= 0.2 ? 'bg-yellow-500/10 text-yellow-400' :
+                            'bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {s.fraudScore >= 0.7 ? '🔴' : s.fraudScore >= 0.4 ? '🟡' : '✅'} {(s.fraudScore * 100).toFixed(0)}%
                           </span>
                         </td>
                         <td className="px-6 py-4">
