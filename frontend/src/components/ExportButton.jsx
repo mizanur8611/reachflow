@@ -47,7 +47,7 @@ export default function ExportButton({
       if (dateTo) url += `&dateTo=${dateTo}`;
 
       // Fetch with auth token
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('rf_token')
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
