@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   Users, Megaphone, Shield, Trash2, CheckCircle, XCircle,
   BarChart2, AlertTriangle, Ban, UserCheck, Eye, DollarSign,
-  FileText, Clock, TrendingUp, LogOut, ArrowDownToLine, Settings
+  FileText, Clock, TrendingUp, LogOut, ArrowDownToLine, Settings, Crown
 } from 'lucide-react'
 
 export default function AdminPanel() {
@@ -20,6 +20,7 @@ export default function AdminPanel() {
   const [settingsForm, setSettingsForm] = useState({ bdtRate: 110, minWithdrawal: 10, platformFeePercent: 10 })
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [subscriptions, setSubscriptions] = useState([])
   const [authChecked, setAuthChecked] = useState(false)
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : ''
@@ -47,6 +48,7 @@ export default function AdminPanel() {
     fetchCampaigns()
     fetchSubmissions()
     fetchWithdrawals()
+    fetchSubscriptions()
     fetchSettings() 
   }, [authChecked])
 
@@ -72,6 +74,14 @@ export default function AdminPanel() {
     }
   } catch {}
 }
+
+  const fetchSubscriptions = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions/admin/all`, { headers })
+      const data = await res.json()
+      if (data.success) setSubscriptions(data.subscriptions)
+    } catch {}
+  }
 
   const fetchUsers = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, { headers })
@@ -171,6 +181,7 @@ export default function AdminPanel() {
     { id: 'revenue', label: 'Revenue', icon: DollarSign },
     { id: 'kyc', label: 'KYC', icon: UserCheck },
     { id: 'disputes', label: 'Disputes', icon: AlertTriangle },
+    { id: 'subscriptions', label: 'Subscriptions', icon: Crown },
     { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
@@ -533,6 +544,70 @@ export default function AdminPanel() {
                 <p className="text-gray-500 text-xs mt-1">{item.desc}</p>
               </div>
             ))}
+          </div>
+        )}
+
+        {tab === 'subscriptions' && (
+          <div className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/5">
+              <h2 className="font-semibold">All Subscriptions ({subscriptions.length})</h2>
+            </div>
+            {subscriptions.length === 0 ? (
+              <div className="px-6 py-12 text-center text-gray-500">No subscriptions yet.</div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
+                    <th className="px-6 py-3 text-left">User</th>
+                    <th className="px-6 py-3 text-left">Plan</th>
+                    <th className="px-6 py-3 text-left">Amount</th>
+                    <th className="px-6 py-3 text-left">Method</th>
+                    <th className="px-6 py-3 text-left">Status</th>
+                    <th className="px-6 py-3 text-left">End Date</th>
+                    <th className="px-6 py-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {subscriptions.map(s => (
+                    <tr key={s.id} className="hover:bg-white/[0.02]">
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium">{s.user?.name}</p>
+                        <p className="text-xs text-gray-500">{s.user?.role}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-medium text-violet-400">{s.plan?.name}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">${s.amount}/mo</td>
+                      <td className="px-6 py-4 text-sm text-gray-400">{s.paymentMethod}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          s.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
+                          s.status === 'PAST_DUE' ? 'bg-yellow-500/10 text-yellow-400' :
+                          s.status === 'CANCELLED' ? 'bg-red-500/10 text-red-400' :
+                          'bg-gray-500/10 text-gray-400'}`}>
+                          {s.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-400">
+                        {new Date(s.endDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        {s.status === 'PAST_DUE' && s.payments?.[0] && (
+                          <button onClick={async () => {
+                            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions/admin/confirm/${s.payments[0].id}`, {
+                              method: 'POST', headers
+                            })
+                            if (res.ok) { alert('Payment confirmed!'); fetchSubscriptions() }
+                          }} className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium">
+                            Confirm Payment
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
