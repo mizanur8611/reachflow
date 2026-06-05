@@ -223,6 +223,7 @@ model Campaign {
   submissions   Submission[]
   trackingLinks TrackingLink[]
   analytics     CampaignAnalytics?
+  escrow        Escrow?
 
   @@map("campaigns")
 }
@@ -619,6 +620,66 @@ enum PlanType {
   ADVERTISER
   PROMOTER
 }
+
+
+// ─────────────────────────────────────────
+// ESCROW SYSTEM
+// schema.prisma এর শেষে যোগ করো
+// ─────────────────────────────────────────
+
+model Escrow {
+  id              String        @id @default(cuid())
+  campaignId      String        @unique
+  advertiserId    String
+  totalAmount     Float         // campaign total budget
+  heldAmount      Float         @default(0) // currently locked
+  releasedAmount  Float         @default(0) // paid out to promoters
+  refundedAmount  Float         @default(0) // returned to advertiser
+  status          EscrowStatus  @default(PENDING)
+  fundedAt        DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  campaign        Campaign      @relation(fields: [campaignId], references: [id])
+  transactions    EscrowTransaction[]
+
+  @@map("escrows")
+}
+
+model EscrowTransaction {
+  id          String              @id @default(cuid())
+  escrowId    String
+  type        EscrowTxType
+  amount      Float
+  fromUserId  String?             // who paid
+  toUserId    String?             // who received
+  submissionId String?            // related submission
+  note        String?
+  createdAt   DateTime            @default(now())
+
+  escrow      Escrow              @relation(fields: [escrowId], references: [id])
+
+  @@map("escrow_transactions")
+}
+
+enum EscrowStatus {
+  PENDING       // waiting for advertiser to fund
+  FUNDED        // advertiser deposited budget
+  ACTIVE        // campaign running, payments being released
+  COMPLETED     // campaign ended, remaining refunded
+  DISPUTED      // under dispute
+  REFUNDED      // fully refunded to advertiser
+}
+
+enum EscrowTxType {
+  FUND          // advertiser deposits budget
+  HOLD          // amount locked for approved submission
+  RELEASE       // payment released to promoter
+  REFUND        // returned to advertiser
+  DISPUTE_HOLD  // held during dispute
+}
+
 
 
 

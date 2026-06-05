@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Users, DollarSign, Eye, MousePointer, Calendar, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import EscrowPanel from '@/components/EscrowPanel'
 
 export default function CampaignDetailsPage() {
   const { id } = useParams()
@@ -189,6 +190,12 @@ export default function CampaignDetailsPage() {
             </div>
           </motion.div>
         </div>
+
+        <EscrowPanel
+          campaignId={id}
+          campaign={campaign}
+          onUpdate={fetchCampaign}
+        />
 
         {/* Promoter Applications */}
         <motion.div
