@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const kycRouter = require('./routes/kyc')
+const disputeRouter = require('./routes/dispute')
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -1430,6 +1431,7 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
 app.use('/api/payment', authMiddleware, paymentRouter)
 app.use('/api/withdrawals', withdrawalRouter)
 app.use('/api/kyc', authMiddleware, kycRouter)
+app.use('/api/disputes', authMiddleware, disputeRouter)
 
 // ─────────────────────────────────────────
 // START SERVER
