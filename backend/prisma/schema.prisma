@@ -37,6 +37,7 @@ model User {
   sentMessages    Message[]       @relation("MessageSender")
   receivedMessages Message[]      @relation("MessageReceiver")
   kycVerification KycVerification?
+  subscriptions   Subscription[]
 
   @@map("users")
 }
@@ -540,6 +541,83 @@ model Rating {
 enum RatingType {
   ADVERTISER_TO_PROMOTER
   PROMOTER_TO_ADVERTISER
+}
+
+// ─────────────────────────────────────────
+// SUBSCRIPTION PLANS
+// schema.prisma এর শেষে যোগ করো
+// ─────────────────────────────────────────
+
+model SubscriptionPlan {
+  id                    String   @id @default(cuid())
+  name                  String   // "Basic", "Pro", "Enterprise"
+  type                  PlanType // ADVERTISER | PROMOTER
+  price                 Float    // monthly price in USD
+  campaignLimit         Int?     // null = unlimited
+  maxPromotersPerCamp   Int?     // null = unlimited
+  maxCampaignApply      Int?     // null = unlimited (promoter)
+  analyticsExport       Boolean  @default(false)
+  prioritySupport       Boolean  @default(false)
+  priorityApplications  Boolean  @default(false)
+  verifiedBadge         Boolean  @default(false)
+  platformFeePercent    Float    @default(10)
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+
+  subscriptions         Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  userId          String
+  planId          String
+  status          SubscriptionStatus @default(ACTIVE)
+  paymentMethod   PaymentMethod
+  amount          Float
+  currency        String             @default("USD")
+  startDate       DateTime           @default(now())
+  endDate         DateTime
+  autoRenew       Boolean            @default(true)
+  cancelledAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user            User               @relation(fields: [userId], references: [id])
+  plan            SubscriptionPlan   @relation(fields: [planId], references: [id])
+  payments        SubscriptionPayment[]
+
+  @@map("subscriptions")
+}
+
+model SubscriptionPayment {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  amount         Float
+  currency       String        @default("USD")
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  reference      String?       // bKash/Nagad transaction ID, Stripe payment intent ID, etc.
+  metadata       Json?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
+
+  @@map("subscription_payments")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PAST_DUE
+}
+
+enum PlanType {
+  ADVERTISER
+  PROMOTER
 }
 
 

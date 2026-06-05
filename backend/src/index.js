@@ -9,6 +9,7 @@ const kycRouter = require('./routes/kyc')
 const disputeRouter = require('./routes/dispute')
 const ratingRouter = require('./routes/rating')
 const analyticsExportRouter = require('./routes/analyticsExport')
+const subscriptionRouter = require('./routes/subscription')
 const { calculateFraudScore, getFraudRiskLevel } = require('./services/fraudDetection')
 
 dotenv.config()
@@ -1453,6 +1454,7 @@ app.use('/api/kyc', authMiddleware, kycRouter)
 app.use('/api/disputes', authMiddleware, disputeRouter)
 app.use('/api/ratings', authMiddleware, ratingRouter)
 app.use('/api/analytics', analyticsExportRouter)
+app.use('/api/subscriptions', subscriptionRouter)
 
 // ─────────────────────────────────────────
 // START SERVER

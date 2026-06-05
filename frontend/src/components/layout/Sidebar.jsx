@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Megaphone, Users, User, BarChart2, Wallet,
   MessageSquare, Settings, HelpCircle, LogOut, ChevronLeft,
-  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine, Gift, UserCheck, AlertTriangle
+  Star, Plus, TrendingUp, Shield, Bell, ArrowDownToLine, Gift, UserCheck, AlertTriangle, Crown
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
@@ -20,6 +20,7 @@ const ADVERTISER_NAV = [
   { label: 'Analytics', icon: BarChart2, href: '/dashboard/advertiser/analytics' },
   { label: 'Payments', icon: Wallet, href: '/dashboard/advertiser/wallet' },
   { label: 'Messages', icon: MessageSquare, href: '/dashboard/advertiser/messages' },
+  { label: 'Subscription', icon: Crown, href: '/dashboard/advertiser/subscription' },
 ]
 
 const PROMOTER_NAV = [
@@ -33,6 +34,7 @@ const PROMOTER_NAV = [
   { label: 'Referral', icon: Gift, href: '/dashboard/promoter/referral' },
   { label: 'Messages', icon: MessageSquare, href: '/dashboard/promoter/messages' },
   { label: 'Disputes', icon: AlertTriangle, href: '/dashboard/promoter/disputes' },
+  { label: 'Subscription', icon: Crown, href: '/dashboard/promoter/subscription' },
 ]
 
 const ADMIN_NAV = [
