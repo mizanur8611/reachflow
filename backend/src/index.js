@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const kycRouter = require('./routes/kyc')
 const disputeRouter = require('./routes/dispute')
+const ratingRouter = require('./routes/rating')
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -1432,6 +1433,7 @@ app.use('/api/payment', authMiddleware, paymentRouter)
 app.use('/api/withdrawals', withdrawalRouter)
 app.use('/api/kyc', authMiddleware, kycRouter)
 app.use('/api/disputes', authMiddleware, disputeRouter)
+app.use('/api/ratings', authMiddleware, ratingRouter)
 
 // ─────────────────────────────────────────
 // START SERVER

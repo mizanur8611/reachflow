@@ -522,3 +522,28 @@ enum ReferralStatus {
   COMPLETED
   REWARDED
 }
+
+model Rating {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  campaignId  String
+  score       Int      // 1-5
+  comment     String?
+  type        RatingType
+  createdAt   DateTime @default(now())
+
+  @@unique([fromUserId, campaignId, type])
+  @@map("ratings")
+}
+
+enum RatingType {
+  ADVERTISER_TO_PROMOTER
+  PROMOTER_TO_ADVERTISER
+}
+
+
+
+
+
+

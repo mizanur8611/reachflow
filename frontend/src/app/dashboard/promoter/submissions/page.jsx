@@ -1,35 +1,41 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Clock, ExternalLink, Link, Copy, Check } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { CheckCircle, XCircle, Clock, ExternalLink, Link, Copy, Check, Star, X } from 'lucide-react'
 
 export default function MySubmissionsPage() {
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [trackingLinks, setTrackingLinks] = useState({})
   const [copied, setCopied] = useState(null)
+  const [ratingModal, setRatingModal] = useState(null)
+  const [ratingForm, setRatingForm] = useState({ score: 0, comment: '' })
+  const [submittingRating, setSubmittingRating] = useState(false)
+  const [ratedCampaigns, setRatedCampaigns] = useState([])
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : ''
   const headers = { 'Authorization': `Bearer ${token}` }
+  const API = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
-    const fetchSubmissions = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions/my`, { headers })
-        const data = await res.json()
-        if (data.submissions) setSubmissions(data.submissions)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchSubmissions()
   }, [])
 
+  const fetchSubmissions = async () => {
+    try {
+      const res = await fetch(`${API}/api/submissions/my`, { headers })
+      const data = await res.json()
+      if (data.submissions) setSubmissions(data.submissions)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const generateLink = async (campaignId) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tracking/generate`, {
+      const res = await fetch(`${API}/api/tracking/generate`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ campaignId })
@@ -50,11 +56,56 @@ export default function MySubmissionsPage() {
     setTimeout(() => setCopied(null), 2000)
   }
 
+  const handleRatingSubmit = async () => {
+    if (!ratingForm.score) return alert('Star rating দাও!')
+    setSubmittingRating(true)
+    try {
+      const user = JSON.parse(localStorage.getItem('rf_user') || '{}')
+      const res = await fetch(`${API}/api/ratings`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toUserId: ratingModal.advertiserId,
+          campaignId: ratingModal.campaignId,
+          score: ratingForm.score,
+          comment: ratingForm.comment,
+          type: 'PROMOTER_TO_ADVERTISER',
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setRatedCampaigns(prev => [...prev, ratingModal.campaignId])
+        setRatingModal(null)
+        setRatingForm({ score: 0, comment: '' })
+        alert('Rating submitted! ⭐')
+      } else {
+        alert(data.message || 'Something went wrong')
+      }
+    } catch (err) {
+      alert('Server error')
+    } finally {
+      setSubmittingRating(false)
+    }
+  }
+
   const statusConfig = {
     APPROVED: { label: 'Approved', color: 'bg-emerald-500/10 text-emerald-400', icon: CheckCircle },
     REJECTED: { label: 'Rejected', color: 'bg-red-500/10 text-red-400', icon: XCircle },
     PENDING: { label: 'Pending', color: 'bg-yellow-500/10 text-yellow-400', icon: Clock },
   }
+
+  const StarRating = ({ value, onChange }) => (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map(star => (
+        <button key={star} onClick={() => onChange(star)} type="button">
+          <Star
+            size={28}
+            className={`transition-colors ${star <= value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+          />
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
@@ -100,6 +151,7 @@ export default function MySubmissionsPage() {
                   <th className="px-6 py-3 text-left">Post URL</th>
                   <th className="px-6 py-3 text-left">Tracking Link</th>
                   <th className="px-6 py-3 text-center">Status</th>
+                  <th className="px-6 py-3 text-center">Rate</th>
                   <th className="px-6 py-3 text-right">Submitted</th>
                 </tr>
               </thead>
@@ -108,6 +160,7 @@ export default function MySubmissionsPage() {
                   const config = statusConfig[s.status] || statusConfig.PENDING
                   const Icon = config.icon
                   const trackUrl = trackingLinks[s.campaignId || s.campaign?.id]
+                  const alreadyRated = ratedCampaigns.includes(s.campaignId)
                   return (
                     <tr key={i} className="hover:bg-white/[0.02]">
                       <td className="px-6 py-4 text-sm font-medium">{s.campaign?.title || '-'}</td>
@@ -139,6 +192,24 @@ export default function MySubmissionsPage() {
                           {config.label}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        {s.status === 'APPROVED' && (
+                          alreadyRated ? (
+                            <span className="text-xs text-yellow-400">⭐ Rated</span>
+                          ) : (
+                            <button
+                              onClick={() => setRatingModal({
+                                campaignId: s.campaignId,
+                                campaignTitle: s.campaign?.title,
+                                advertiserId: s.campaign?.advertiserId,
+                              })}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg transition-all mx-auto"
+                            >
+                              <Star size={12} /> Rate
+                            </button>
+                          )
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-right text-sm text-gray-400">
                         {new Date(s.submittedAt).toLocaleDateString()}
                       </td>
@@ -150,6 +221,64 @@ export default function MySubmissionsPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Rating Modal */}
+      <AnimatePresence>
+        {ratingModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={(e) => e.target === e.currentTarget && setRatingModal(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#1a1b23] border border-white/10 rounded-2xl p-6 w-full max-w-md">
+
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-lg">Rate this Campaign</h3>
+                  <p className="text-gray-400 text-sm mt-0.5">{ratingModal.campaignTitle}</p>
+                </div>
+                <button onClick={() => setRatingModal(null)} className="text-gray-500 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="text-sm text-gray-400 mb-3 block">Your Rating</label>
+                  <StarRating value={ratingForm.score} onChange={(v) => setRatingForm(prev => ({ ...prev, score: v }))} />
+                  {ratingForm.score > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      {['', 'Very Poor', 'Poor', 'Average', 'Good', 'Excellent'][ratingForm.score]}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Comment (optional)</label>
+                  <textarea
+                    placeholder="তোমার অভিজ্ঞতা শেয়ার করো..."
+                    value={ratingForm.comment}
+                    onChange={(e) => setRatingForm(prev => ({ ...prev, comment: e.target.value }))}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setRatingModal(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-all">
+                  Cancel
+                </button>
+                <button onClick={handleRatingSubmit} disabled={submittingRating}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Star size={14} />
+                  {submittingRating ? 'Submitting...' : 'Submit Rating'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
