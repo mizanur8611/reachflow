@@ -169,6 +169,8 @@ export default function AdminPanel() {
     { id: 'submissions', label: 'Submissions', icon: FileText },
     { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
     { id: 'revenue', label: 'Revenue', icon: DollarSign },
+    { id: 'kyc', label: 'KYC', icon: UserCheck },
+    { id: 'disputes', label: 'Disputes', icon: AlertTriangle },
     { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
@@ -564,6 +566,32 @@ export default function AdminPanel() {
                   className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors">
                   {settingsSaving ? 'Saving...' : 'Save Settings'}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── KYC TAB ── */}
+          {tab === 'kyc' && (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <p className="text-gray-400 mb-4">KYC management is in a separate page</p>
+                <a href="/admin/kyc"
+                  className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-all">
+                  Go to KYC Management →
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ── DISPUTES TAB ── */}
+          {tab === 'disputes' && (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <p className="text-gray-400 mb-4">Dispute management is in a separate page</p>
+                <a href="/admin/disputes"
+                  className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-all">
+                  Go to Dispute Management →
+                </a>
               </div>
             </div>
           )}
