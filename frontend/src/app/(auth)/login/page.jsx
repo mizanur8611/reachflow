@@ -22,7 +22,7 @@ const loginSchema = z.object({
 })
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Name too short'),
+  name: z.string().min(2, 'Name must be at least 2 characters').regex(/^[a-zA-Z\u0980-\u09FF\s]+$/, 'Name can only contain letters'),
   email: z.string().email('Invalid email'),
   password: z.string().min(8, 'Min 8 characters'),
   role: z.enum(['ADVERTISER', 'PROMOTER']),
@@ -245,6 +245,7 @@ export default function AuthPage() {
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
                     <input {...registerForm.register('email')} type="email" placeholder="you@example.com" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors" />
+                    {registerForm.formState.errors.email && <p className="text-red-400 text-xs mt-1">{registerForm.formState.errors.email.message}</p>}
                   </div>
 
                   <div>
