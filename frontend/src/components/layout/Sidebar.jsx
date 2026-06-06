@@ -54,6 +54,7 @@ export default function Sidebar({ role = 'advertiser' }) {
   const [collapsed, setCollapsed] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [showNotif, setShowNotif] = useState(false)
+  const notifRef = useRef(null)
   const unread = notifications.filter(n => !n.read).length
   useEffect(() => {
   const fetchNotifs = async () => {
@@ -69,6 +70,16 @@ export default function Sidebar({ role = 'advertiser' }) {
   fetchNotifs()
   const interval = setInterval(fetchNotifs, 30000)
   return () => clearInterval(interval)
+}, [])
+
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    if (notifRef.current && !notifRef.current.contains(e.target)) {
+      setShowNotif(false)
+    }
+  }
+  document.addEventListener('mousedown', handleClickOutside)
+  return () => document.removeEventListener('mousedown', handleClickOutside)
 }, [])
 
 const markAllRead = async () => {
@@ -153,7 +164,7 @@ const markAllRead = async () => {
       {/* Bottom */}
       <div className="border-t border-white/5 px-3 py-4 space-y-1">
       {/* Notification Bell */}
-<div className="relative">
+<div className="relative" ref={notifRef}>
   <button
    onClick={() => setShowNotif(s => !s)}
     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all relative"
