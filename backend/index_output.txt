@@ -726,151 +726,62 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
     if (status === 'APPROVED') {
       const amount = submission.campaign.commissionAmount
 
-      // ── Escrow থেকে auto-release ──
-      const escrow = await prisma.escrow.findUnique({
-        where: { campaignId: submission.campaignId }
-      })
-
-      if (escrow && escrow.status !== 'PENDING' && escrow.heldAmount >= amount) {
-        const platformSettings = await prisma.platformSettings.findFirst()
-        const feePercent = platformSettings?.platformFeePercent || 10
-        const platformFee = (amount * feePercent) / 100
-        const promoterAmount = amount - platformFee
-
-        const promoterWallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
-
-        await prisma.$transaction(async (tx) => {
-          await tx.escrow.update({
-            where: { id: escrow.id },
-            data: {
-              heldAmount: { decrement: amount },
-              releasedAmount: { increment: amount },
-              status: 'ACTIVE'
-            }
-          })
-          await tx.escrowTransaction.create({
-            data: {
-              escrowId: escrow.id,
-              type: 'RELEASE',
-              amount: amount,
-              toUserId: submission.promoter.userId,
-              submissionId: submission.id,
-              note: `Auto-released for approved submission`
-            }
-          })
-          if (promoterWallet) {
-            await tx.wallet.update({
-              where: { userId: submission.promoter.userId },
-              data: {
-                balance: { increment: promoterAmount },
-                totalEarned: { increment: promoterAmount }
-              }
-            })
-            await tx.transaction.create({
-              data: {
-                walletId: promoterWallet.id,
-                type: 'COMMISSION_EARNED',
-                amount: promoterAmount,
-                method: 'WALLET',
-                status: 'COMPLETED',
-                description: `Earned from campaign: ${submission.campaign.title}`
-              }
-            })
-          } else {
-            await tx.wallet.create({
-              data: {
-                userId: submission.promoter.userId,
-                balance: promoterAmount,
-                totalEarned: promoterAmount
-              }
-            })
-          }
-          await tx.promoter.update({
-            where: { id: submission.promoterId },
-            data: { totalEarned: { increment: promoterAmount } }
-          })
-          await tx.campaign.update({
-            where: { id: submission.campaignId },
-            data: { spentBudget: { increment: amount } }
-          })
-          await tx.submission.update({
-            where: { id: submission.id },
-            data: { earnedAmount: promoterAmount }
-          })
-        })
-
-        await createNotification(
-          submission.promoter.userId,
-          '💰 Payment Released!',
-          `$${promoterAmount.toFixed(2)} escrow থেকে release হয়েছে "${submission.campaign.title}" এর জন্য!`,
-          'submission'
-        )
-        await sendSubmissionApprovedEmail(
-          submission.promoter.user.email,
-          submission.promoter.user.name,
-          submission.campaign.title,
-          promoterAmount
-        )
-
-      } else {
-        // Escrow না থাকলে fallback
-        const wallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
-        if (wallet) {
-          await prisma.wallet.update({
-            where: { userId: submission.promoter.userId },
-            data: { balance: { increment: amount }, totalEarned: { increment: amount } }
-          })
-        } else {
-          await prisma.wallet.create({
-            data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount }
-          })
-        }
-        await prisma.submission.update({
-          where: { id: req.params.id },
-          data: { earnedAmount: amount }
-        })
-        await createNotification(
-          submission.promoter.userId,
-          '🎉 Submission Approved!',
-          `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
-          'submission'
-        )
-        await sendSubmissionApprovedEmail(
-          submission.promoter.user.email,
-          submission.promoter.user.name,
-          submission.campaign.title,
-          amount
-        )
-      }
-
-      // Referral reward check
-      const referral = await prisma.referral.findUnique({
-        where: { refereeId: submission.promoter.userId }
-      })
-      if (referral && referral.status === 'PENDING') {
-        await prisma.referral.update({
-          where: { id: referral.id },
-          data: { status: 'REWARDED', completedAt: new Date() }
-        })
+      const wallet = await prisma.wallet.findUnique({ where: { userId: submission.promoter.userId } })
+      if (wallet) {
         await prisma.wallet.update({
-          where: { userId: referral.referrerId },
-          data: {
-            balance: { increment: referral.rewardAmount },
-            totalEarned: { increment: referral.rewardAmount }
-          }
+          where: { userId: submission.promoter.userId },
+          data: { balance: { increment: amount }, totalEarned: { increment: amount } }
         })
-        await createNotification(
-          referral.referrerId,
-          '🎉 Referral Reward!',
-          `তোমার referred promoter প্রথম campaign complete করেছে! $${referral.rewardAmount} wallet এ add হয়েছে।`,
-          'referral'
-        )
+      } else {
+        await prisma.wallet.create({
+          data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount }
+        })
       }
+
+      await prisma.submission.update({
+        where: { id: req.params.id },
+        data: { earnedAmount: amount }
+      })
+
+      await createNotification(
+        submission.promoter.userId,
+        '🎉 Submission Approved!',
+        `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
+        'submission'
+      )
     }
+
+    // Referral reward check
+const referral = await prisma.referral.findUnique({
+  where: { refereeId: submission.promoter.userId }
+})
+if (referral && referral.status === 'PENDING') {
+  await prisma.referral.update({
+    where: { id: referral.id },
+    data: { status: 'REWARDED', completedAt: new Date() }
+  })
+  await prisma.wallet.update({
+    where: { userId: referral.referrerId },
+    data: {
+      balance: { increment: referral.rewardAmount },
+      totalEarned: { increment: referral.rewardAmount }
+    }
+  })
+  await createNotification(
+    referral.referrerId,
+    '🎉 Referral Reward!',
+    `তোমার referred promoter প্রথম campaign complete করেছে! $${referral.rewardAmount} wallet এ add হয়েছে।`,
+    'referral'
+  )
+}
+
+    await sendSubmissionApprovedEmail(
+      submission.promoter.user.email,
+      submission.promoter.user.name,
+      submission.campaign.title,
+       amount
+      )
+
 
     if (status === 'REJECTED' && submission.promoter) {
       await createNotification(
@@ -879,13 +790,12 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
         `Your post for "${submission.campaign.title}" was rejected.`,
         'submission'
       )
-      await sendSubmissionRejectedEmail(
-        submission.promoter.user.email,
-        submission.promoter.user.name,
-        submission.campaign.title
-      )
     }
-
+    await sendSubmissionRejectedEmail(
+     submission.promoter.user.email,
+     submission.promoter.user.name,
+     submission.campaign.title
+     )
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1157,114 +1067,39 @@ app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
     if (status === 'APPROVED') {
       const amount = submission.campaign.commissionAmount
 
-      // ── Escrow থেকে auto-release ──
-      const escrow = await prisma.escrow.findUnique({
-        where: { campaignId: submission.campaignId }
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId: submission.promoter.userId }
       })
 
-      if (escrow && escrow.status !== 'PENDING' && escrow.heldAmount >= amount) {
-        const platformSettings = await prisma.platformSettings.findFirst()
-        const feePercent = platformSettings?.platformFeePercent || 10
-        const platformFee = (amount * feePercent) / 100
-        const promoterAmount = amount - platformFee
-
-        const promoterWallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
-
-        await prisma.$transaction(async (tx) => {
-          await tx.escrow.update({
-            where: { id: escrow.id },
-            data: {
-              heldAmount: { decrement: amount },
-              releasedAmount: { increment: amount },
-              status: 'ACTIVE'
-            }
-          })
-          await tx.escrowTransaction.create({
-            data: {
-              escrowId: escrow.id,
-              type: 'RELEASE',
-              amount: amount,
-              toUserId: submission.promoter.userId,
-              submissionId: submission.id,
-              note: `Admin approved - Auto-released`
-            }
-          })
-          if (promoterWallet) {
-            await tx.wallet.update({
-              where: { userId: submission.promoter.userId },
-              data: {
-                balance: { increment: promoterAmount },
-                totalEarned: { increment: promoterAmount }
-              }
-            })
-            await tx.transaction.create({
-              data: {
-                walletId: promoterWallet.id,
-                type: 'COMMISSION_EARNED',
-                amount: promoterAmount,
-                method: 'WALLET',
-                status: 'COMPLETED',
-                description: `Earned from campaign: ${submission.campaign.title}`
-              }
-            })
-          } else {
-            await tx.wallet.create({
-              data: {
-                userId: submission.promoter.userId,
-                balance: promoterAmount,
-                totalEarned: promoterAmount
-              }
-            })
+      if (wallet) {
+        await prisma.wallet.update({
+          where: { userId: submission.promoter.userId },
+          data: {
+            balance: { increment: amount },
+            totalEarned: { increment: amount }
           }
-          await tx.promoter.update({
-            where: { id: submission.promoterId },
-            data: { totalEarned: { increment: promoterAmount } }
-          })
-          await tx.campaign.update({
-            where: { id: submission.campaignId },
-            data: { spentBudget: { increment: amount } }
-          })
-          await tx.submission.update({
-            where: { id: submission.id },
-            data: { earnedAmount: promoterAmount }
-          })
         })
-
-        await createNotification(
-          submission.promoter.userId,
-          '💰 Payment Released!',
-          `$${promoterAmount.toFixed(2)} escrow থেকে release হয়েছে "${submission.campaign.title}" এর জন্য!`,
-          'submission'
-        )
-
       } else {
-        // Escrow না থাকলে fallback
-        const wallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
+        await prisma.wallet.create({
+          data: {
+            userId: submission.promoter.userId,
+            balance: amount,
+            totalEarned: amount
+          }
         })
-        if (wallet) {
-          await prisma.wallet.update({
-            where: { userId: submission.promoter.userId },
-            data: { balance: { increment: amount }, totalEarned: { increment: amount } }
-          })
-        } else {
-          await prisma.wallet.create({
-            data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount }
-          })
-        }
-        await prisma.submission.update({
-          where: { id: req.params.id },
-          data: { earnedAmount: amount }
-        })
-        await createNotification(
-          submission.promoter.userId,
-          '🎉 Submission Approved!',
-          `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
-          'submission'
-        )
       }
+
+      await prisma.submission.update({
+        where: { id: req.params.id },
+        data: { earnedAmount: amount }
+      })
+
+      await createNotification(
+        submission.promoter.userId,
+        '🎉 Submission Approved!',
+        `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
+        'submission'
+      )
     }
 
     if (status === 'REJECTED' && submission.promoter) {
