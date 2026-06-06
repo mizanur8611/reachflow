@@ -1685,6 +1685,20 @@ app.use('/api/analytics', analyticsExportRouter)
 app.use('/api/subscriptions', subscriptionRouter)
 app.use('/api/escrow', escrowRouter)
 
+
+// One-time fix: verify all existing users
+app.post('/api/admin/verify-all-users', adminMiddleware, async (req, res) => {
+  try {
+    const result = await prisma.user.updateMany({
+      data: { emailVerified: true }
+    })
+    res.json({ success: true, count: result.count })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
 // ─────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────
