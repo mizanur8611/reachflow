@@ -144,17 +144,6 @@ const sendApplicationApprovedEmail = async (to, name, campaignTitle) => {
   await sendEmail(to, `✅ Application Approved - ${campaignTitle}`, html)
 }
 
-const sendVerificationEmail = async (to, name, token) => {
-  const verifyUrl = `${process.env.BACKEND_URL || 'https://reachflow-j34o.onrender.com'}/api/auth/verify-email?token=${token}`
-  const html = baseTemplate(`
-    <p>হ্যালো <strong>${name}</strong>,</p>
-    <p>ReachFlow এ স্বাগতম! তোমার account verify করতে নিচের button এ click করো।</p>
-    <a href="${verifyUrl}" class="btn">✅ Email Verify করো</a>
-    <p style="color: #9ca3af; font-size: 13px; margin-top: 16px;">এই link ২৪ ঘন্টা valid থাকবে।</p>
-  `)
-  await sendEmail(to, `✅ ReachFlow - Email Verify করো`, html)
-}
-
 module.exports = {
   sendWithdrawalRequestEmail,
   sendWithdrawalApprovedEmail,

@@ -331,12 +331,41 @@ app.post('/api/auth/register', async (req, res) => {
             }
           })
         }
+        // Send verification email
+        const verifyToken = crypto.randomBytes(32).toString('hex')
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            emailVerified: false,
+            referralCode: user.referralCode
+          }
+        })
+        // Store token in a simple way
+        const { sendVerificationEmail } = require('./services/emailService')
+        await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
       }
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Registration failed' })
+  }
+})
+
+app.get('/api/auth/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query
+    if (!token) return res.status(400).json({ error: 'Invalid token' })
+    const parts = token.split('_')
+    const userId = parts[parts.length - 1]
+    if (!userId) return res.status(400).json({ error: 'Invalid token' })
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true }
+    })
+    res.redirect(`${process.env.FRONTEND_URL || 'https://reachflow-lovat.vercel.app'}/login?verified=true`)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 
@@ -347,6 +376,9 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(400).json({ error: 'Invalid credentials' })
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) return res.status(400).json({ error: 'Invalid credentials' })
+      if (!user.emailVerified) {
+      return res.status(403).json({ error: 'Please verify your email first. Check your inbox.' })
+    }
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (err) {
