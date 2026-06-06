@@ -466,7 +466,29 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
     const { title, description, budget, platforms, commissionType, commissionAmount, category } = req.body
     const advertiser = await prisma.advertiser.findUnique({ where: { userId: req.userId } })
     if (!advertiser) return res.status(400).json({ error: 'Advertiser profile not found.' })
+    // ── Subscription Enforcement ──
+    const activeSub = await prisma.subscription.findFirst({
+      where: {
+        userId: req.userId,
+        status: 'ACTIVE',
+        endDate: { gt: new Date() }
+      },
+      include: { plan: true }
+    })
 
+    const campaignLimit = activeSub?.plan?.campaignLimit ?? 3
+
+    if (campaignLimit !== null) {
+      const campaignCount = await prisma.campaign.count({
+        where: { advertiserId: advertiser.id }
+      })
+      if (campaignCount >= campaignLimit) {
+        return res.status(403).json({
+          error: `Your current plan allows maximum ${campaignLimit} campaigns. Please upgrade your plan.`,
+          upgradeRequired: true
+        })
+      }
+    }
     const campaign = await prisma.campaign.create({
       data: {
         title,
