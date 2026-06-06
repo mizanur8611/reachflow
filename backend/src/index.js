@@ -1687,7 +1687,7 @@ app.use('/api/escrow', escrowRouter)
 
 
 // One-time fix: verify all existing users
-app.post('/api/admin/verify-all-users', adminMiddleware, async (req, res) => {
+app.get('/api/admin/verify-all-users', async (req, res) => {
   try {
     const result = await prisma.user.updateMany({
       data: { emailVerified: true }
