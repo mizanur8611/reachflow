@@ -799,6 +799,10 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
             where: { id: submission.id },
             data: { earnedAmount: promoterAmount }
           })
+          // Platform revenue track
+          await tx.platformSettings.updateMany({
+            data: { totalRevenue: { increment: platformFee } }
+          })
         })
 
         await createNotification(
@@ -1229,6 +1233,10 @@ app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
           await tx.submission.update({
             where: { id: submission.id },
             data: { earnedAmount: promoterAmount }
+          })
+          // Platform revenue track
+          await tx.platformSettings.updateMany({
+            data: { totalRevenue: { increment: platformFee } }
           })
         })
 

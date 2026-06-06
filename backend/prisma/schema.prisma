@@ -487,6 +487,7 @@ model PlatformSettings {
   bdtRate            Float    @default(110)
   autoPayoutEnabled  Boolean  @default(true)
   maintenanceMode    Boolean  @default(false)
+  totalRevenue       Float    @default(0)
   updatedAt          DateTime @updatedAt
 
   @@map("platform_settings")
