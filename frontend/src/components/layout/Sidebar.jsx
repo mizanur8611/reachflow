@@ -15,7 +15,7 @@ import { useAuthStore } from '@/store/authStore'
 const ADVERTISER_NAV = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/advertiser' },
   { label: 'Campaigns', icon: Megaphone, href: '/dashboard/advertiser/campaigns' },
-  { label: 'Create Campaign', icon: Plus, href: '/dashboard/advertiser/campaigns/create' },
+  { label: 'Create Campaign', icon: Plus, href: '/dashboard/advertiser/campaigns/new' },
   { label: 'Creators', icon: Users, href: '/dashboard/advertiser/creators' },
   { label: 'Analytics', icon: BarChart2, href: '/dashboard/advertiser/analytics' },
   { label: 'Payments', icon: Wallet, href: '/dashboard/advertiser/wallet' },
