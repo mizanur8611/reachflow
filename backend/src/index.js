@@ -1621,6 +1621,81 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
 })
 
 // ─────────────────────────────────────────
+// ADVERTISER ANALYTICS
+// ─────────────────────────────────────────
+
+app.get('/api/advertiser/analytics', authMiddleware, async (req, res) => {
+  try {
+    const { period = 'week' } = req.query
+    const advertiser = await prisma.advertiser.findUnique({ where: { userId: req.userId } })
+    if (!advertiser) return res.status(404).json({ error: 'Advertiser not found' })
+
+    const now = new Date()
+    const startDate = period === 'week'
+      ? new Date(now - 7 * 24 * 60 * 60 * 1000)
+      : period === 'month'
+      ? new Date(now - 30 * 24 * 60 * 60 * 1000)
+      : new Date(now - 365 * 24 * 60 * 60 * 1000)
+
+    const campaigns = await prisma.campaign.findMany({
+      where: { advertiserId: advertiser.id },
+      include: {
+        submissions: { where: { status: 'APPROVED', submittedAt: { gte: startDate } } },
+        trackingLinks: true,
+        applications: { where: { status: 'APPROVED' } }
+      }
+    })
+
+    const totalSpend = campaigns.reduce((sum, c) => sum + (c.spentBudget || 0), 0)
+    const totalClicks = campaigns.reduce((sum, c) =>
+      sum + c.trackingLinks.reduce((s, t) => s + (t.clicks || 0), 0), 0)
+    const totalConversions = campaigns.reduce((sum, c) => sum + c.submissions.length, 0)
+    const activePromoters = campaigns.reduce((sum, c) => sum + c.applications.length, 0)
+
+    const campaignPerformance = campaigns.map(c => ({
+      title: c.title,
+      budget: c.totalBudget,
+      spent: c.spentBudget || 0,
+      promoters: c.applications.length,
+      clicks: c.trackingLinks.reduce((s, t) => s + (t.clicks || 0), 0),
+      conversions: c.submissions.length
+    }))
+
+    res.json({
+      success: true,
+      totalSpend,
+      totalClicks,
+      totalConversions,
+      activePromoters,
+      spendByDay: [],
+      campaignPerformance,
+      topPromoters: []
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
+// ADVERTISER CAMPAIGNS
+// ─────────────────────────────────────────
+
+app.get('/api/advertiser/campaigns', authMiddleware, async (req, res) => {
+  try {
+    const advertiser = await prisma.advertiser.findUnique({ where: { userId: req.userId } })
+    if (!advertiser) return res.status(404).json({ error: 'Advertiser not found' })
+    const campaigns = await prisma.campaign.findMany({
+      where: { advertiserId: advertiser.id },
+      include: { _count: { select: { applications: true } } },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json({ success: true, campaigns })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
 // REFERRAL SYSTEM
 // ─────────────────────────────────────────
 
