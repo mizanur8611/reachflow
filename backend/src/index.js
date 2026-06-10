@@ -506,7 +506,7 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
       include: { plan: true }
     })
 
-    const campaignLimit = activeSub?.plan?.campaignLimit ?? 3
+    const campaignLimit = activeSub?.plan?.campaignLimit ?? 10
 
     if (campaignLimit !== null) {
       const campaignCount = await prisma.campaign.count({
