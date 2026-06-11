@@ -1620,6 +1620,55 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
   }
 })
 
+
+// ─────────────────────────────────────────
+// ADVERTISER DASHBOARD
+// ─────────────────────────────────────────
+
+app.get('/api/advertiser/dashboard', authMiddleware, async (req, res) => {
+  try {
+    const advertiser = await prisma.advertiser.findUnique({ where: { userId: req.userId } })
+    if (!advertiser) return res.status(404).json({ error: 'Advertiser not found' })
+
+    const campaigns = await prisma.campaign.findMany({
+      where: { advertiserId: advertiser.id },
+      include: { _count: { select: { applications: true } } },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
+
+    const totalCampaigns = campaigns.length
+    const activeCampaigns = campaigns.filter(c => c.status === 'ACTIVE').length
+    const totalBudget = campaigns.reduce((sum, c) => sum + (c.totalBudget || 0), 0)
+    const totalSpent = campaigns.reduce((sum, c) => sum + (c.spentBudget || 0), 0)
+    const totalApplications = campaigns.reduce((sum, c) => sum + c._count.applications, 0)
+
+    const recentCampaigns = campaigns.slice(0, 5).map(c => ({
+      id: c.id,
+      title: c.title,
+      status: c.status,
+      budget: c.totalBudget,
+      spent: c.spentBudget || 0,
+      applicationsCount: c._count.applications,
+      endDate: c.endDate,
+    }))
+
+    res.json({
+      success: true,
+      totalCampaigns,
+      activeCampaigns,
+      totalBudget,
+      totalSpent,
+      totalApplications,
+      walletBalance: wallet?.balance || 0,
+      recentCampaigns,
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ─────────────────────────────────────────
 // ADVERTISER ANALYTICS
 // ─────────────────────────────────────────
