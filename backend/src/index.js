@@ -1027,7 +1027,6 @@ app.post('/api/wallet/add', authMiddleware, async (req, res) => {
       where: { userId: req.userId },
       data: {
         balance: { increment: amount },
-        totalDeposited: { increment: amount },
       }
     })
 
