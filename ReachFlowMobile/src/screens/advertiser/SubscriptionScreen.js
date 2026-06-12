@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getSubscription, subscribePlan } from '../../api/apiService';
+import { useTheme } from '../../context/ThemeContext'; // ✅
 
 const PLANS = {
   advertiser: [
@@ -73,6 +74,7 @@ const PLANS = {
 };
 
 const SubscriptionScreen = ({ navigation }) => {
+  const { theme, themeName } = useTheme(); // ✅
   const [currentPlan, setCurrentPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -119,13 +121,18 @@ const SubscriptionScreen = ({ navigation }) => {
   };
 
   const plans = PLANS[tab];
+  const styles = makeStyles(theme); // ✅
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      <StatusBar
+        barStyle={themeName === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={theme.headerBg}
+      />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Subscription Plans</Text>
@@ -136,21 +143,30 @@ const SubscriptionScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8b5cf6" />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" colors={['#8b5cf6']} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
+          }
           contentContainerStyle={styles.content}
         >
           {/* Current Plan */}
           {currentPlan && (
             <View style={styles.currentPlanBox}>
-              <Ionicons name="trophy-outline" size={18} color="#8b5cf6" />
+              <Ionicons name="trophy-outline" size={18} color={theme.primary} />
               <View>
                 <Text style={styles.currentPlanLabel}>Current Plan</Text>
-                <Text style={styles.currentPlanName}>{currentPlan.planName || 'Basic'} — {currentPlan.role || 'ADVERTISER'}</Text>
+                <Text style={styles.currentPlanName}>
+                  {currentPlan.planName || 'Basic'} — {currentPlan.role || 'ADVERTISER'}
+                </Text>
               </View>
             </View>
           )}
@@ -200,7 +216,7 @@ const SubscriptionScreen = ({ navigation }) => {
                       <Ionicons
                         name={f.available ? 'checkmark-circle' : 'close-circle'}
                         size={16}
-                        color={f.available ? '#22c55e' : '#3f3f46'}
+                        color={f.available ? '#22c55e' : theme.border}
                       />
                       <Text style={[styles.featureText, !f.available && styles.featureTextDisabled]}>
                         {f.text}
@@ -210,14 +226,22 @@ const SubscriptionScreen = ({ navigation }) => {
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.planBtn, { backgroundColor: isCurrent ? '#14532d' : plan.btnColor }]}
+                  style={[
+                    styles.planBtn,
+                    { backgroundColor: isCurrent ? '#14532d' : plan.btnColor },
+                    // ✅ Basic plan এ theme.card ব্যবহার করি
+                    plan.price === 0 && !isCurrent && { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border },
+                  ]}
                   onPress={() => !isCurrent && handleSubscribe(plan)}
                   disabled={isCurrent || isLoading}
                 >
                   {isLoading
                     ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={[styles.planBtnText, { color: isCurrent ? '#22c55e' : plan.textColor }]}>
-                        {isCurrent ? 'Current Plan' : plan.btnLabel}
+                    : <Text style={[
+                        styles.planBtnText,
+                        { color: isCurrent ? '#22c55e' : plan.price === 0 ? theme.text : plan.textColor }
+                      ]}>
+                        {isCurrent ? '✓ Current Plan' : plan.btnLabel}
                       </Text>
                   }
                 </TouchableOpacity>
@@ -231,52 +255,62 @@ const SubscriptionScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16,
-    borderBottomWidth: 1, borderBottomColor: '#1f1f23',
+    borderBottomWidth: 1, borderBottomColor: theme.border,
+    backgroundColor: theme.headerBg,
   },
-  backBtn: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#1f1f23', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#71717a', marginTop: 2 },
+  backBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: theme.card, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: theme.border,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.text },
+  headerSub: { fontSize: 12, color: theme.subtext, marginTop: 2 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: 16 },
   currentPlanBox: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#1a1425', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#8b5cf633', marginBottom: 16,
+    backgroundColor: theme.primaryLight, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: theme.primary + '33', marginBottom: 16,
   },
-  currentPlanLabel: { fontSize: 11, color: '#71717a' },
-  currentPlanName: { fontSize: 15, fontWeight: '700', color: '#f4f4f5' },
+  currentPlanLabel: { fontSize: 11, color: theme.subtext },
+  currentPlanName: { fontSize: 15, fontWeight: '700', color: theme.text },
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  tabBtn: { flex: 1, backgroundColor: '#141417', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#2d2d35' },
-  tabBtnActive: { backgroundColor: '#1a1425', borderColor: '#8b5cf6' },
-  tabBtnText: { color: '#71717a', fontWeight: '600' },
-  tabBtnTextActive: { color: '#8b5cf6' },
-  planCard: {
-    backgroundColor: '#141417', borderRadius: 16, padding: 20,
-    marginBottom: 14, borderWidth: 1, borderColor: '#1f1f23', position: 'relative',
+  tabBtn: {
+    flex: 1, backgroundColor: theme.card, borderRadius: 10, padding: 12,
+    alignItems: 'center', borderWidth: 1, borderColor: theme.border,
   },
-  planCardCurrent: { borderColor: '#22c55e33', backgroundColor: '#0d1f0d' },
+  tabBtnActive: { backgroundColor: theme.primaryLight, borderColor: theme.primary },
+  tabBtnText: { color: theme.subtext, fontWeight: '600' },
+  tabBtnTextActive: { color: theme.primary },
+  planCard: {
+    backgroundColor: theme.card, borderRadius: 16, padding: 20,
+    marginBottom: 14, borderWidth: 1, borderColor: theme.border, position: 'relative',
+  },
+  planCardCurrent: { borderColor: '#22c55e33', backgroundColor: theme.background },
   popularBadge: {
     position: 'absolute', top: 14, right: 14,
-    backgroundColor: '#8b5cf6', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: theme.primary, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
   },
   popularText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   planHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   planIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  planName: { fontSize: 20, fontWeight: '700', color: '#f4f4f5' },
+  planName: { fontSize: 20, fontWeight: '700', color: theme.text },
   planPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
-  planPrice: { fontSize: 28, fontWeight: '800', color: '#f4f4f5' },
-  planPeriod: { fontSize: 14, color: '#71717a' },
+  planPrice: { fontSize: 28, fontWeight: '800', color: theme.text },
+  planPeriod: { fontSize: 14, color: theme.subtext },
   featureList: { gap: 10, marginBottom: 20 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureText: { fontSize: 14, color: '#a1a1aa' },
-  featureTextDisabled: { color: '#3f3f46' },
+  featureText: { fontSize: 14, color: theme.subtext },
+  featureTextDisabled: { opacity: 0.4 },
   planBtn: { borderRadius: 12, padding: 16, alignItems: 'center' },
   planBtnText: { fontWeight: '700', fontSize: 15 },
 });
 
 export default SubscriptionScreen;
+
+

@@ -27,6 +27,7 @@ export default function LoginScreen({ navigation }) {
       });
       const data = await res.json();
       if (data.success) {
+        console.log('Login user:', JSON.stringify(data.user));
         await login(data.user, data.token);
       } else {
         Alert.alert('Error', data.error || 'Login failed');

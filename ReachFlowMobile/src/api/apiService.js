@@ -55,10 +55,10 @@ export const getDisputes = () => request('GET', '/disputes');
 export const createDispute = (data) => request('POST', '/disputes', data);
 export const changePassword = (data) => request('PUT', '/auth/change-password', data);
 export const updateProfile = (data) => request('PUT', '/auth/profile', data);
-export const addMoney = (data) => request('POST', '/wallet/deposit', data);
+export const addMoney = (data) => request('POST', '/wallet/add', data);
 export const getAnalytics = (period) => request('GET', `/advertiser/analytics?period=${period}`);
-export const getSubscription = () => request('GET', '/subscription');
-export const subscribePlan = (data) => request('POST', '/subscription/subscribe', data);
+export const getSubscription = () => request('GET', '/subscriptions/my');
+export const subscribePlan = (data) => request('POST', '/subscriptions/subscribe', data);
 
 
 

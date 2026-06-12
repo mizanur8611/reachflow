@@ -4,8 +4,10 @@ import {
   TouchableOpacity, ActivityIndicator, Alert
 } from 'react-native';
 import { createCampaign } from '../../api/apiService';
+import { useTheme } from '../../context/ThemeContext'; // ✅ path ঠিক করো
 
 export default function CreateCampaignScreen({ navigation }) {
+  const { theme } = useTheme(); // ✅ theme hook
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
@@ -53,6 +55,8 @@ export default function CreateCampaignScreen({ navigation }) {
     }
   };
 
+  const styles = makeStyles(theme); // ✅ dynamic styles
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -72,7 +76,7 @@ export default function CreateCampaignScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="যেমন: Summer Sale 2025"
-            placeholderTextColor="#555"
+            placeholderTextColor={theme.subtext}
             value={title}
             onChangeText={setTitle}
           />
@@ -84,7 +88,7 @@ export default function CreateCampaignScreen({ navigation }) {
           <TextInput
             style={[styles.input, styles.textarea]}
             placeholder="ক্যাম্পেইন সম্পর্কে বিস্তারিত লিখুন..."
-            placeholderTextColor="#555"
+            placeholderTextColor={theme.subtext}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -99,7 +103,7 @@ export default function CreateCampaignScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="5000"
-              placeholderTextColor="#555"
+              placeholderTextColor={theme.subtext}
               value={budget}
               onChangeText={setBudget}
               keyboardType="numeric"
@@ -110,7 +114,7 @@ export default function CreateCampaignScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="200"
-              placeholderTextColor="#555"
+              placeholderTextColor={theme.subtext}
               value={commissionRate}
               onChangeText={setCommissionRate}
               keyboardType="numeric"
@@ -168,7 +172,7 @@ export default function CreateCampaignScreen({ navigation }) {
             </View>
             <View style={styles.previewRow}>
               <Text style={styles.previewLabel}>সর্বোচ্চ Promoter</Text>
-              <Text style={[styles.previewValue, { color: '#6C63FF' }]}>
+              <Text style={[styles.previewValue, { color: theme.primary }]}>
                 {Math.floor(Number(budget) / Number(commissionRate))} জন
               </Text>
             </View>
@@ -192,10 +196,11 @@ export default function CreateCampaignScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+// ✅ Dynamic styles — theme এর সাথে পরিবর্তন হবে
+const makeStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -204,24 +209,24 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#12121A',
+    backgroundColor: theme.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E1E2E',
+    borderBottomColor: theme.border,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1E1E2E',
+    backgroundColor: theme.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
-    color: '#fff',
+    color: theme.text,
     fontSize: 20,
   },
   headerTitle: {
-    color: '#fff',
+    color: theme.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    color: '#aaa',
+    color: theme.subtext,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
@@ -245,13 +250,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: '#12121A',
-    color: '#fff',
+    backgroundColor: theme.inputBg,
+    color: theme.text,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#1E1E2E',
+    borderColor: theme.border,
   },
   textarea: {
     height: 110,
@@ -267,32 +272,32 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#1E1E2E',
-    backgroundColor: '#12121A',
+    borderColor: theme.border,
+    backgroundColor: theme.card,
     marginBottom: 4,
   },
   chipActive: {
-    borderColor: '#6C63FF',
-    backgroundColor: 'rgba(108,99,255,0.15)',
+    borderColor: theme.primary,
+    backgroundColor: theme.primaryLight,
   },
   chipText: {
-    color: '#666',
+    color: theme.subtext,
     fontWeight: '600',
     fontSize: 13,
   },
   chipTextActive: {
-    color: '#6C63FF',
+    color: theme.primary,
   },
   previewCard: {
-    backgroundColor: '#12121A',
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#1E1E2E',
+    borderColor: theme.border,
   },
   previewTitle: {
-    color: '#fff',
+    color: theme.text,
     fontWeight: 'bold',
     fontSize: 15,
     marginBottom: 12,
@@ -303,16 +308,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   previewLabel: {
-    color: '#888',
+    color: theme.subtext,
     fontSize: 14,
   },
   previewValue: {
-    color: '#fff',
+    color: theme.text,
     fontWeight: '600',
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: theme.primary,
     borderRadius: 14,
     padding: 18,
     alignItems: 'center',
@@ -324,3 +329,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

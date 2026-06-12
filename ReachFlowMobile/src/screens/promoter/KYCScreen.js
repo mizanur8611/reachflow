@@ -5,9 +5,11 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getKYCStatus } from '../../api/apiService';
-import { getToken } from '../../api/apiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function KYCScreen({ navigation }) {
+  const { theme } = useTheme();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -15,9 +17,7 @@ export default function KYCScreen({ navigation }) {
   const [nidBack, setNidBack] = useState(null);
   const [selfie, setSelfie] = useState(null);
 
-  useEffect(() => {
-    fetchStatus();
-  }, []);
+  useEffect(() => { fetchStatus(); }, []);
 
   const fetchStatus = async () => {
     try {
@@ -51,12 +51,10 @@ export default function KYCScreen({ navigation }) {
       formData.append('nidBack', { uri: nidBack.uri, type: 'image/jpeg', name: 'nidBack.jpg' });
       formData.append('selfie', { uri: selfie.uri, type: 'image/jpeg', name: 'selfie.jpg' });
 
-      const token = getToken();
+      const token = await AsyncStorage.getItem('token');
       const res = await fetch('https://reachflow-j34o.onrender.com/api/kyc/submit', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await res.json();
@@ -73,11 +71,11 @@ export default function KYCScreen({ navigation }) {
     }
   };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#6C63FF" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1, backgroundColor: theme.background }} color={theme.primary} />;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <Text style={styles.title}>KYC যাচাইকরণ</Text>
         <Text style={styles.subtitle}>Withdraw করতে KYC দরকার</Text>
       </View>
@@ -102,27 +100,48 @@ export default function KYCScreen({ navigation }) {
 
       {(status === 'NOT_SUBMITTED' || status === 'REJECTED') && (
         <View style={styles.form}>
-          <Text style={styles.label}>NID সামনের ছবি *</Text>
-          <TouchableOpacity style={styles.uploadBtn} onPress={() => pickImage(setNidFront)}>
-            {nidFront ? <Image source={{ uri: nidFront.uri }} style={styles.preview} /> :
-              <Text style={styles.uploadText}>📷 ছবি বেছে নিন</Text>}
+          <Text style={[styles.label, { color: theme.text }]}>NID সামনের ছবি *</Text>
+          <TouchableOpacity
+            style={[styles.uploadBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => pickImage(setNidFront)}
+          >
+            {nidFront
+              ? <Image source={{ uri: nidFront.uri }} style={styles.preview} />
+              : <Text style={[styles.uploadText, { color: theme.primary }]}>📷 ছবি বেছে নিন</Text>
+            }
           </TouchableOpacity>
 
-          <Text style={styles.label}>NID পেছনের ছবি *</Text>
-          <TouchableOpacity style={styles.uploadBtn} onPress={() => pickImage(setNidBack)}>
-            {nidBack ? <Image source={{ uri: nidBack.uri }} style={styles.preview} /> :
-              <Text style={styles.uploadText}>📷 ছবি বেছে নিন</Text>}
+          <Text style={[styles.label, { color: theme.text }]}>NID পেছনের ছবি *</Text>
+          <TouchableOpacity
+            style={[styles.uploadBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => pickImage(setNidBack)}
+          >
+            {nidBack
+              ? <Image source={{ uri: nidBack.uri }} style={styles.preview} />
+              : <Text style={[styles.uploadText, { color: theme.primary }]}>📷 ছবি বেছে নিন</Text>
+            }
           </TouchableOpacity>
 
-          <Text style={styles.label}>Selfie *</Text>
-          <TouchableOpacity style={styles.uploadBtn} onPress={() => pickImage(setSelfie)}>
-            {selfie ? <Image source={{ uri: selfie.uri }} style={styles.preview} /> :
-              <Text style={styles.uploadText}>🤳 Selfie তুলুন</Text>}
+          <Text style={[styles.label, { color: theme.text }]}>Selfie *</Text>
+          <TouchableOpacity
+            style={[styles.uploadBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => pickImage(setSelfie)}
+          >
+            {selfie
+              ? <Image source={{ uri: selfie.uri }} style={styles.preview} />
+              : <Text style={[styles.uploadText, { color: theme.primary }]}>🤳 Selfie তুলুন</Text>
+            }
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
-            {submitting ? <ActivityIndicator color="#fff" /> :
-              <Text style={styles.submitText}>Submit করুন</Text>}
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: theme.primary }]}
+            onPress={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.submitText}>Submit করুন</Text>
+            }
           </TouchableOpacity>
         </View>
       )}
@@ -131,18 +150,19 @@ export default function KYCScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', padding: 24, paddingTop: 48 },
+  header: { padding: 24, paddingTop: 48 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 14, color: '#ddd', marginTop: 4 },
   statusBox: { margin: 16, padding: 16, borderRadius: 12 },
   statusText: { fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
   form: { padding: 16 },
-  label: { fontSize: 15, fontWeight: 'bold', color: '#333', marginBottom: 8, marginTop: 16 },
-  uploadBtn: { backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderStyle: 'dashed' },
-  uploadText: { color: '#6C63FF', fontSize: 15 },
+  label: { fontSize: 15, fontWeight: 'bold', marginBottom: 8, marginTop: 16 },
+  uploadBtn: { borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderStyle: 'dashed' },
+  uploadText: { fontSize: 15 },
   preview: { width: '100%', height: 150, borderRadius: 8 },
-  submitBtn: { backgroundColor: '#6C63FF', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24, marginBottom: 40 },
+  submitBtn: { borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24, marginBottom: 40 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
+
+
 

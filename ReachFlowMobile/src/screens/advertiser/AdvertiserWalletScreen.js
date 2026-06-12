@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getWallet, addMoney } from '../../api/apiService';
+import { useTheme } from '../../context/ThemeContext'; // ✅ path ঠিক করো
 
 const PAYMENT_METHODS = [
   { id: 'card', label: 'Credit / Debit Card', icon: 'card-outline', color: '#3b82f6', currency: 'USD' },
@@ -23,6 +24,7 @@ const TX_ICON = {
 };
 
 const AdvertiserWalletScreen = ({ navigation }) => {
+  const { theme, themeName } = useTheme(); // ✅
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,14 +70,20 @@ const AdvertiserWalletScreen = ({ navigation }) => {
     return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const styles = makeStyles(theme); // ✅
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      {/* ✅ StatusBar theme অনুযায়ী */}
+      <StatusBar
+        barStyle={themeName === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={theme.headerBg}
+      />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Wallet</Text>
@@ -89,19 +97,26 @@ const AdvertiserWalletScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8b5cf6" />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" colors={['#8b5cf6']} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
+          }
           contentContainerStyle={styles.content}
         >
           {/* Balance Cards */}
           <View style={styles.balanceRow}>
             <View style={styles.balanceCard}>
-              <View style={[styles.balanceIcon, { backgroundColor: '#8b5cf622' }]}>
-                <Ionicons name="wallet-outline" size={22} color="#8b5cf6" />
+              <View style={[styles.balanceIcon, { backgroundColor: theme.primary + '22' }]}>
+                <Ionicons name="wallet-outline" size={22} color={theme.primary} />
               </View>
               <Text style={styles.balanceValue}>${wallet?.balance?.toFixed(2) || '0.00'}</Text>
               <Text style={styles.balanceLabel}>Available Balance</Text>
@@ -144,7 +159,7 @@ const AdvertiserWalletScreen = ({ navigation }) => {
             })
           ) : (
             <View style={styles.emptyTx}>
-              <Ionicons name="receipt-outline" size={48} color="#3f3f46" />
+              <Ionicons name="receipt-outline" size={48} color={theme.border} />
               <Text style={styles.emptyTxText}>No transactions yet</Text>
             </View>
           )}
@@ -159,7 +174,7 @@ const AdvertiserWalletScreen = ({ navigation }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Money</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#71717a" />
+                <Ionicons name="close" size={22} color={theme.subtext} />
               </TouchableOpacity>
             </View>
 
@@ -171,8 +186,8 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0.00"
-                placeholderTextColor="#3f3f46"
-                color="#f4f4f5"
+                placeholderTextColor={theme.subtext}
+                color={theme.text}
                 keyboardType="numeric"
               />
             </View>
@@ -224,22 +239,24 @@ const AdvertiserWalletScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16,
-    borderBottomWidth: 1, borderBottomColor: '#1f1f23',
+    borderBottomWidth: 1, borderBottomColor: theme.border,
+    backgroundColor: theme.headerBg,
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#1f1f23', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.card, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: theme.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#71717a', marginTop: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.text },
+  headerSub: { fontSize: 12, color: theme.subtext, marginTop: 2 },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#8b5cf6', borderRadius: 10,
+    backgroundColor: theme.primary, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 8,
   },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
@@ -247,67 +264,74 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
   balanceRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
   balanceCard: {
-    flex: 1, backgroundColor: '#141417', borderRadius: 14, padding: 14,
-    alignItems: 'center', borderWidth: 1, borderColor: '#1f1f23', gap: 6,
+    flex: 1, backgroundColor: theme.card, borderRadius: 14, padding: 14,
+    alignItems: 'center', borderWidth: 1, borderColor: theme.border, gap: 6,
   },
   balanceIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  balanceValue: { fontSize: 18, fontWeight: '700', color: '#f4f4f5' },
-  balanceLabel: { fontSize: 10, color: '#71717a', textAlign: 'center' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#f4f4f5', marginBottom: 12 },
+  balanceValue: { fontSize: 18, fontWeight: '700', color: theme.text },
+  balanceLabel: { fontSize: 10, color: theme.subtext, textAlign: 'center' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 12 },
   txRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#141417', borderRadius: 12, padding: 14,
-    marginBottom: 8, borderWidth: 1, borderColor: '#1f1f23',
+    backgroundColor: theme.card, borderRadius: 12, padding: 14,
+    marginBottom: 8, borderWidth: 1, borderColor: theme.border,
   },
   txIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  txTitle: { fontSize: 14, fontWeight: '500', color: '#f4f4f5' },
-  txDate: { fontSize: 12, color: '#52525b', marginTop: 2 },
+  txTitle: { fontSize: 14, fontWeight: '500', color: theme.text },
+  txDate: { fontSize: 12, color: theme.subtext, marginTop: 2 },
   txAmount: { fontSize: 15, fontWeight: '700' },
   emptyTx: {
     alignItems: 'center', padding: 40,
-    backgroundColor: '#141417', borderRadius: 14, borderWidth: 1, borderColor: '#1f1f23', gap: 10,
+    backgroundColor: theme.card, borderRadius: 14,
+    borderWidth: 1, borderColor: theme.border, gap: 10,
   },
-  emptyTxText: { color: '#71717a', fontSize: 15 },
-  // Modal
+  emptyTxText: { color: theme.subtext, fontSize: 15 },
+  // Modal — সবসময় dark থাকে (bottom sheet style)
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalBox: {
-    backgroundColor: '#141417', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, borderTopWidth: 1, borderColor: '#1f1f23',
+    backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, borderTopWidth: 1, borderColor: theme.border,
   },
-  modalHandle: { width: 40, height: 4, backgroundColor: '#2d2d35', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  modalHandle: {
+    width: 40, height: 4, backgroundColor: theme.border,
+    borderRadius: 2, alignSelf: 'center', marginBottom: 20,
+  },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: '#f4f4f5' },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#a1a1aa', marginBottom: 8 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: theme.text },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: theme.subtext, marginBottom: 8 },
   amountWrapper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#0a0a0a', borderRadius: 12, borderWidth: 1, borderColor: '#2d2d35',
+    backgroundColor: theme.background, borderRadius: 12,
+    borderWidth: 1, borderColor: theme.border,
     paddingHorizontal: 14, marginBottom: 12,
   },
-  currencySign: { fontSize: 18, color: '#71717a', marginRight: 4 },
-  amountInput: { flex: 1, fontSize: 24, fontWeight: '700', paddingVertical: 14 },
+  currencySign: { fontSize: 18, color: theme.subtext, marginRight: 4 },
+  amountInput: { flex: 1, fontSize: 24, fontWeight: '700', paddingVertical: 14, color: theme.text },
   quickAmounts: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   quickBtn: {
-    flex: 1, backgroundColor: '#1f1f23', borderRadius: 8, padding: 10,
-    alignItems: 'center', borderWidth: 1, borderColor: '#2d2d35',
+    flex: 1, backgroundColor: theme.background, borderRadius: 8, padding: 10,
+    alignItems: 'center', borderWidth: 1, borderColor: theme.border,
   },
-  quickBtnActive: { backgroundColor: '#1a1425', borderColor: '#8b5cf6' },
-  quickBtnText: { color: '#71717a', fontWeight: '600', fontSize: 13 },
-  quickBtnTextActive: { color: '#8b5cf6' },
+  quickBtnActive: { backgroundColor: theme.primaryLight, borderColor: theme.primary },
+  quickBtnText: { color: theme.subtext, fontWeight: '600', fontSize: 13 },
+  quickBtnTextActive: { color: theme.primary },
   methodRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#0a0a0a', borderRadius: 12, padding: 14,
-    marginBottom: 8, borderWidth: 1, borderColor: '#2d2d35',
+    backgroundColor: theme.background, borderRadius: 12, padding: 14,
+    marginBottom: 8, borderWidth: 1, borderColor: theme.border,
   },
-  methodRowActive: { borderColor: '#8b5cf6', backgroundColor: '#1a1425' },
+  methodRowActive: { borderColor: theme.primary, backgroundColor: theme.primaryLight },
   methodIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  methodLabel: { flex: 1, fontSize: 14, color: '#f4f4f5', fontWeight: '500' },
-  methodCurrency: { fontSize: 12, color: '#52525b', fontWeight: '600' },
+  methodLabel: { flex: 1, fontSize: 14, color: theme.text, fontWeight: '500' },
+  methodCurrency: { fontSize: 12, color: theme.subtext, fontWeight: '600' },
   payBtn: {
-    backgroundColor: '#8b5cf6', borderRadius: 14, padding: 16,
+    backgroundColor: theme.primary, borderRadius: 14, padding: 16,
     alignItems: 'center', marginTop: 8,
   },
-  payBtnDisabled: { backgroundColor: '#4c1d95' },
+  payBtnDisabled: { opacity: 0.5 },
   payBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
 
 export default AdvertiserWalletScreen;
+
+

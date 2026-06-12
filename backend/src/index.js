@@ -1011,6 +1011,50 @@ app.get('/api/wallet', authMiddleware, async (req, res) => {
   }
 })
 
+app.post('/api/wallet/add', authMiddleware, async (req, res) => {
+  try {
+    const { amount, method } = req.body
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount দিতে হবে' })
+    }
+
+    let wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
+    if (!wallet) {
+      wallet = await prisma.wallet.create({ data: { userId: req.userId } })
+    }
+
+    const updatedWallet = await prisma.wallet.update({
+      where: { userId: req.userId },
+      data: {
+        balance: { increment: amount },
+        totalDeposited: { increment: amount },
+      }
+    })
+
+    await prisma.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: 'DEPOSIT',
+        amount: amount,
+        method: method?.toUpperCase() || 'CARD',
+        status: 'COMPLETED',
+        description: `Deposit via ${method || 'card'}`
+      }
+    })
+
+    await createNotification(
+      req.userId,
+      '💰 Wallet Top-up Successful!',
+      `$${amount} আপনার wallet এ add হয়েছে।`,
+      'wallet'
+    )
+
+    res.json({ success: true, wallet: updatedWallet })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ─────────────────────────────────────────
 // NOTIFICATIONS
 // ─────────────────────────────────────────

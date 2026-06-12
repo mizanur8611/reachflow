@@ -7,6 +7,7 @@ import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { ThemeProvider } from './src/context/ThemeContext';
 import LeaderboardScreen from './src/screens/promoter/LeaderboardScreen';
 import ReferralScreen from './src/screens/promoter/ReferralScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -19,6 +20,7 @@ import DisputesScreen from './src/screens/promoter/DisputesScreen';
 import PasswordChangeScreen from './src/screens/promoter/PasswordChangeScreen';
 import ProfileEditScreen from './src/screens/promoter/ProfileEditScreen';
 import WithdrawScreen from './src/screens/promoter/WithdrawScreen';
+import SettingsScreen from './src/screens/promoter/SettingsScreen';
 import AdvertiserWalletScreen from './src/screens/advertiser/AdvertiserWalletScreen';
 import AnalyticsScreen from './src/screens/advertiser/AnalyticsScreen';
 import CampaignDetailScreen from './src/screens/advertiser/CampaignDetailScreen';
@@ -60,6 +62,7 @@ function AppNavigator() {
           <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
           <Stack.Screen name="Withdraw" component={WithdrawScreen} />
           <Stack.Screen name="Notifications" component={NotificationScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
         </>
       ) : (
         <>
@@ -75,6 +78,7 @@ function AppNavigator() {
           <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
           <Stack.Screen name="Withdraw" component={WithdrawScreen} />
           <Stack.Screen name="CreateCampaign" component={CreateCampaignScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
         </>
       )}
     </Stack.Navigator>
@@ -83,16 +87,20 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationContainer
-        onError={(error) => {
-          console.error('Navigation error:', error);
-        }}
-      >
-        <StatusBar style="auto" />
-        <AppNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NavigationContainer
+          onError={(error) => {
+            console.error('Navigation error:', error);
+          }}
+        >
+          <StatusBar style="auto" />
+          <AppNavigator />
+        </NavigationContainer>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
+
+
 
