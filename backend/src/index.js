@@ -12,6 +12,8 @@ const analyticsExportRouter = require('./routes/analyticsExport')
 const subscriptionRouter = require('./routes/subscription')
 const escrowRouter = require('./routes/escrow')
 const { calculateFraudScore, getFraudRiskLevel } = require('./services/fraudDetection')
+const Stripe = require('stripe')
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -1050,6 +1052,67 @@ app.post('/api/wallet/add', authMiddleware, async (req, res) => {
       message: 'Payment request submitted. Admin verify করবে।',
       pending: true
     })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
+// STRIPE PAYMENT
+// ─────────────────────────────────────────
+
+app.post('/api/stripe/create-payment-intent', authMiddleware, async (req, res) => {
+  try {
+    const { amount } = req.body
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount দিতে হবে' })
+    }
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      metadata: { userId: req.userId }
+    })
+    res.json({ success: true, clientSecret: paymentIntent.client_secret })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/stripe/confirm-payment', authMiddleware, async (req, res) => {
+  try {
+    const { paymentIntentId, amount } = req.body
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ error: 'Payment successful হয়নি' })
+    }
+    if (paymentIntent.metadata.userId !== req.userId) {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+    let wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
+    if (!wallet) {
+      wallet = await prisma.wallet.create({ data: { userId: req.userId } })
+    }
+    await prisma.wallet.update({
+      where: { userId: req.userId },
+      data: { balance: { increment: amount } }
+    })
+    await prisma.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: 'DEPOSIT',
+        amount: amount,
+        method: 'CARD',
+        status: 'COMPLETED',
+        description: `Card payment via Stripe | ID: ${paymentIntentId}`
+      }
+    })
+    await createNotification(
+      req.userId,
+      '💳 Card Payment Successful!',
+      `$${amount} আপনার wallet এ add হয়েছে।`,
+      'wallet'
+    )
+    res.json({ success: true, message: 'Payment successful!' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
