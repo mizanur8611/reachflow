@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator,
-  RefreshControl, StatusBar, Modal, TextInput,
-  FlatList,
+  RefreshControl, StatusBar, Modal, TextInput, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getWallet, addMoney } from '../../api/apiService';
-import { useTheme } from '../../context/ThemeContext'; // ✅ path ঠিক করো
+import { useTheme } from '../../context/ThemeContext';
 
 const PAYMENT_METHODS = [
   { id: 'card', label: 'Credit / Debit Card', icon: 'card-outline', color: '#3b82f6', currency: 'USD' },
@@ -17,20 +16,88 @@ const PAYMENT_METHODS = [
   { id: 'usdt', label: 'USDT (TRC20)', icon: 'logo-bitcoin', color: '#26a17b', currency: 'USD' },
 ];
 
+// ✅ Payment info — পরে real numbers দিয়ে replace করো
+const PAYMENT_INFO = {
+  card: {
+    title: 'Credit / Debit Card',
+    icon: 'card-outline',
+    color: '#3b82f6',
+    instructions: 'আমাদের card payment এর জন্য নিচের তথ্য ব্যবহার করুন:',
+    fields: [
+      { label: 'Payment Link', value: 'https://pay.reachflow.com/card' },
+      { label: 'Reference Format', value: 'RF-[আপনার নাম]-[amount]' },
+    ],
+    note: 'Payment করার পর Transaction ID টি নিচে দিন।',
+  },
+  paypal: {
+    title: 'PayPal',
+    icon: 'globe-outline',
+    color: '#0070ba',
+    instructions: 'নিচের PayPal email এ payment পাঠান:',
+    fields: [
+      { label: 'PayPal Email', value: 'pay@reachflow.com' },
+      { label: 'Reference Format', value: 'RF-[আপনার নাম]-[amount]' },
+    ],
+    note: 'Payment note এ reference টি লিখুন। Transaction ID নিচে দিন।',
+  },
+  bkash: {
+    title: 'bKash',
+    icon: 'phone-portrait-outline',
+    color: '#e2136e',
+    instructions: '"Send Money" দিয়ে নিচের নম্বরে পাঠান:',
+    fields: [
+      { label: 'bKash Number', value: '01XXXXXXXXX' },
+      { label: 'Account Type', value: 'Personal' },
+      { label: 'Reference Format', value: 'RF-[আপনার নাম]' },
+    ],
+    note: 'bKash Transaction ID টি নিচে দিন। Admin 24 ঘণ্টার মধ্যে confirm করবে।',
+  },
+  nagad: {
+    title: 'Nagad',
+    icon: 'phone-portrait-outline',
+    color: '#f26522',
+    instructions: '"Send Money" দিয়ে নিচের নম্বরে পাঠান:',
+    fields: [
+      { label: 'Nagad Number', value: '01XXXXXXXXX' },
+      { label: 'Account Type', value: 'Personal' },
+      { label: 'Reference Format', value: 'RF-[আপনার নাম]' },
+    ],
+    note: 'Nagad Transaction ID টি নিচে দিন। Admin 24 ঘণ্টার মধ্যে confirm করবে।',
+  },
+  usdt: {
+    title: 'USDT (TRC20)',
+    icon: 'logo-bitcoin',
+    color: '#26a17b',
+    instructions: 'নিচের TRC20 wallet address এ USDT পাঠান:',
+    fields: [
+      { label: 'USDT Address (TRC20)', value: 'TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' },
+      { label: 'Network', value: 'TRON (TRC20) only' },
+    ],
+    note: '⚠️ শুধু TRC20 network ব্যবহার করুন। Transaction Hash নিচে দিন।',
+  },
+};
+
 const TX_ICON = {
   DEPOSIT: { name: 'arrow-down-circle', color: '#22c55e' },
   WITHDRAWAL: { name: 'arrow-up-circle', color: '#ef4444' },
   PAYMENT: { name: 'cash', color: '#f59e0b' },
+  COMMISSION_EARNED: { name: 'cash', color: '#f59e0b' },
 };
 
 const AdvertiserWalletScreen = ({ navigation }) => {
-  const { theme, themeName } = useTheme(); // ✅
+  const { theme, themeName } = useTheme();
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
+
+  // Step 1 modal — amount + method select
+  const [step1Visible, setStep1Visible] = useState(false);
   const [amount, setAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState('card');
+  const [selectedMethod, setSelectedMethod] = useState('bkash');
+
+  // Step 2 modal — payment info + reference
+  const [step2Visible, setStep2Visible] = useState(false);
+  const [reference, setReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const fetchWallet = async () => {
@@ -48,33 +115,58 @@ const AdvertiserWalletScreen = ({ navigation }) => {
   useEffect(() => { fetchWallet(); }, []);
   const onRefresh = () => { setRefreshing(true); fetchWallet(); };
 
-  const handleAddMoney = async () => {
-    if (!amount || parseFloat(amount) <= 0) return;
+  // Step 1 → Step 2
+  const handleProceed = () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert('Error', 'Valid amount দিন');
+      return;
+    }
+    setStep1Visible(false);
+    setTimeout(() => setStep2Visible(true), 300);
+  };
+
+  // Step 2 → Submit
+  const handleSubmit = async () => {
+    if (!reference.trim()) {
+      Alert.alert('Error', 'Transaction ID / Reference দিন');
+      return;
+    }
     setSubmitting(true);
     try {
-      await addMoney({ amount: parseFloat(amount), method: selectedMethod });
-      setModalVisible(false);
+      await addMoney({
+        amount: parseFloat(amount),
+        method: selectedMethod,
+        reference: reference.trim(),
+      });
+      setStep2Visible(false);
       setAmount('');
-      fetchWallet();
+      setReference('');
+      Alert.alert(
+        '✅ Request Submitted!',
+        'আপনার payment request পাঠানো হয়েছে। Admin 24 ঘণ্টার মধ্যে confirm করবে।',
+        [{ text: 'OK', onPress: fetchWallet }]
+      );
     } catch (error) {
-      console.error('Add money failed:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Submit failed');
     } finally {
       setSubmitting(false);
     }
   };
 
   const selectedMethodData = PAYMENT_METHODS.find(m => m.id === selectedMethod);
+  const paymentInfo = PAYMENT_INFO[selectedMethod];
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
   };
 
-  const styles = makeStyles(theme); // ✅
+  const styles = makeStyles(theme);
 
   return (
     <View style={styles.container}>
-      {/* ✅ StatusBar theme অনুযায়ী */}
       <StatusBar
         barStyle={themeName === 'light' ? 'dark-content' : 'light-content'}
         backgroundColor={theme.headerBg}
@@ -89,7 +181,7 @@ const AdvertiserWalletScreen = ({ navigation }) => {
           <Text style={styles.headerTitle}>Wallet</Text>
           <Text style={styles.headerSub}>Manage your balance and transactions</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setStep1Visible(true)}>
           <Ionicons name="add" size={16} color="#fff" />
           <Text style={styles.addBtnText}>Add Money</Text>
         </TouchableOpacity>
@@ -132,8 +224,8 @@ const AdvertiserWalletScreen = ({ navigation }) => {
               <View style={[styles.balanceIcon, { backgroundColor: '#22c55e22' }]}>
                 <Ionicons name="arrow-down-circle-outline" size={22} color="#22c55e" />
               </View>
-              <Text style={styles.balanceValue}>${wallet?.totalDeposited?.toFixed(2) || '0.00'}</Text>
-              <Text style={styles.balanceLabel}>Total Deposited</Text>
+              <Text style={styles.balanceValue}>${wallet?.totalEarned?.toFixed(2) || '0.00'}</Text>
+              <Text style={styles.balanceLabel}>Total Earned</Text>
             </View>
           </View>
 
@@ -151,8 +243,12 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                     <Text style={styles.txTitle}>{tx.description || tx.type}</Text>
                     <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
                   </View>
-                  <Text style={[styles.txAmount, { color: tx.type === 'DEPOSIT' ? '#22c55e' : '#ef4444' }]}>
-                    {tx.type === 'DEPOSIT' ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
+                  <Text style={[styles.txAmount, {
+                    color: tx.type === 'DEPOSIT' || tx.type === 'COMMISSION_EARNED'
+                      ? '#22c55e' : '#ef4444'
+                  }]}>
+                    {tx.type === 'DEPOSIT' || tx.type === 'COMMISSION_EARNED' ? '+' : '-'}
+                    ${Math.abs(tx.amount).toFixed(2)}
                   </Text>
                 </View>
               );
@@ -166,14 +262,14 @@ const AdvertiserWalletScreen = ({ navigation }) => {
         </ScrollView>
       )}
 
-      {/* Add Money Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      {/* ── STEP 1: Amount + Method Modal ── */}
+      <Modal visible={step1Visible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Money</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity onPress={() => setStep1Visible(false)}>
                 <Ionicons name="close" size={22} color={theme.subtext} />
               </TouchableOpacity>
             </View>
@@ -187,7 +283,6 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                 onChangeText={setAmount}
                 placeholder="0.00"
                 placeholderTextColor={theme.subtext}
-                color={theme.text}
                 keyboardType="numeric"
               />
             </View>
@@ -200,12 +295,14 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                   style={[styles.quickBtn, amount === v && styles.quickBtnActive]}
                   onPress={() => setAmount(v)}
                 >
-                  <Text style={[styles.quickBtnText, amount === v && styles.quickBtnTextActive]}>${v}</Text>
+                  <Text style={[styles.quickBtnText, amount === v && styles.quickBtnTextActive]}>
+                    ${v}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Payment methods */}
+            <Text style={styles.inputLabel}>Payment Method</Text>
             {PAYMENT_METHODS.map((m) => (
               <TouchableOpacity
                 key={m.id}
@@ -217,22 +314,107 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.methodLabel}>{m.label}</Text>
                 <Text style={styles.methodCurrency}>{m.currency}</Text>
+                {selectedMethod === m.id && (
+                  <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+                )}
               </TouchableOpacity>
             ))}
 
             <TouchableOpacity
               style={[styles.payBtn, (!amount || parseFloat(amount) <= 0) && styles.payBtnDisabled]}
-              onPress={handleAddMoney}
-              disabled={submitting || !amount || parseFloat(amount) <= 0}
+              onPress={handleProceed}
+              disabled={!amount || parseFloat(amount) <= 0}
             >
-              {submitting
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.payBtnText}>
-                    Pay ${amount || '0'} via {selectedMethodData?.label}
-                  </Text>
-              }
+              <Text style={styles.payBtnText}>
+                পরবর্তী → Payment Info দেখুন
+              </Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      {/* ── STEP 2: Payment Info + Reference Modal ── */}
+      <Modal visible={step2Visible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <ScrollView>
+            <View style={[styles.modalBox, { marginTop: 60 }]}>
+              <View style={styles.modalHandle} />
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => {
+                  setStep2Visible(false);
+                  setTimeout(() => setStep1Visible(true), 300);
+                }}>
+                  <Ionicons name="arrow-back" size={22} color={theme.text} />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>Payment Details</Text>
+                <TouchableOpacity onPress={() => setStep2Visible(false)}>
+                  <Ionicons name="close" size={22} color={theme.subtext} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Amount summary */}
+              <View style={styles.summaryBox}>
+                <View style={[styles.methodIcon, { backgroundColor: paymentInfo?.color + '22', width: 48, height: 48, borderRadius: 24 }]}>
+                  <Ionicons name={paymentInfo?.icon} size={24} color={paymentInfo?.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.summaryMethod}>{paymentInfo?.title}</Text>
+                  <Text style={styles.summaryAmount}>${parseFloat(amount || 0).toFixed(2)} পাঠাতে হবে</Text>
+                </View>
+              </View>
+
+              {/* Instructions */}
+              <Text style={styles.instructionText}>{paymentInfo?.instructions}</Text>
+
+              {/* Payment fields */}
+              {paymentInfo?.fields.map((field, i) => (
+                <View key={i} style={styles.infoField}>
+                  <Text style={styles.infoLabel}>{field.label}</Text>
+                  <View style={styles.infoValueRow}>
+                    <Text style={styles.infoValue} selectable>{field.value}</Text>
+                    <TouchableOpacity onPress={() => {
+                      Alert.alert('Copied!', `${field.label} copied`);
+                    }}>
+                      <Ionicons name="copy-outline" size={16} color={theme.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+              {/* Note */}
+              <View style={styles.noteBox}>
+                <Ionicons name="information-circle-outline" size={16} color="#f59e0b" />
+                <Text style={styles.noteText}>{paymentInfo?.note}</Text>
+              </View>
+
+              {/* Reference input */}
+              <Text style={[styles.inputLabel, { marginTop: 16 }]}>
+                Transaction ID / Reference *
+              </Text>
+              <TextInput
+                style={styles.referenceInput}
+                value={reference}
+                onChangeText={setReference}
+                placeholder="যেমন: TXN123456789"
+                placeholderTextColor={theme.subtext}
+              />
+
+              <TouchableOpacity
+                style={[styles.payBtn, submitting && { opacity: 0.7 }]}
+                onPress={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.payBtnText}>✅ Submit Payment Request</Text>
+                }
+              </TouchableOpacity>
+
+              <Text style={styles.confirmNote}>
+                Admin 24 ঘণ্টার মধ্যে আপনার payment verify করবে এবং balance add করবে।
+              </Text>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -286,7 +468,6 @@ const makeStyles = (theme) => StyleSheet.create({
     borderWidth: 1, borderColor: theme.border, gap: 10,
   },
   emptyTxText: { color: theme.subtext, fontSize: 15 },
-  // Modal — সবসময় dark থাকে (bottom sheet style)
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalBox: {
     backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -296,7 +477,10 @@ const makeStyles = (theme) => StyleSheet.create({
     width: 40, height: 4, backgroundColor: theme.border,
     borderRadius: 2, alignSelf: 'center', marginBottom: 20,
   },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 20,
+  },
   modalTitle: { fontSize: 20, fontWeight: '700', color: theme.text },
   inputLabel: { fontSize: 13, fontWeight: '600', color: theme.subtext, marginBottom: 8 },
   amountWrapper: {
@@ -323,13 +507,44 @@ const makeStyles = (theme) => StyleSheet.create({
   methodRowActive: { borderColor: theme.primary, backgroundColor: theme.primaryLight },
   methodIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   methodLabel: { flex: 1, fontSize: 14, color: theme.text, fontWeight: '500' },
-  methodCurrency: { fontSize: 12, color: theme.subtext, fontWeight: '600' },
+  methodCurrency: { fontSize: 12, color: theme.subtext, fontWeight: '600', marginRight: 4 },
   payBtn: {
     backgroundColor: theme.primary, borderRadius: 14, padding: 16,
     alignItems: 'center', marginTop: 8,
   },
   payBtnDisabled: { opacity: 0.5 },
   payBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  // Step 2
+  summaryBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: theme.background, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: theme.border, marginBottom: 16,
+  },
+  summaryMethod: { fontSize: 15, fontWeight: '700', color: theme.text },
+  summaryAmount: { fontSize: 13, color: theme.subtext, marginTop: 2 },
+  instructionText: { fontSize: 14, color: theme.subtext, marginBottom: 12 },
+  infoField: {
+    backgroundColor: theme.background, borderRadius: 10, padding: 12,
+    marginBottom: 8, borderWidth: 1, borderColor: theme.border,
+  },
+  infoLabel: { fontSize: 11, color: theme.subtext, fontWeight: '600', marginBottom: 4 },
+  infoValueRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  infoValue: { fontSize: 15, fontWeight: '700', color: theme.text, flex: 1 },
+  noteBox: {
+    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
+    backgroundColor: '#f59e0b11', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: '#f59e0b33', marginBottom: 8,
+  },
+  noteText: { fontSize: 13, color: '#f59e0b', flex: 1, lineHeight: 18 },
+  referenceInput: {
+    backgroundColor: theme.background, color: theme.text,
+    borderRadius: 12, padding: 14, fontSize: 15,
+    borderWidth: 1, borderColor: theme.border, marginBottom: 12,
+  },
+  confirmNote: {
+    fontSize: 12, color: theme.subtext, textAlign: 'center',
+    marginTop: 12, lineHeight: 18,
+  },
 });
 
 export default AdvertiserWalletScreen;

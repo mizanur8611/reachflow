@@ -1013,9 +1013,12 @@ app.get('/api/wallet', authMiddleware, async (req, res) => {
 
 app.post('/api/wallet/add', authMiddleware, async (req, res) => {
   try {
-    const { amount, method } = req.body
+    const { amount, method, reference } = req.body
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Valid amount দিতে হবে' })
+    }
+    if (!reference) {
+      return res.status(400).json({ error: 'Transaction reference দিতে হবে' })
     }
 
     let wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
@@ -1023,32 +1026,30 @@ app.post('/api/wallet/add', authMiddleware, async (req, res) => {
       wallet = await prisma.wallet.create({ data: { userId: req.userId } })
     }
 
-    const updatedWallet = await prisma.wallet.update({
-      where: { userId: req.userId },
-      data: {
-        balance: { increment: amount },
-      }
-    })
-
+    // ✅ PENDING — balance add হবে না, admin confirm করবে
     await prisma.transaction.create({
       data: {
         walletId: wallet.id,
         type: 'DEPOSIT',
         amount: amount,
-        method: method?.toUpperCase() || 'CARD',
-        status: 'COMPLETED',
-        description: `Deposit via ${method || 'card'}`
+        method: method?.toUpperCase() || 'BKASH',
+        status: 'PENDING',
+        description: `Deposit request via ${method} | Ref: ${reference}`,
       }
     })
 
     await createNotification(
       req.userId,
-      '💰 Wallet Top-up Successful!',
-      `$${amount} আপনার wallet এ add হয়েছে।`,
+      '⏳ Payment Request Received',
+      `$${amount} deposit request পাওয়া হয়েছে। Admin 24 ঘণ্টার মধ্যে verify করবে।`,
       'wallet'
     )
 
-    res.json({ success: true, wallet: updatedWallet })
+    res.json({
+      success: true,
+      message: 'Payment request submitted. Admin verify করবে।',
+      pending: true
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
