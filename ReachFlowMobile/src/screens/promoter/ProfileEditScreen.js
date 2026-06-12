@@ -1,24 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, StatusBar,
-  ScrollView, Alert,
+  ScrollView, Alert, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { updateProfile } from '../../api/apiService';
+import { getToken } from '../../api/apiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileEditScreen = ({ navigation }) => {
   const { user, setUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [bio, setBio] = useState(user?.bio || '');
+  const [avatar, setAvatar] = useState(user?.avatar || null);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const hasChanges =
     name !== (user?.name || '') ||
     phone !== (user?.phone || '') ||
-    bio !== (user?.bio || '');
+    bio !== (user?.bio || '') ||
+    avatar !== (user?.avatar || null);
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled) return;
+
+    setUploading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('image', {
+        uri: result.assets[0].uri,
+        type: 'image/jpeg',
+        name: 'avatar.jpg',
+      });
+      const res = await fetch('https://reachflow-j34o.onrender.com/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      console.log('Upload response:', JSON.stringify(data));
+      if (data.url) {
+        setAvatar(data.url);
+      } else {
+        Alert.alert('Error', 'ছবি upload হয়নি');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -27,7 +70,12 @@ const ProfileEditScreen = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      const res = await updateProfile({ name: name.trim(), phone: phone.trim(), bio: bio.trim() });
+      const res = await updateProfile({ 
+        name: name.trim(), 
+        phone: phone.trim(), 
+        bio: bio.trim(),
+        avatar,
+      });
       if (setUser) setUser(res.data.user || res.data);
       Alert.alert('সফল!', 'প্রোফাইল আপডেট হয়েছে।', [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -43,8 +91,6 @@ const ProfileEditScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
-
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -63,18 +109,29 @@ const ProfileEditScreen = ({ navigation }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Avatar */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{name?.charAt(0)?.toUpperCase() || '?'}</Text>
-          </View>
+          <TouchableOpacity onPress={pickAvatar} style={styles.avatarWrapper}>
+            {uploading ? (
+              <View style={styles.avatar}>
+                <ActivityIndicator color="#fff" />
+              </View>
+            ) : avatar ? (
+              <Image source={{ uri: avatar }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{name?.charAt(0)?.toUpperCase() || '?'}</Text>
+              </View>
+            )}
+            <View style={styles.cameraIcon}>
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.avatarEmail}>{user?.email}</Text>
-          <View style={[styles.roleBadge]}>
+          <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{user?.role || 'PROMOTER'}</Text>
           </View>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>নাম *</Text>
@@ -88,7 +145,6 @@ const ProfileEditScreen = ({ navigation }) => {
               maxLength={50}
             />
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Email</Text>
             <View style={styles.inputDisabled}>
@@ -97,7 +153,6 @@ const ProfileEditScreen = ({ navigation }) => {
             </View>
             <Text style={styles.inputHint}>Email পরিবর্তন করা যাবে না</Text>
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>ফোন নম্বর</Text>
             <TextInput
@@ -111,7 +166,6 @@ const ProfileEditScreen = ({ navigation }) => {
               maxLength={15}
             />
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Bio</Text>
             <TextInput
@@ -128,7 +182,6 @@ const ProfileEditScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Password change link */}
         <TouchableOpacity
           style={styles.passwordLink}
           onPress={() => navigation.navigate('PasswordChange')}
@@ -137,7 +190,6 @@ const ProfileEditScreen = ({ navigation }) => {
           <Text style={styles.passwordLinkText}>পাসওয়ার্ড পরিবর্তন করুন</Text>
           <Ionicons name="chevron-forward" size={16} color="#52525b" />
         </TouchableOpacity>
-
         <View style={{ height: 32 }} />
       </ScrollView>
     </View>
@@ -164,12 +216,21 @@ const styles = StyleSheet.create({
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   content: { padding: 20 },
   avatarSection: { alignItems: 'center', marginBottom: 28 },
+  avatarWrapper: { position: 'relative', marginBottom: 10 },
   avatar: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: '#8b5cf6',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 10,
+    justifyContent: 'center', alignItems: 'center',
   },
+  avatarImage: { width: 80, height: 80, borderRadius: 40 },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 32 },
+  cameraIcon: {
+    position: 'absolute', bottom: 0, right: 0,
+    backgroundColor: '#8b5cf6', borderRadius: 12,
+    width: 24, height: 24,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#0a0a0a',
+  },
   avatarEmail: { fontSize: 14, color: '#71717a', marginBottom: 8 },
   roleBadge: {
     backgroundColor: '#1a1425', borderRadius: 20,
@@ -202,5 +263,6 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileEditScreen;
+
 
 

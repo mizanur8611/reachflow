@@ -149,6 +149,53 @@ app.get('/api/leaderboard', authMiddleware, async (req, res) => {
 // (LEADERBOARD section এর নিচে)
 
 // ─────────────────────────────────────────
+// PROMOTER DASHBOARD
+// ─────────────────────────────────────────
+
+app.get('/api/promoter/dashboard', authMiddleware, async (req, res) => {
+  try {
+    const promoter = await prisma.promoter.findUnique({
+      where: { userId: req.userId }
+    })
+    if (!promoter) return res.json({
+      appliedCampaigns: 0,
+      approvedCampaigns: 0,
+      pendingCampaigns: 0,
+      totalEarnings: 0,
+      kycVerified: false,
+      recentActivity: []
+    })
+
+    const applications = await prisma.application.findMany({
+      where: { promoterId: promoter.id },
+      include: { campaign: true },
+      orderBy: { appliedAt: 'desc' },
+      take: 5
+    })
+
+    const kyc = await prisma.kycVerification.findUnique({
+      where: { userId: req.userId }
+    })
+
+    res.json({
+      appliedCampaigns: await prisma.application.count({ where: { promoterId: promoter.id } }),
+      approvedCampaigns: await prisma.application.count({ where: { promoterId: promoter.id, status: 'APPROVED' } }),
+      pendingCampaigns: await prisma.application.count({ where: { promoterId: promoter.id, status: 'PENDING' } }),
+      totalEarnings: promoter.totalEarned || 0,
+      kycVerified: kyc?.status === 'VERIFIED',
+      recentActivity: applications.map(a => ({
+        campaignName: a.campaign?.title || '',
+        amount: a.campaign?.commissionAmount || 0,
+        date: a.appliedAt,
+        status: a.status
+      }))
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────
 // PROMOTER PROFILE
 // ─────────────────────────────────────────
 

@@ -63,7 +63,7 @@ export default function CampaignsScreen({ navigation }) {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') { Alert.alert('Permission', 'Photo access permission দিন'); return; }
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'],
     allowsEditing: true, quality: 0.7,
   });
   if (result.canceled) return;
@@ -73,7 +73,7 @@ export default function CampaignsScreen({ navigation }) {
     formData.append('image', { uri: result.assets[0].uri, type: 'image/jpeg', name: 'proof.jpg' });
     const res = await fetch('https://reachflow-j34o.onrender.com/api/upload', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${getToken()}` },
+      headers: { Authorization: `Bearer ${await getToken()}` },
       body: formData,
     });
     const data = await res.json();

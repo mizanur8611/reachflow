@@ -22,7 +22,7 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
@@ -37,7 +37,7 @@ export default function ProfileScreen({ navigation }) {
         type: 'image/jpeg',
         name: 'avatar.jpg',
       });
-      const token = getToken();
+      const token = await getToken();
       const res = await fetch('https://reachflow-j34o.onrender.com/api/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -129,4 +129,5 @@ const styles = StyleSheet.create({
   logoutBtn: { backgroundColor: '#ff4757', margin: 16, borderRadius: 12, padding: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
+
 
