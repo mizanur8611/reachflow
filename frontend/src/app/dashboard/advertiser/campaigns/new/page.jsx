@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Plus, Upload, X, Sparkles, Link as LinkIcon, Video, Image as ImageIcon, Check, Copy } from 'lucide-react'
 import Link from 'next/link'
+import ImageAIEditor from '@/components/ImageAIEditor'
 
 const PLATFORMS = [
   { label: 'Facebook', value: 'FACEBOOK', emoji: '📘' },
@@ -25,7 +26,7 @@ export default function CreateCampaignPage() {
   const router = useRouter()
   const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : null
 
-  const [step, setStep] = useState(1) // 1: Campaign Info, 2: Landing Page, 3: AI Preview
+  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,7 +35,7 @@ export default function CreateCampaignPage() {
   const [aiContent, setAiContent] = useState(null)
   const [copied, setCopied] = useState('')
 
-  // Step 1: Campaign form
+  // Step 1
   const [imagePreview, setImagePreview] = useState(null)
   const [imageUploading, setImageUploading] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState('')
@@ -44,17 +45,20 @@ export default function CreateCampaignPage() {
     category: 'General', platforms: [],
   })
 
-  // Step 2: Landing page form
+  // Step 2
   const [landingForm, setLandingForm] = useState({
     productName: '', productTitle: '', productDetails: '',
     price: '', discountPrice: '', ctaText: 'এখনই কিনুন', ctaUrl: '',
     template: 'modern', primaryColor: '#7C3AED',
   })
-  const [productImages, setProductImages] = useState([]) // [{url, preview}]
+  const [productImages, setProductImages] = useState([])
   const [videoFile, setVideoFile] = useState(null)
   const [videoPreview, setVideoPreview] = useState(null)
   const [videoUploading, setVideoUploading] = useState(false)
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState('')
+
+  // AI Editor state — which image is being edited
+  const [aiEditorIndex, setAiEditorIndex] = useState(null)
 
   // ── Image Upload ──
   const handleImageChange = async (e) => {
@@ -77,7 +81,7 @@ export default function CreateCampaignPage() {
     finally { setImageUploading(false) }
   }
 
-  // ── Product Images (multiple) ──
+  // ── Product Images ──
   const handleProductImageAdd = async (e) => {
     const files = Array.from(e.target.files)
     for (const file of files) {
@@ -98,18 +102,21 @@ export default function CreateCampaignPage() {
     }
   }
 
+  // ── AI Editor: image update callback ──
+  const handleAIImageUpdate = (index, newUrl) => {
+    setProductImages(prev => prev.map((img, i) =>
+      i === index ? { ...img, url: newUrl, preview: newUrl } : img
+    ))
+  }
+
   // ── Video Upload ──
   const handleVideoChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    // Check duration (max 2 min)
     const video = document.createElement('video')
     video.src = URL.createObjectURL(file)
     video.onloadedmetadata = async () => {
-      if (video.duration > 120) {
-        setError('Video must be under 2 minutes')
-        return
-      }
+      if (video.duration > 120) { setError('Video must be under 2 minutes'); return }
       setVideoPreview(URL.createObjectURL(file))
       setVideoFile(file)
       setVideoUploading(true)
@@ -130,8 +137,7 @@ export default function CreateCampaignPage() {
   // ── Step 1: Create Campaign ──
   const handleCreateCampaign = async () => {
     if (!form.title || !form.budget || form.platforms.length === 0) {
-      setError('Title, Budget এবং কমপক্ষে একটা Platform দিন')
-      return
+      setError('Title, Budget এবং কমপক্ষে একটা Platform দিন'); return
     }
     setLoading(true); setError('')
     try {
@@ -146,19 +152,16 @@ export default function CreateCampaignPage() {
         })
       })
       const data = await res.json()
-      if (data.success) {
-        setCreatedCampaignId(data.campaign.id)
-        setStep(2)
-      } else { setError(data.error || 'Something went wrong') }
+      if (data.success) { setCreatedCampaignId(data.campaign.id); setStep(2) }
+      else setError(data.error || 'Something went wrong')
     } catch { setError('Cannot connect to server') }
     finally { setLoading(false) }
   }
 
-  // ── Step 2: Generate AI + Create Landing Page ──
+  // ── Step 2: Create Landing Page ──
   const handleCreateLandingPage = async () => {
     if (!landingForm.productName || !landingForm.productTitle || !landingForm.productDetails || !landingForm.ctaUrl) {
-      setError('Product Name, Title, Details এবং CTA URL দিন')
-      return
+      setError('Product Name, Title, Details এবং CTA URL দিন'); return
     }
     setAiLoading(true); setError('')
     try {
@@ -174,19 +177,14 @@ export default function CreateCampaignPage() {
         })
       })
       const data = await res.json()
-      if (data.success) {
-        setAiContent(data.landingPage)
-        setShareUrl(data.shareUrl)
-        setStep(3)
-      } else { setError(data.error || 'Landing page তৈরি হয়নি') }
+      if (data.success) { setAiContent(data.landingPage); setShareUrl(data.shareUrl); setStep(3) }
+      else setError(data.error || 'Landing page তৈরি হয়নি')
     } catch { setError('Cannot connect to server') }
     finally { setAiLoading(false) }
   }
 
-  // ── Skip landing page ──
   const handleSkip = () => router.push('/dashboard/advertiser')
 
-  // ── Copy to clipboard ──
   const handleCopy = (text, key) => {
     navigator.clipboard.writeText(text)
     setCopied(key)
@@ -234,28 +232,23 @@ export default function CreateCampaignPage() {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
-            {error}
-          </div>
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">{error}</div>
         )}
 
         <AnimatePresence mode="wait">
 
-          {/* ══ STEP 1: Campaign Info ══ */}
+          {/* ══ STEP 1 ══ */}
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 space-y-6">
 
-              {/* Product Image */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Product Image (thumbnail)</label>
                 {imagePreview ? (
                   <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10">
                     <img src={imagePreview} className="w-full h-full object-cover" />
                     <button onClick={() => { setImagePreview(null); setUploadedImageUrl('') }}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-lg">
-                      <X size={16} />
-                    </button>
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-lg"><X size={16} /></button>
                     {imageUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><p className="text-sm">Uploading...</p></div>}
                     {!imageUploading && uploadedImageUrl && <div className="absolute bottom-2 left-2 bg-emerald-500/80 text-xs px-2 py-1 rounded-lg">✓ Uploaded</div>}
                   </div>
@@ -269,7 +262,6 @@ export default function CreateCampaignPage() {
                 )}
               </div>
 
-              {/* Title */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Campaign Title *</label>
                 <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
@@ -277,7 +269,6 @@ export default function CreateCampaignPage() {
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
               </div>
 
-              {/* Description */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Description</label>
                 <textarea rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 resize-none"
@@ -285,7 +276,6 @@ export default function CreateCampaignPage() {
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
 
-              {/* Budget & Commission */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-400 mb-2 block">Total Budget ($) *</label>
@@ -299,7 +289,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* Commission Type */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Commission Type</label>
                 <div className="flex gap-3">
@@ -312,7 +301,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* Category */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Category</label>
                 <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500"
@@ -321,7 +309,6 @@ export default function CreateCampaignPage() {
                 </select>
               </div>
 
-              {/* Platforms */}
               <div>
                 <label className="text-sm text-gray-400 mb-3 block">Platforms *</label>
                 <div className="flex flex-wrap gap-2">
@@ -344,12 +331,11 @@ export default function CreateCampaignPage() {
             </motion.div>
           )}
 
-          {/* ══ STEP 2: Landing Page Builder ══ */}
+          {/* ══ STEP 2 ══ */}
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 space-y-6">
 
-              {/* AI Badge */}
               <div className="flex items-center gap-2 bg-violet-500/10 border border-violet-500/20 rounded-xl px-4 py-3">
                 <Sparkles size={16} className="text-violet-400" />
                 <p className="text-violet-300 text-sm">Product info দাও — AI automatically সব platform এর জন্য caption তৈরি করবে!</p>
@@ -360,10 +346,18 @@ export default function CreateCampaignPage() {
                 <label className="text-sm text-gray-400 mb-2 block">Product Images (max 5)</label>
                 <div className="flex gap-3 flex-wrap">
                   {productImages.map((img, i) => (
-                    <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10">
-                      <img src={img.preview} className="w-full h-full object-cover" />
-                      <button onClick={() => setProductImages(p => p.filter((_, idx) => idx !== i))}
-                        className="absolute top-1 right-1 p-0.5 bg-black/70 rounded-full"><X size={10} /></button>
+                    <div key={i} className="relative">
+                      <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10">
+                        <img src={img.preview} className="w-full h-full object-cover" />
+                        <button onClick={() => { setProductImages(p => p.filter((_, idx) => idx !== i)); if (aiEditorIndex === i) setAiEditorIndex(null) }}
+                          className="absolute top-1 right-1 p-0.5 bg-black/70 rounded-full"><X size={10} /></button>
+                      </div>
+                      {/* AI Edit Button */}
+                      <button
+                        onClick={() => setAiEditorIndex(aiEditorIndex === i ? null : i)}
+                        className={`mt-1 w-20 py-1 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${aiEditorIndex === i ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-violet-500/20 hover:text-violet-400'}`}>
+                        <Sparkles size={9} /> AI Edit
+                      </button>
                     </div>
                   ))}
                   {productImages.length < 5 && (
@@ -374,9 +368,18 @@ export default function CreateCampaignPage() {
                     </label>
                   )}
                 </div>
+
+                {/* AI Editor Panel */}
+                {aiEditorIndex !== null && productImages[aiEditorIndex] && (
+                  <ImageAIEditor
+                    imageUrl={productImages[aiEditorIndex].url}
+                    token={token}
+                    onImageUpdate={(newUrl) => handleAIImageUpdate(aiEditorIndex, newUrl)}
+                  />
+                )}
               </div>
 
-              {/* Product Video */}
+              {/* Video */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Product Video (max 2 min)</label>
                 {videoPreview ? (
@@ -397,7 +400,6 @@ export default function CreateCampaignPage() {
                 )}
               </div>
 
-              {/* Product Name */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Product Name *</label>
                 <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
@@ -405,7 +407,6 @@ export default function CreateCampaignPage() {
                   onChange={e => setLandingForm(f => ({ ...f, productName: e.target.value }))} />
               </div>
 
-              {/* Product Title */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Product Title *</label>
                 <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
@@ -413,16 +414,14 @@ export default function CreateCampaignPage() {
                   onChange={e => setLandingForm(f => ({ ...f, productTitle: e.target.value }))} />
               </div>
 
-              {/* Product Details */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Product Details *</label>
                 <textarea rows={4} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 resize-none"
-                  placeholder="Product এর বিস্তারিত বিবরণ দাও — material, size, color, features..."
+                  placeholder="Product এর বিস্তারিত বিবরণ দাও..."
                   value={landingForm.productDetails}
                   onChange={e => setLandingForm(f => ({ ...f, productDetails: e.target.value }))} />
               </div>
 
-              {/* Price */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-400 mb-2 block">Original Price ($)</label>
@@ -438,7 +437,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* CTA */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-400 mb-2 block">Button Text</label>
@@ -454,7 +452,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* Template */}
               <div>
                 <label className="text-sm text-gray-400 mb-3 block">Page Template</label>
                 <div className="grid grid-cols-3 gap-3">
@@ -468,7 +465,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* Color */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Brand Color</label>
                 <div className="flex gap-3 items-center">
@@ -489,35 +485,27 @@ export default function CreateCampaignPage() {
                 </button>
                 <button onClick={handleCreateLandingPage} disabled={aiLoading || videoUploading}
                   className="flex-[2] flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 py-3.5 rounded-xl font-semibold transition-all">
-                  {aiLoading ? (
-                    <><Sparkles size={18} className="animate-pulse" /> AI Content তৈরি হচ্ছে...</>
-                  ) : (
-                    <><Sparkles size={18} /> AI দিয়ে Landing Page তৈরি করো</>
-                  )}
+                  {aiLoading ? <><Sparkles size={18} className="animate-pulse" /> AI Content তৈরি হচ্ছে...</> : <><Sparkles size={18} /> AI দিয়ে Landing Page তৈরি করো</>}
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* ══ STEP 3: AI Result + Share ══ */}
+          {/* ══ STEP 3 ══ */}
           {step === 3 && aiContent && (
             <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="space-y-4">
 
-              {/* Success */}
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
                 <div className="text-4xl mb-3">🎉</div>
                 <h2 className="text-xl font-bold text-emerald-400">Landing Page তৈরি হয়েছে!</h2>
                 <p className="text-gray-400 text-sm mt-2">Promoter দের এই link পাঠাও</p>
               </div>
 
-              {/* Share URL */}
               <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
                 <p className="text-sm text-gray-400 mb-3 flex items-center gap-2"><LinkIcon size={14} /> Share Link</p>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-violet-400 text-sm font-mono truncate">
-                    {shareUrl}
-                  </div>
+                  <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-violet-400 text-sm font-mono truncate">{shareUrl}</div>
                   <button onClick={() => handleCopy(shareUrl, 'url')}
                     className="px-4 py-3 bg-violet-600 hover:bg-violet-500 rounded-xl transition-colors">
                     {copied === 'url' ? <Check size={16} /> : <Copy size={16} />}
@@ -525,7 +513,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* AI Headline */}
               <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
                 <p className="text-sm text-gray-400 mb-2 flex items-center gap-2"><Sparkles size={14} className="text-violet-400" /> AI Generated Headline</p>
                 <p className="text-lg font-bold text-white">{aiContent.aiHeadline}</p>
@@ -536,7 +523,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* Platform Captions */}
               <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
                 <p className="text-sm text-gray-400 mb-4 flex items-center gap-2"><Sparkles size={14} className="text-violet-400" /> Platform Captions (copy করো)</p>
                 <div className="space-y-3">
@@ -555,7 +541,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              {/* Done Button */}
               <button onClick={() => router.push('/dashboard/advertiser')}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 py-3.5 rounded-xl font-semibold transition-all">
                 Dashboard এ যাও →
@@ -567,5 +552,3 @@ export default function CreateCampaignPage() {
     </div>
   )
 }
-
-
