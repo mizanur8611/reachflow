@@ -985,7 +985,7 @@ app.get('/c/:shortCode', async (req, res) => {
   try {
     const link = await prisma.trackingLink.findUnique({
       where: { shortCode: req.params.shortCode },
-      include: { campaign: true }
+      include: { campaign: { include: { landingPage: true } } }
     })
     if (!link) return res.status(404).json({ error: 'Link not found' })
     await prisma.trackingLink.update({ where: { id: link.id }, data: { clicks: { increment: 1 } } })
@@ -994,7 +994,9 @@ app.get('/c/:shortCode', async (req, res) => {
     const title = campaign?.title || 'Check this out!'
     const description = campaign?.description || 'Amazing offer for you!'
     const image = campaign?.productImages?.[0] || 'https://reachflow-lovat.vercel.app/og-default.png'
-    const redirectUrl = link.originalUrl
+    const redirectUrl = link.campaign?.landingPage?.slug 
+    ? `${process.env.FRONTEND_URL}/p/${link.campaign.landingPage.slug}?ref=${link.shortCode}`
+    : link.originalUrl
 
     res.send(`<!DOCTYPE html>
 <html>
