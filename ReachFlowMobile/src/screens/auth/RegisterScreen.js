@@ -5,8 +5,10 @@ import {
   Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext'; // ✅
 
 export default function RegisterScreen({ navigation }) {
+  const { theme } = useTheme(); // ✅
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +32,8 @@ export default function RegisterScreen({ navigation }) {
       setLoading(false);
     }
   };
+
+  const styles = makeStyles(theme); // ✅
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -79,7 +83,7 @@ export default function RegisterScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Your name"
-            placeholderTextColor="#888"
+            placeholderTextColor={theme.subtext}
             value={name}
             onChangeText={setName}
           />
@@ -88,7 +92,7 @@ export default function RegisterScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="you@example.com"
-            placeholderTextColor="#888"
+            placeholderTextColor={theme.subtext}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -100,17 +104,16 @@ export default function RegisterScreen({ navigation }) {
             <TextInput
               style={styles.passwordInput}
               placeholder="Min 8 characters"
-              placeholderTextColor="#888"
+              placeholderTextColor={theme.subtext}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color="#888" />
+              <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color={theme.subtext} />
             </TouchableOpacity>
           </View>
 
-          {/* Register button */}
           <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> :
               <Text style={styles.buttonText}>⚡ Create Free Account</Text>}
@@ -127,35 +130,60 @@ export default function RegisterScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0a1e' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   inner: { flexGrow: 1, padding: 20, paddingTop: 30 },
   headerSection: { alignItems: 'center', marginBottom: 16 },
-  logo: { fontSize: 36, fontWeight: 'bold', color: '#a78bfa', marginBottom: 6 },
-  tagline: { fontSize: 13, color: '#6b7280' },
-  card: { backgroundColor: '#1a1033', borderRadius: 24, padding: 24, paddingBottom: 32, borderWidth: 1, borderColor: '#2d1b69', marginBottom: 20 },
-  tabRow: { flexDirection: 'row', backgroundColor: '#0f0a1e', borderRadius: 12, padding: 4, marginBottom: 24 },
+  logo: { fontSize: 36, fontWeight: 'bold', color: theme.primary, marginBottom: 6 },
+  tagline: { fontSize: 13, color: theme.subtext },
+  card: {
+    backgroundColor: theme.card, borderRadius: 24, padding: 24,
+    paddingBottom: 32, borderWidth: 1, borderColor: theme.border, marginBottom: 20,
+  },
+  tabRow: {
+    flexDirection: 'row', backgroundColor: theme.background,
+    borderRadius: 12, padding: 4, marginBottom: 24,
+  },
   tabInactive: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10 },
-  tabInactiveText: { color: '#6b7280', fontWeight: '600' },
-  tabActive: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10, backgroundColor: '#7C3AED' },
+  tabInactiveText: { color: theme.subtext, fontWeight: '600' },
+  tabActive: {
+    flex: 1, padding: 12, alignItems: 'center',
+    borderRadius: 10, backgroundColor: theme.primary,
+  },
   tabActiveText: { color: '#fff', fontWeight: '600' },
-  cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: '#6b7280', marginBottom: 20 },
+  cardTitle: { fontSize: 22, fontWeight: 'bold', color: theme.text, marginBottom: 4 },
+  cardSubtitle: { fontSize: 13, color: theme.subtext, marginBottom: 20 },
   roleRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  roleCard: { flex: 1, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: '#2d1b69', backgroundColor: '#0f0a1e', alignItems: 'center' },
-  roleCardActive: { borderColor: '#7C3AED', backgroundColor: '#1e1245' },
+  roleCard: {
+    flex: 1, padding: 14, borderRadius: 14, borderWidth: 1.5,
+    borderColor: theme.border, backgroundColor: theme.background, alignItems: 'center',
+  },
+  roleCardActive: { borderColor: theme.primary, backgroundColor: theme.primaryLight },
   roleEmoji: { fontSize: 24, marginBottom: 6 },
-  roleTitle: { fontSize: 14, fontWeight: 'bold', color: '#9ca3af', marginBottom: 2 },
-  roleTitleActive: { color: '#a78bfa' },
-  roleDesc: { fontSize: 11, color: '#6b7280', textAlign: 'center' },
-  inputLabel: { fontSize: 13, color: '#9ca3af', marginBottom: 8, marginTop: 4 },
-  input: { backgroundColor: '#0f0a1e', color: '#fff', borderRadius: 12, padding: 14, marginBottom: 12, fontSize: 15, borderWidth: 1, borderColor: '#2d1b69' },
-  passwordBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0f0a1e', borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderWidth: 1, borderColor: '#2d1b69' },
-  passwordInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 14 },
-  button: { backgroundColor: '#7C3AED', borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 16 },
+  roleTitle: { fontSize: 14, fontWeight: 'bold', color: theme.subtext, marginBottom: 2 },
+  roleTitleActive: { color: theme.primary },
+  roleDesc: { fontSize: 11, color: theme.subtext, textAlign: 'center', opacity: 0.7 },
+  inputLabel: { fontSize: 13, color: theme.subtext, marginBottom: 8, marginTop: 4 },
+  input: {
+    backgroundColor: theme.background, color: theme.text,
+    borderRadius: 12, padding: 14, marginBottom: 12,
+    fontSize: 15, borderWidth: 1, borderColor: theme.border,
+  },
+  passwordBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.background, borderRadius: 12,
+    paddingHorizontal: 14, marginBottom: 20,
+    borderWidth: 1, borderColor: theme.border,
+  },
+  passwordInput: { flex: 1, color: theme.text, fontSize: 15, paddingVertical: 14 },
+  button: {
+    backgroundColor: theme.primary, borderRadius: 14,
+    padding: 16, alignItems: 'center', marginBottom: 16,
+  },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  terms: { textAlign: 'center', color: '#6b7280', fontSize: 12 },
-  termsLink: { color: '#a78bfa' },
+  terms: { textAlign: 'center', color: theme.subtext, fontSize: 12 },
+  termsLink: { color: theme.primary },
 });
+
 
 

@@ -39,6 +39,13 @@
             "newArchEnabled": false
           }
         }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.mizanur.reachflow",
+          "enableGooglePay": false
+        }
       ]
     ],
     "owner": "mizanurrahaman7794s-organization"

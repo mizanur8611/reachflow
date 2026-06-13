@@ -224,6 +224,7 @@ model Campaign {
   trackingLinks TrackingLink[]
   analytics     CampaignAnalytics?
   escrow        Escrow?
+  landingPage   CampaignLandingPage? 
 
   @@map("campaigns")
 }
@@ -681,6 +682,55 @@ enum EscrowTxType {
   DISPUTE_HOLD  // held during dispute
 }
 
+// ─────────────────────────────────────────
+// CAMPAIGN LANDING PAGE
+// schema.prisma এর শেষে যোগ করো
+// ─────────────────────────────────────────
+
+model CampaignLandingPage {
+  id              String   @id @default(cuid())
+  campaignId      String   @unique
+
+  // Product Info (Advertiser দেয়)
+  productName     String
+  productTitle    String
+  productDetails  String
+  productImages   String[] // multiple images
+  productVideo    String?  // max 2 min, Cloudinary URL
+  price           Float?
+  discountPrice   Float?
+  ctaText         String   @default("এখনই কিনুন")
+  ctaUrl          String   // actual buy/product link
+
+  // AI Generated Content
+  aiHeadline      String?  // AI লেখা catchy headline
+  aiDescription   String?  // AI optimized description
+  aiHashtags      String[] // AI suggested hashtags
+
+  // Platform-specific AI Captions
+  captionFacebook  String?
+  captionTiktok    String?
+  captionInstagram String?
+  captionTelegram  String?
+  captionTwitter   String?
+
+  // Page Settings
+  slug            String   @unique // reachflow.com/p/abc123
+  template        String   @default("modern") // modern | minimal | bold
+  primaryColor    String   @default("#7C3AED")
+  isPublished     Boolean  @default(true)
+
+  // Stats
+  totalViews      Int      @default(0)
+  totalClicks     Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  campaign        Campaign @relation(fields: [campaignId], references: [id])
+
+  @@map("campaign_landing_pages")
+}
 
 
 

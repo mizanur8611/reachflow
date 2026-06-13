@@ -5,8 +5,11 @@ import {
   RefreshControl, StatusBar, Modal, TextInput, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getWallet, addMoney } from '../../api/apiService';
+import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
+import { getWallet, addMoney, createPaymentIntent, confirmStripePayment } from '../../api/apiService';
 import { useTheme } from '../../context/ThemeContext';
+
+const PUBLISHABLE_KEY = 'pk_test_placeholder'; // ✅ পরে real key দিয়ে replace করো
 
 const PAYMENT_METHODS = [
   { id: 'card', label: 'Credit / Debit Card', icon: 'card-outline', color: '#3b82f6', currency: 'USD' },
@@ -16,34 +19,18 @@ const PAYMENT_METHODS = [
   { id: 'usdt', label: 'USDT (TRC20)', icon: 'logo-bitcoin', color: '#26a17b', currency: 'USD' },
 ];
 
-// ✅ Payment info — পরে real numbers দিয়ে replace করো
 const PAYMENT_INFO = {
-  card: {
-    title: 'Credit / Debit Card',
-    icon: 'card-outline',
-    color: '#3b82f6',
-    instructions: 'আমাদের card payment এর জন্য নিচের তথ্য ব্যবহার করুন:',
-    fields: [
-      { label: 'Payment Link', value: 'https://pay.reachflow.com/card' },
-      { label: 'Reference Format', value: 'RF-[আপনার নাম]-[amount]' },
-    ],
-    note: 'Payment করার পর Transaction ID টি নিচে দিন।',
-  },
   paypal: {
-    title: 'PayPal',
-    icon: 'globe-outline',
-    color: '#0070ba',
+    title: 'PayPal', icon: 'globe-outline', color: '#0070ba',
     instructions: 'নিচের PayPal email এ payment পাঠান:',
     fields: [
       { label: 'PayPal Email', value: 'pay@reachflow.com' },
       { label: 'Reference Format', value: 'RF-[আপনার নাম]-[amount]' },
     ],
-    note: 'Payment note এ reference টি লিখুন। Transaction ID নিচে দিন।',
+    note: 'Payment note এ reference লিখুন। Transaction ID নিচে দিন।',
   },
   bkash: {
-    title: 'bKash',
-    icon: 'phone-portrait-outline',
-    color: '#e2136e',
+    title: 'bKash', icon: 'phone-portrait-outline', color: '#e2136e',
     instructions: '"Send Money" দিয়ে নিচের নম্বরে পাঠান:',
     fields: [
       { label: 'bKash Number', value: '01XXXXXXXXX' },
@@ -53,9 +40,7 @@ const PAYMENT_INFO = {
     note: 'bKash Transaction ID টি নিচে দিন। Admin 24 ঘণ্টার মধ্যে confirm করবে।',
   },
   nagad: {
-    title: 'Nagad',
-    icon: 'phone-portrait-outline',
-    color: '#f26522',
+    title: 'Nagad', icon: 'phone-portrait-outline', color: '#f26522',
     instructions: '"Send Money" দিয়ে নিচের নম্বরে পাঠান:',
     fields: [
       { label: 'Nagad Number', value: '01XXXXXXXXX' },
@@ -65,9 +50,7 @@ const PAYMENT_INFO = {
     note: 'Nagad Transaction ID টি নিচে দিন। Admin 24 ঘণ্টার মধ্যে confirm করবে।',
   },
   usdt: {
-    title: 'USDT (TRC20)',
-    icon: 'logo-bitcoin',
-    color: '#26a17b',
+    title: 'USDT (TRC20)', icon: 'logo-bitcoin', color: '#26a17b',
     instructions: 'নিচের TRC20 wallet address এ USDT পাঠান:',
     fields: [
       { label: 'USDT Address (TRC20)', value: 'TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' },
@@ -84,19 +67,181 @@ const TX_ICON = {
   COMMISSION_EARNED: { name: 'cash', color: '#f59e0b' },
 };
 
-const AdvertiserWalletScreen = ({ navigation }) => {
+// ✅ Card Payment Component — Stripe hooks এখানে
+function CardPaymentModal({ visible, amount, onClose, onSuccess, theme }) {
+  const { confirmPayment } = useStripe();
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const styles = makeStyles(theme);
+
+  const formatCardNumber = (text) => {
+    const cleaned = text.replace(/\s/g, '').replace(/\D/g, '');
+    const groups = cleaned.match(/.{1,4}/g);
+    return groups ? groups.join(' ') : cleaned;
+  };
+
+  const formatExpiry = (text) => {
+    const cleaned = text.replace(/\D/g, '');
+    if (cleaned.length >= 2) {
+      return cleaned.substring(0, 2) + '/' + cleaned.substring(2, 4);
+    }
+    return cleaned;
+  };
+
+  const handleCardPayment = async () => {
+    if (!cardNumber || !expiry || !cvc || !name) {
+      Alert.alert('Error', 'সব তথ্য পূরণ করুন');
+      return;
+    }
+    setLoading(true);
+    try {
+      // Step 1: Payment Intent তৈরি করো
+      const intentRes = await createPaymentIntent({ amount: parseFloat(amount) });
+      const { clientSecret } = intentRes.data;
+
+      // Step 2: Stripe দিয়ে card confirm করো
+      const expiryParts = expiry.split('/');
+      const { paymentIntent, error } = await confirmPayment(clientSecret, {
+        paymentMethodType: 'Card',
+        paymentMethodData: {
+          billingDetails: { name },
+        },
+      });
+
+      if (error) {
+        Alert.alert('Payment Failed', error.message);
+        return;
+      }
+
+      if (paymentIntent.status === 'Succeeded') {
+        // Step 3: Backend এ confirm করো
+        await confirmStripePayment({
+          paymentIntentId: paymentIntent.id,
+          amount: parseFloat(amount),
+        });
+        onSuccess();
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Payment failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalBox}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="arrow-back" size={22} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Card Payment</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={22} color={theme.subtext} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Amount summary */}
+          <View style={styles.summaryBox}>
+            <View style={[styles.methodIcon, { backgroundColor: '#3b82f622', width: 48, height: 48, borderRadius: 24 }]}>
+              <Ionicons name="card-outline" size={24} color="#3b82f6" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.summaryMethod}>Credit / Debit Card</Text>
+              <Text style={styles.summaryAmount}>${parseFloat(amount || 0).toFixed(2)} charge হবে</Text>
+            </View>
+          </View>
+
+          {/* Card holder name */}
+          <Text style={styles.inputLabel}>Card Holder Name</Text>
+          <TextInput
+            style={styles.referenceInput}
+            value={name}
+            onChangeText={setName}
+            placeholder="John Doe"
+            placeholderTextColor={theme.subtext}
+          />
+
+          {/* Card Number */}
+          <Text style={styles.inputLabel}>Card Number</Text>
+          <TextInput
+            style={styles.referenceInput}
+            value={cardNumber}
+            onChangeText={(t) => setCardNumber(formatCardNumber(t))}
+            placeholder="1234 5678 9012 3456"
+            placeholderTextColor={theme.subtext}
+            keyboardType="numeric"
+            maxLength={19}
+          />
+
+          {/* Expiry + CVC */}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>Expiry Date</Text>
+              <TextInput
+                style={styles.referenceInput}
+                value={expiry}
+                onChangeText={(t) => setExpiry(formatExpiry(t))}
+                placeholder="MM/YY"
+                placeholderTextColor={theme.subtext}
+                keyboardType="numeric"
+                maxLength={5}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>CVC</Text>
+              <TextInput
+                style={styles.referenceInput}
+                value={cvc}
+                onChangeText={setCvc}
+                placeholder="123"
+                placeholderTextColor={theme.subtext}
+                keyboardType="numeric"
+                maxLength={4}
+                secureTextEntry
+              />
+            </View>
+          </View>
+
+          <View style={styles.noteBox}>
+            <Ionicons name="lock-closed-outline" size={16} color="#22c55e" />
+            <Text style={[styles.noteText, { color: '#22c55e' }]}>
+              আপনার card তথ্য Stripe দ্বারা সুরক্ষিত। আমরা কোনো card data store করি না।
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.payBtn, loading && { opacity: 0.7 }]}
+            onPress={handleCardPayment}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.payBtnText}>💳 Pay ${parseFloat(amount || 0).toFixed(2)}</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ✅ Main Screen
+function AdvertiserWalletContent({ navigation }) {
   const { theme, themeName } = useTheme();
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Step 1 modal — amount + method select
   const [step1Visible, setStep1Visible] = useState(false);
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('bkash');
-
-  // Step 2 modal — payment info + reference
   const [step2Visible, setStep2Visible] = useState(false);
+  const [cardModalVisible, setCardModalVisible] = useState(false);
   const [reference, setReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -115,17 +260,22 @@ const AdvertiserWalletScreen = ({ navigation }) => {
   useEffect(() => { fetchWallet(); }, []);
   const onRefresh = () => { setRefreshing(true); fetchWallet(); };
 
-  // Step 1 → Step 2
   const handleProceed = () => {
     if (!amount || parseFloat(amount) <= 0) {
       Alert.alert('Error', 'Valid amount দিন');
       return;
     }
     setStep1Visible(false);
-    setTimeout(() => setStep2Visible(true), 300);
+    // ✅ Card হলে Stripe modal, অন্যথায় payment info modal
+    setTimeout(() => {
+      if (selectedMethod === 'card') {
+        setCardModalVisible(true);
+      } else {
+        setStep2Visible(true);
+      }
+    }, 300);
   };
 
-  // Step 2 → Submit
   const handleSubmit = async () => {
     if (!reference.trim()) {
       Alert.alert('Error', 'Transaction ID / Reference দিন');
@@ -143,7 +293,7 @@ const AdvertiserWalletScreen = ({ navigation }) => {
       setReference('');
       Alert.alert(
         '✅ Request Submitted!',
-        'আপনার payment request পাঠানো হয়েছে। Admin 24 ঘণ্টার মধ্যে confirm করবে।',
+        'Admin 24 ঘণ্টার মধ্যে verify করবে।',
         [{ text: 'OK', onPress: fetchWallet }]
       );
     } catch (error) {
@@ -153,9 +303,15 @@ const AdvertiserWalletScreen = ({ navigation }) => {
     }
   };
 
-  const selectedMethodData = PAYMENT_METHODS.find(m => m.id === selectedMethod);
-  const paymentInfo = PAYMENT_INFO[selectedMethod];
+  const handleCardSuccess = () => {
+    setCardModalVisible(false);
+    setAmount('');
+    Alert.alert('✅ Payment Successful!', 'Balance আপনার wallet এ add হয়েছে!',
+      [{ text: 'OK', onPress: fetchWallet }]
+    );
+  };
 
+  const paymentInfo = PAYMENT_INFO[selectedMethod];
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -172,7 +328,6 @@ const AdvertiserWalletScreen = ({ navigation }) => {
         backgroundColor={theme.headerBg}
       />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
@@ -195,16 +350,11 @@ const AdvertiserWalletScreen = ({ navigation }) => {
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.primary}
-              colors={[theme.primary]}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh}
+              tintColor={theme.primary} colors={[theme.primary]} />
           }
           contentContainerStyle={styles.content}
         >
-          {/* Balance Cards */}
           <View style={styles.balanceRow}>
             <View style={styles.balanceCard}>
               <View style={[styles.balanceIcon, { backgroundColor: theme.primary + '22' }]}>
@@ -229,7 +379,6 @@ const AdvertiserWalletScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Transaction History */}
           <Text style={styles.sectionTitle}>Transaction History</Text>
           {wallet?.transactions?.length > 0 ? (
             wallet.transactions.map((tx, i) => {
@@ -243,13 +392,17 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                     <Text style={styles.txTitle}>{tx.description || tx.type}</Text>
                     <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
                   </View>
-                  <Text style={[styles.txAmount, {
-                    color: tx.type === 'DEPOSIT' || tx.type === 'COMMISSION_EARNED'
-                      ? '#22c55e' : '#ef4444'
-                  }]}>
-                    {tx.type === 'DEPOSIT' || tx.type === 'COMMISSION_EARNED' ? '+' : '-'}
-                    ${Math.abs(tx.amount).toFixed(2)}
-                  </Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.txAmount, {
+                      color: ['DEPOSIT', 'COMMISSION_EARNED'].includes(tx.type) ? '#22c55e' : '#ef4444'
+                    }]}>
+                      {['DEPOSIT', 'COMMISSION_EARNED'].includes(tx.type) ? '+' : '-'}
+                      ${Math.abs(tx.amount).toFixed(2)}
+                    </Text>
+                    {tx.status === 'PENDING' && (
+                      <Text style={styles.pendingBadge}>⏳ Pending</Text>
+                    )}
+                  </View>
                 </View>
               );
             })
@@ -262,7 +415,7 @@ const AdvertiserWalletScreen = ({ navigation }) => {
         </ScrollView>
       )}
 
-      {/* ── STEP 1: Amount + Method Modal ── */}
+      {/* Step 1: Amount + Method */}
       <Modal visible={step1Visible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -287,7 +440,6 @@ const AdvertiserWalletScreen = ({ navigation }) => {
               />
             </View>
 
-            {/* Quick amounts */}
             <View style={styles.quickAmounts}>
               {['10', '25', '50', '100'].map((v) => (
                 <TouchableOpacity
@@ -295,9 +447,7 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                   style={[styles.quickBtn, amount === v && styles.quickBtnActive]}
                   onPress={() => setAmount(v)}
                 >
-                  <Text style={[styles.quickBtnText, amount === v && styles.quickBtnTextActive]}>
-                    ${v}
-                  </Text>
+                  <Text style={[styles.quickBtnText, amount === v && styles.quickBtnTextActive]}>${v}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -326,14 +476,14 @@ const AdvertiserWalletScreen = ({ navigation }) => {
               disabled={!amount || parseFloat(amount) <= 0}
             >
               <Text style={styles.payBtnText}>
-                পরবর্তী → Payment Info দেখুন
+                {selectedMethod === 'card' ? '💳 Card তথ্য দিন →' : 'পরবর্তী → Payment Info দেখুন'}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* ── STEP 2: Payment Info + Reference Modal ── */}
+      {/* Step 2: Payment Info (non-card) */}
       <Modal visible={step2Visible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView>
@@ -352,7 +502,6 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* Amount summary */}
               <View style={styles.summaryBox}>
                 <View style={[styles.methodIcon, { backgroundColor: paymentInfo?.color + '22', width: 48, height: 48, borderRadius: 24 }]}>
                   <Ionicons name={paymentInfo?.icon} size={24} color={paymentInfo?.color} />
@@ -363,34 +512,26 @@ const AdvertiserWalletScreen = ({ navigation }) => {
                 </View>
               </View>
 
-              {/* Instructions */}
               <Text style={styles.instructionText}>{paymentInfo?.instructions}</Text>
 
-              {/* Payment fields */}
               {paymentInfo?.fields.map((field, i) => (
                 <View key={i} style={styles.infoField}>
                   <Text style={styles.infoLabel}>{field.label}</Text>
                   <View style={styles.infoValueRow}>
                     <Text style={styles.infoValue} selectable>{field.value}</Text>
-                    <TouchableOpacity onPress={() => {
-                      Alert.alert('Copied!', `${field.label} copied`);
-                    }}>
+                    <TouchableOpacity onPress={() => Alert.alert('Copied!', `${field.label} copied`)}>
                       <Ionicons name="copy-outline" size={16} color={theme.primary} />
                     </TouchableOpacity>
                   </View>
                 </View>
               ))}
 
-              {/* Note */}
               <View style={styles.noteBox}>
                 <Ionicons name="information-circle-outline" size={16} color="#f59e0b" />
                 <Text style={styles.noteText}>{paymentInfo?.note}</Text>
               </View>
 
-              {/* Reference input */}
-              <Text style={[styles.inputLabel, { marginTop: 16 }]}>
-                Transaction ID / Reference *
-              </Text>
+              <Text style={[styles.inputLabel, { marginTop: 16 }]}>Transaction ID / Reference *</Text>
               <TextInput
                 style={styles.referenceInput}
                 value={reference}
@@ -417,9 +558,30 @@ const AdvertiserWalletScreen = ({ navigation }) => {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Card Payment Modal */}
+      <CardPaymentModal
+        visible={cardModalVisible}
+        amount={amount}
+        onClose={() => {
+          setCardModalVisible(false);
+          setTimeout(() => setStep1Visible(true), 300);
+        }}
+        onSuccess={handleCardSuccess}
+        theme={theme}
+      />
     </View>
   );
-};
+}
+
+// ✅ StripeProvider wrap করো
+export default function AdvertiserWalletScreen({ navigation }) {
+  return (
+    <StripeProvider publishableKey={PUBLISHABLE_KEY}>
+      <AdvertiserWalletContent navigation={navigation} />
+    </StripeProvider>
+  );
+}
 
 const makeStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
@@ -462,6 +624,7 @@ const makeStyles = (theme) => StyleSheet.create({
   txTitle: { fontSize: 14, fontWeight: '500', color: theme.text },
   txDate: { fontSize: 12, color: theme.subtext, marginTop: 2 },
   txAmount: { fontSize: 15, fontWeight: '700' },
+  pendingBadge: { fontSize: 11, color: '#f59e0b', marginTop: 2 },
   emptyTx: {
     alignItems: 'center', padding: 40,
     backgroundColor: theme.card, borderRadius: 14,
@@ -477,10 +640,7 @@ const makeStyles = (theme) => StyleSheet.create({
     width: 40, height: 4, backgroundColor: theme.border,
     borderRadius: 2, alignSelf: 'center', marginBottom: 20,
   },
-  modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 20,
-  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '700', color: theme.text },
   inputLabel: { fontSize: 13, fontWeight: '600', color: theme.subtext, marginBottom: 8 },
   amountWrapper: {
@@ -514,7 +674,6 @@ const makeStyles = (theme) => StyleSheet.create({
   },
   payBtnDisabled: { opacity: 0.5 },
   payBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  // Step 2
   summaryBox: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: theme.background, borderRadius: 14, padding: 16,
@@ -546,7 +705,5 @@ const makeStyles = (theme) => StyleSheet.create({
     marginTop: 12, lineHeight: 18,
   },
 });
-
-export default AdvertiserWalletScreen;
 
 

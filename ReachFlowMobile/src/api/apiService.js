@@ -59,6 +59,9 @@ export const addMoney = (data) => request('POST', '/wallet/add', data);
 export const getAnalytics = (period) => request('GET', `/advertiser/analytics?period=${period}`);
 export const getSubscription = () => request('GET', '/subscriptions/my');
 export const subscribePlan = (data) => request('POST', '/subscriptions/subscribe', data);
+export const createPaymentIntent = (data) => request('POST', '/stripe/create-payment-intent', data);
+export const confirmStripePayment = (data) => request('POST', '/stripe/confirm-payment', data);
+
 
 
 

@@ -5,8 +5,10 @@ import {
   Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext'; // ✅
 
 export default function LoginScreen({ navigation }) {
+  const { theme } = useTheme(); // ✅
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +41,8 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const styles = makeStyles(theme); // ✅
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false}>
@@ -64,12 +68,11 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.cardTitle}>Welcome Back 👋</Text>
           <Text style={styles.cardSubtitle}>Sign in to your account</Text>
 
-          {/* Inputs */}
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput
             style={styles.input}
             placeholder="you@example.com"
-            placeholderTextColor="#888"
+            placeholderTextColor={theme.subtext}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -81,17 +84,16 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.passwordInput}
               placeholder="Your password"
-              placeholderTextColor="#888"
+              placeholderTextColor={theme.subtext}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color="#888" />
+              <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color={theme.subtext} />
             </TouchableOpacity>
           </View>
 
-          {/* Login button */}
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> :
               <Text style={styles.buttonText}>Sign In →</Text>}
@@ -123,32 +125,53 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0a1e' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   inner: { flexGrow: 1, padding: 20, paddingTop: 60 },
   headerSection: { alignItems: 'center', marginBottom: 32 },
-  logo: { fontSize: 36, fontWeight: 'bold', color: '#a78bfa', marginBottom: 6 },
-  tagline: { fontSize: 13, color: '#6b7280' },
-  card: { backgroundColor: '#1a1033', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#2d1b69', marginBottom: 24 },
-  tabRow: { flexDirection: 'row', backgroundColor: '#0f0a1e', borderRadius: 12, padding: 4, marginBottom: 24 },
-  tabActive: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10, backgroundColor: '#7C3AED' },
+  logo: { fontSize: 36, fontWeight: 'bold', color: theme.primary, marginBottom: 6 },
+  tagline: { fontSize: 13, color: theme.subtext },
+  card: {
+    backgroundColor: theme.card, borderRadius: 24, padding: 24,
+    borderWidth: 1, borderColor: theme.border, marginBottom: 24,
+  },
+  tabRow: {
+    flexDirection: 'row', backgroundColor: theme.background,
+    borderRadius: 12, padding: 4, marginBottom: 24,
+  },
+  tabActive: {
+    flex: 1, padding: 12, alignItems: 'center',
+    borderRadius: 10, backgroundColor: theme.primary,
+  },
   tabActiveText: { color: '#fff', fontWeight: '600' },
   tabInactive: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10 },
-  tabInactiveText: { color: '#6b7280', fontWeight: '600' },
-  cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: '#6b7280', marginBottom: 20 },
-  inputLabel: { fontSize: 13, color: '#9ca3af', marginBottom: 8, marginTop: 4 },
-  input: { backgroundColor: '#0f0a1e', color: '#fff', borderRadius: 12, padding: 14, marginBottom: 12, fontSize: 15, borderWidth: 1, borderColor: '#2d1b69' },
-  passwordBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0f0a1e', borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderWidth: 1, borderColor: '#2d1b69' },
-  passwordInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 14 },
-  button: { backgroundColor: '#7C3AED', borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 16 },
+  tabInactiveText: { color: theme.subtext, fontWeight: '600' },
+  cardTitle: { fontSize: 22, fontWeight: 'bold', color: theme.text, marginBottom: 4 },
+  cardSubtitle: { fontSize: 13, color: theme.subtext, marginBottom: 20 },
+  inputLabel: { fontSize: 13, color: theme.subtext, marginBottom: 8, marginTop: 4 },
+  input: {
+    backgroundColor: theme.background, color: theme.text,
+    borderRadius: 12, padding: 14, marginBottom: 12,
+    fontSize: 15, borderWidth: 1, borderColor: theme.border,
+  },
+  passwordBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.background, borderRadius: 12,
+    paddingHorizontal: 14, marginBottom: 20,
+    borderWidth: 1, borderColor: theme.border,
+  },
+  passwordInput: { flex: 1, color: theme.text, fontSize: 15, paddingVertical: 14 },
+  button: {
+    backgroundColor: theme.primary, borderRadius: 14,
+    padding: 16, alignItems: 'center', marginBottom: 16,
+  },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  link: { textAlign: 'center', color: '#6b7280', fontSize: 14 },
-  linkBold: { color: '#a78bfa', fontWeight: 'bold' },
+  link: { textAlign: 'center', color: theme.subtext, fontSize: 14 },
+  linkBold: { color: theme.primary, fontWeight: 'bold' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 16 },
   statItem: { alignItems: 'center' },
-  statNum: { fontSize: 20, fontWeight: 'bold', color: '#a78bfa' },
-  statLabel: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  statNum: { fontSize: 20, fontWeight: 'bold', color: theme.primary },
+  statLabel: { fontSize: 11, color: theme.subtext, marginTop: 2 },
 });
 
 

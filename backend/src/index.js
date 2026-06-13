@@ -11,6 +11,7 @@ const ratingRouter = require('./routes/rating')
 const analyticsExportRouter = require('./routes/analyticsExport')
 const subscriptionRouter = require('./routes/subscription')
 const escrowRouter = require('./routes/escrow')
+const landingRouter = require('./routes/landing') // ✅ NEW
 const { calculateFraudScore, getFraudRiskLevel } = require('./services/fraudDetection')
 const Stripe = require('stripe')
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
@@ -36,7 +37,10 @@ cloudinary.config({
 })
 
 const storage = multer.memoryStorage()
-const upload = multer({ storage })
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB max (video এর জন্য)
+})
 
 const app = express()
 const prisma = new PrismaClient()
@@ -98,12 +102,8 @@ const adminMiddleware = async (req, res, next) => {
   }
 }
 
-// এই route টা index.js এ add করো
-// (ADMIN section এর আগে যেকোনো জায়গায়)
-
 app.get('/api/leaderboard', authMiddleware, async (req, res) => {
   try {
-    // Top promoters by totalEarned
     const promoters = await prisma.promoter.findMany({
       where: { totalEarned: { gt: 0 } },
       include: {
@@ -114,7 +114,6 @@ app.get('/api/leaderboard', authMiddleware, async (req, res) => {
       take: 20
     })
 
-    // Current user's rank
     const myPromoter = await prisma.promoter.findUnique({
       where: { userId: req.userId }
     })
@@ -147,9 +146,6 @@ app.get('/api/leaderboard', authMiddleware, async (req, res) => {
   }
 })
 
-// এই routes গুলো index.js এ add করো
-// (LEADERBOARD section এর নিচে)
-
 // ─────────────────────────────────────────
 // PROMOTER DASHBOARD
 // ─────────────────────────────────────────
@@ -160,12 +156,9 @@ app.get('/api/promoter/dashboard', authMiddleware, async (req, res) => {
       where: { userId: req.userId }
     })
     if (!promoter) return res.json({
-      appliedCampaigns: 0,
-      approvedCampaigns: 0,
-      pendingCampaigns: 0,
-      totalEarnings: 0,
-      kycVerified: false,
-      recentActivity: []
+      appliedCampaigns: 0, approvedCampaigns: 0,
+      pendingCampaigns: 0, totalEarnings: 0,
+      kycVerified: false, recentActivity: []
     })
 
     const applications = await prisma.application.findMany({
@@ -201,7 +194,6 @@ app.get('/api/promoter/dashboard', authMiddleware, async (req, res) => {
 // PROMOTER PROFILE
 // ─────────────────────────────────────────
 
-// GET /api/promoter/profile - নিজের profile দেখো
 app.get('/api/promoter/profile', authMiddleware, async (req, res) => {
   try {
     const promoter = await prisma.promoter.findUnique({
@@ -217,11 +209,8 @@ app.get('/api/promoter/profile', authMiddleware, async (req, res) => {
         }
       }
     })
-
     if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
-
     const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
-
     res.json({
       success: true,
       profile: {
@@ -246,21 +235,13 @@ app.get('/api/promoter/profile', authMiddleware, async (req, res) => {
   }
 })
 
-// PUT /api/promoter/profile - profile update করো
 app.put('/api/promoter/profile', authMiddleware, async (req, res) => {
   try {
     const { name, bio, country, niche } = req.body
-
-    // User name update
     if (name) {
-      await prisma.user.update({
-        where: { id: req.userId },
-        data: { name }
-      })
+      await prisma.user.update({ where: { id: req.userId }, data: { name } })
     }
-
-    // Promoter profile update
-    const promoter = await prisma.promoter.update({
+    await prisma.promoter.update({
       where: { userId: req.userId },
       data: {
         ...(bio !== undefined && { bio }),
@@ -268,56 +249,39 @@ app.put('/api/promoter/profile', authMiddleware, async (req, res) => {
         ...(niche && { niche })
       }
     })
-
     res.json({ success: true, message: 'Profile updated!' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// POST /api/promoter/social - social account add করো
 app.post('/api/promoter/social', authMiddleware, async (req, res) => {
   try {
     const { platform, username, profileUrl, followers } = req.body
-
     if (!platform || !username || !profileUrl) {
       return res.status(400).json({ error: 'platform, username এবং profileUrl দিতে হবে' })
     }
-
     const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
-
-    // Already exists check
     const existing = await prisma.socialAccount.findFirst({
       where: { promoterId: promoter.id, platform }
     })
-
     if (existing) {
-      // Update existing
       const updated = await prisma.socialAccount.update({
         where: { id: existing.id },
         data: { username, profileUrl, followers: parseInt(followers) || 0 }
       })
       return res.json({ success: true, socialAccount: updated })
     }
-
     const socialAccount = await prisma.socialAccount.create({
-      data: {
-        promoterId: promoter.id,
-        platform,
-        username,
-        profileUrl,
-        followers: parseInt(followers) || 0
-      }
+      data: { promoterId: promoter.id, platform, username, profileUrl, followers: parseInt(followers) || 0 }
     })
-
     res.json({ success: true, socialAccount })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// DELETE /api/promoter/social/:id - social account delete করো
 app.delete('/api/promoter/social/:id', authMiddleware, async (req, res) => {
   try {
     await prisma.socialAccount.delete({ where: { id: req.params.id } })
@@ -326,8 +290,6 @@ app.delete('/api/promoter/social/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
-
-
 
 // ─────────────────────────────────────────
 // TEST
@@ -365,34 +327,30 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     await prisma.wallet.create({ data: { userId: user.id } })
-      // Referral handle
-      if (req.body.referralCode) {
-        const referrer = await prisma.user.findUnique({
-          where: { referralCode: req.body.referralCode }
-        })
-        if (referrer) {
-          await prisma.referral.create({
-            data: {
-              referrerId: referrer.id,
-              refereeId: user.id,
-              code: req.body.referralCode,
-              status: 'PENDING'
-            }
-          })
-        }
-        // Send verification email
-        const verifyToken = crypto.randomBytes(32).toString('hex')
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { 
-            emailVerified: false,
-            referralCode: user.referralCode
+
+    if (req.body.referralCode) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: req.body.referralCode }
+      })
+      if (referrer) {
+        await prisma.referral.create({
+          data: {
+            referrerId: referrer.id,
+            refereeId: user.id,
+            code: req.body.referralCode,
+            status: 'PENDING'
           }
         })
-        // Store token in a simple way
-        const { sendVerificationEmail } = require('./services/emailService')
-        await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
       }
+      const verifyToken = crypto.randomBytes(32).toString('hex')
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: false, referralCode: user.referralCode }
+      })
+      const { sendVerificationEmail } = require('./services/emailService')
+      await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
+    }
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (error) {
@@ -408,10 +366,7 @@ app.get('/api/auth/verify-email', async (req, res) => {
     const parts = token.split('_')
     const userId = parts[parts.length - 1]
     if (!userId) return res.status(400).json({ error: 'Invalid token' })
-    await prisma.user.update({
-      where: { id: userId },
-      data: { emailVerified: true }
-    })
+    await prisma.user.update({ where: { id: userId }, data: { emailVerified: true } })
     res.redirect(`${process.env.FRONTEND_URL || 'https://reachflow-lovat.vercel.app'}/login?verified=true`)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -425,7 +380,6 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(400).json({ error: 'Invalid credentials' })
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) return res.status(400).json({ error: 'Invalid credentials' })
-   
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } })
   } catch (err) {
@@ -450,10 +404,7 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
     const { name, phone, bio, avatar } = req.body
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: {
-        name,
-        ...(avatar && { avatar })
-      },
+      data: { name, ...(avatar && { avatar }) },
       select: { id: true, name: true, email: true, role: true, avatar: true }
     })
     res.json({ user })
@@ -469,28 +420,20 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 app.put('/api/auth/change-password', authMiddleware, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body
-
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: 'Current password এবং new password দিতে হবে' })
     }
     if (newPassword.length < 6) {
       return res.status(400).json({ error: 'Password কমপক্ষে ৬ character হতে হবে' })
     }
-
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     if (!user) return res.status(404).json({ error: 'User found হয়নি' })
-
     const isValid = await bcrypt.compare(currentPassword, user.password)
     if (!isValid) {
       return res.status(400).json({ error: 'Current password সঠিক নয়' })
     }
-
     const hashedPassword = await bcrypt.hash(newPassword, 10)
-    await prisma.user.update({
-      where: { id: req.userId },
-      data: { password: hashedPassword }
-    })
-
+    await prisma.user.update({ where: { id: req.userId }, data: { password: hashedPassword } })
     res.json({ success: true, message: 'Password সফলভাবে পরিবর্তন হয়েছে!' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -498,7 +441,7 @@ app.put('/api/auth/change-password', authMiddleware, async (req, res) => {
 })
 
 // ─────────────────────────────────────────
-// PLATFORM SETTINGS (BDT Rate etc.)
+// PLATFORM SETTINGS
 // ─────────────────────────────────────────
 
 app.get('/api/admin/settings', adminMiddleware, async (req, res) => {
@@ -548,22 +491,15 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
     const { title, description, budget, platforms, commissionType, commissionAmount, category } = req.body
     const advertiser = await prisma.advertiser.findUnique({ where: { userId: req.userId } })
     if (!advertiser) return res.status(400).json({ error: 'Advertiser profile not found.' })
-    // ── Subscription Enforcement ──
+
     const activeSub = await prisma.subscription.findFirst({
-      where: {
-        userId: req.userId,
-        status: 'ACTIVE',
-        endDate: { gt: new Date() }
-      },
+      where: { userId: req.userId, status: 'ACTIVE', endDate: { gt: new Date() } },
       include: { plan: true }
     })
-
     const campaignLimit = activeSub?.plan?.campaignLimit ?? 10
 
     if (campaignLimit !== null) {
-      const campaignCount = await prisma.campaign.count({
-        where: { advertiserId: advertiser.id }
-      })
+      const campaignCount = await prisma.campaign.count({ where: { advertiserId: advertiser.id } })
       if (campaignCount >= campaignLimit) {
         return res.status(403).json({
           error: `Your current plan allows maximum ${campaignLimit} campaigns. Please upgrade your plan.`,
@@ -571,6 +507,7 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
         })
       }
     }
+
     const campaign = await prisma.campaign.create({
       data: {
         title,
@@ -595,11 +532,9 @@ app.post('/api/campaigns', authMiddleware, async (req, res) => {
 app.get('/api/campaigns', authMiddleware, async (req, res) => {
   try {
     const campaigns = await prisma.campaign.findMany({
-        where: { advertiser: { userId: req.userId } },
-        include: {
-        _count: { select: { applications: true } }
-        },
-       orderBy: { createdAt: 'desc' }
+      where: { advertiser: { userId: req.userId } },
+      include: { _count: { select: { applications: true } } },
+      orderBy: { createdAt: 'desc' }
     })
     res.json({ campaigns })
   } catch (err) {
@@ -625,9 +560,7 @@ app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
       where: { id: req.params.id },
       include: {
         applications: {
-          include: {
-            promoter: { include: { user: true } }
-          }
+          include: { promoter: { include: { user: true } } }
         }
       }
     })
@@ -641,20 +574,15 @@ app.get('/api/campaigns/:id', authMiddleware, async (req, res) => {
 // APPLICATIONS
 // ─────────────────────────────────────────
 
-// FIX 1: const → let যাতে reassign করা যায়
 app.post('/api/applications', authMiddleware, async (req, res) => {
   try {
     const { campaignId } = req.body
-
-    // FIX: const → let
     let promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) {
       promoter = await prisma.promoter.create({
         data: { userId: req.userId, country: 'Bangladesh' }
       })
     }
-
-    // Already applied check
     const existing = await prisma.application.findUnique({
       where: { campaignId_promoterId: { campaignId, promoterId: promoter.id } }
     })
@@ -664,7 +592,6 @@ app.post('/api/applications', authMiddleware, async (req, res) => {
       data: { campaignId, promoterId: promoter.id }
     })
 
-    // Advertiser কে notification
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
       include: { advertiser: { include: { user: true } } }
@@ -677,7 +604,6 @@ app.post('/api/applications', authMiddleware, async (req, res) => {
         'application'
       )
     }
-
     res.json({ success: true, application })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -699,11 +625,9 @@ app.get('/api/applications/my', authMiddleware, async (req, res) => {
   }
 })
 
-// FIX 2: Approve/Reject এ Notification যোগ করা হয়েছে
 app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body
-
     const application = await prisma.application.update({
       where: { id: req.params.id },
       data: { status, reviewedAt: new Date() },
@@ -712,8 +636,6 @@ app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
         campaign: true
       }
     })
-
-    // Promoter কে notification পাঠাও
     if (application.promoter?.userId) {
       if (status === 'APPROVED') {
         await createNotification(
@@ -723,10 +645,10 @@ app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
           'application'
         )
         await sendApplicationApprovedEmail(
-         application.promoter.user.email,
-         application.promoter.user.name,
-         application.campaign.title
-         )
+          application.promoter.user.email,
+          application.promoter.user.name,
+          application.campaign.title
+        )
       } else if (status === 'REJECTED') {
         await createNotification(
           application.promoter.userId,
@@ -736,7 +658,6 @@ app.patch('/api/applications/:id', authMiddleware, async (req, res) => {
         )
       }
     }
-
     res.json({ success: true, application })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -752,7 +673,6 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
     const { applicationId, postUrl, description } = req.body
     const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
-
     const application = await prisma.application.findUnique({ where: { id: applicationId } })
     if (!application) return res.status(404).json({ error: 'Application not found' })
 
@@ -768,21 +688,16 @@ app.post('/api/submissions', authMiddleware, async (req, res) => {
       }
     })
 
-    // Fraud detection
-      const { score, flags } = await calculateFraudScore(submission, promoter.id)
-      if (score > 0) {
-        await prisma.submission.update({
-          where: { id: submission.id },
-          data: {
-            fraudScore: score,
-            status: score >= 0.7 ? 'FLAGGED' : 'PENDING',
-          },
-        })
-        if (score >= 0.7) {
-          console.log(`🚨 High fraud: ${submission.id} | Score: ${score} | Flags: ${flags.join(', ')}`)
-        }
+    const { score, flags } = await calculateFraudScore(submission, promoter.id)
+    if (score > 0) {
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { fraudScore: score, status: score >= 0.7 ? 'FLAGGED' : 'PENDING' },
+      })
+      if (score >= 0.7) {
+        console.log(`🚨 High fraud: ${submission.id} | Score: ${score} | Flags: ${flags.join(', ')}`)
       }
-
+    }
     res.json({ success: true, submission })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -820,7 +735,6 @@ app.get('/api/submissions/:campaignId', authMiddleware, async (req, res) => {
 app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body
-
     const submission = await prisma.submission.update({
       where: { id: req.params.id },
       data: { status, reviewedAt: new Date() },
@@ -829,169 +743,56 @@ app.patch('/api/submissions/:id/status', authMiddleware, async (req, res) => {
 
     if (status === 'APPROVED') {
       const amount = submission.campaign.commissionAmount
-
-      // ── Escrow থেকে auto-release ──
-      const escrow = await prisma.escrow.findUnique({
-        where: { campaignId: submission.campaignId }
-      })
+      const escrow = await prisma.escrow.findUnique({ where: { campaignId: submission.campaignId } })
 
       if (escrow && escrow.status !== 'PENDING' && escrow.heldAmount >= amount) {
         const platformSettings = await prisma.platformSettings.findFirst()
         const feePercent = platformSettings?.platformFeePercent || 10
         const platformFee = (amount * feePercent) / 100
         const promoterAmount = amount - platformFee
-
-        const promoterWallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
+        const promoterWallet = await prisma.wallet.findUnique({ where: { userId: submission.promoter.userId } })
 
         await prisma.$transaction(async (tx) => {
-          await tx.escrow.update({
-            where: { id: escrow.id },
-            data: {
-              heldAmount: { decrement: amount },
-              releasedAmount: { increment: amount },
-              status: 'ACTIVE'
-            }
-          })
-          await tx.escrowTransaction.create({
-            data: {
-              escrowId: escrow.id,
-              type: 'RELEASE',
-              amount: amount,
-              toUserId: submission.promoter.userId,
-              submissionId: submission.id,
-              note: `Auto-released for approved submission`
-            }
-          })
+          await tx.escrow.update({ where: { id: escrow.id }, data: { heldAmount: { decrement: amount }, releasedAmount: { increment: amount }, status: 'ACTIVE' } })
+          await tx.escrowTransaction.create({ data: { escrowId: escrow.id, type: 'RELEASE', amount, toUserId: submission.promoter.userId, submissionId: submission.id, note: 'Auto-released for approved submission' } })
           if (promoterWallet) {
-            await tx.wallet.update({
-              where: { userId: submission.promoter.userId },
-              data: {
-                balance: { increment: promoterAmount },
-                totalEarned: { increment: promoterAmount }
-              }
-            })
-            await tx.transaction.create({
-              data: {
-                walletId: promoterWallet.id,
-                type: 'COMMISSION_EARNED',
-                amount: promoterAmount,
-                method: 'WALLET',
-                status: 'COMPLETED',
-                description: `Earned from campaign: ${submission.campaign.title}`
-              }
-            })
+            await tx.wallet.update({ where: { userId: submission.promoter.userId }, data: { balance: { increment: promoterAmount }, totalEarned: { increment: promoterAmount } } })
+            await tx.transaction.create({ data: { walletId: promoterWallet.id, type: 'COMMISSION_EARNED', amount: promoterAmount, method: 'WALLET', status: 'COMPLETED', description: `Earned from campaign: ${submission.campaign.title}` } })
           } else {
-            await tx.wallet.create({
-              data: {
-                userId: submission.promoter.userId,
-                balance: promoterAmount,
-                totalEarned: promoterAmount
-              }
-            })
+            await tx.wallet.create({ data: { userId: submission.promoter.userId, balance: promoterAmount, totalEarned: promoterAmount } })
           }
-          await tx.promoter.update({
-            where: { id: submission.promoterId },
-            data: { totalEarned: { increment: promoterAmount } }
-          })
-          await tx.campaign.update({
-            where: { id: submission.campaignId },
-            data: { spentBudget: { increment: amount } }
-          })
-          await tx.submission.update({
-            where: { id: submission.id },
-            data: { earnedAmount: promoterAmount }
-          })
-          // Platform revenue track
-          await tx.platformSettings.updateMany({
-            data: { totalRevenue: { increment: platformFee } }
-          })
+          await tx.promoter.update({ where: { id: submission.promoterId }, data: { totalEarned: { increment: promoterAmount } } })
+          await tx.campaign.update({ where: { id: submission.campaignId }, data: { spentBudget: { increment: amount } } })
+          await tx.submission.update({ where: { id: submission.id }, data: { earnedAmount: promoterAmount } })
+          await tx.platformSettings.updateMany({ data: { totalRevenue: { increment: platformFee } } })
         })
 
-        await createNotification(
-          submission.promoter.userId,
-          '💰 Payment Released!',
-          `$${promoterAmount.toFixed(2)} escrow থেকে release হয়েছে "${submission.campaign.title}" এর জন্য!`,
-          'submission'
-        )
-        await sendSubmissionApprovedEmail(
-          submission.promoter.user.email,
-          submission.promoter.user.name,
-          submission.campaign.title,
-          promoterAmount
-        )
-
+        await createNotification(submission.promoter.userId, '💰 Payment Released!', `$${promoterAmount.toFixed(2)} escrow থেকে release হয়েছে "${submission.campaign.title}" এর জন্য!`, 'submission')
+        await sendSubmissionApprovedEmail(submission.promoter.user.email, submission.promoter.user.name, submission.campaign.title, promoterAmount)
       } else {
-        // Escrow না থাকলে fallback
-        const wallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
+        const wallet = await prisma.wallet.findUnique({ where: { userId: submission.promoter.userId } })
         if (wallet) {
-          await prisma.wallet.update({
-            where: { userId: submission.promoter.userId },
-            data: { balance: { increment: amount }, totalEarned: { increment: amount } }
-          })
+          await prisma.wallet.update({ where: { userId: submission.promoter.userId }, data: { balance: { increment: amount }, totalEarned: { increment: amount } } })
         } else {
-          await prisma.wallet.create({
-            data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount }
-          })
+          await prisma.wallet.create({ data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount } })
         }
-        await prisma.submission.update({
-          where: { id: req.params.id },
-          data: { earnedAmount: amount }
-        })
-        await createNotification(
-          submission.promoter.userId,
-          '🎉 Submission Approved!',
-          `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
-          'submission'
-        )
-        await sendSubmissionApprovedEmail(
-          submission.promoter.user.email,
-          submission.promoter.user.name,
-          submission.campaign.title,
-          amount
-        )
+        await prisma.submission.update({ where: { id: req.params.id }, data: { earnedAmount: amount } })
+        await createNotification(submission.promoter.userId, '🎉 Submission Approved!', `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`, 'submission')
+        await sendSubmissionApprovedEmail(submission.promoter.user.email, submission.promoter.user.name, submission.campaign.title, amount)
       }
 
-      // Referral reward check
-      const referral = await prisma.referral.findUnique({
-        where: { refereeId: submission.promoter.userId }
-      })
+      // Referral reward
+      const referral = await prisma.referral.findUnique({ where: { refereeId: submission.promoter.userId } })
       if (referral && referral.status === 'PENDING') {
-        await prisma.referral.update({
-          where: { id: referral.id },
-          data: { status: 'REWARDED', completedAt: new Date() }
-        })
-        await prisma.wallet.update({
-          where: { userId: referral.referrerId },
-          data: {
-            balance: { increment: referral.rewardAmount },
-            totalEarned: { increment: referral.rewardAmount }
-          }
-        })
-        await createNotification(
-          referral.referrerId,
-          '🎉 Referral Reward!',
-          `তোমার referred promoter প্রথম campaign complete করেছে! $${referral.rewardAmount} wallet এ add হয়েছে।`,
-          'referral'
-        )
+        await prisma.referral.update({ where: { id: referral.id }, data: { status: 'REWARDED', completedAt: new Date() } })
+        await prisma.wallet.update({ where: { userId: referral.referrerId }, data: { balance: { increment: referral.rewardAmount }, totalEarned: { increment: referral.rewardAmount } } })
+        await createNotification(referral.referrerId, '🎉 Referral Reward!', `তোমার referred promoter প্রথম campaign complete করেছে! $${referral.rewardAmount} wallet এ add হয়েছে।`, 'referral')
       }
     }
 
     if (status === 'REJECTED' && submission.promoter) {
-      await createNotification(
-        submission.promoter.userId,
-        '❌ Submission Rejected',
-        `Your post for "${submission.campaign.title}" was rejected.`,
-        'submission'
-      )
-      await sendSubmissionRejectedEmail(
-        submission.promoter.user.email,
-        submission.promoter.user.name,
-        submission.campaign.title
-      )
+      await createNotification(submission.promoter.userId, '❌ Submission Rejected', `Your post for "${submission.campaign.title}" was rejected.`, 'submission')
+      await sendSubmissionRejectedEmail(submission.promoter.user.email, submission.promoter.user.name, submission.campaign.title)
     }
 
     res.json({ success: true, submission })
@@ -1016,42 +817,24 @@ app.get('/api/wallet', authMiddleware, async (req, res) => {
 app.post('/api/wallet/add', authMiddleware, async (req, res) => {
   try {
     const { amount, method, reference } = req.body
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Valid amount দিতে হবে' })
-    }
-    if (!reference) {
-      return res.status(400).json({ error: 'Transaction reference দিতে হবে' })
-    }
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Valid amount দিতে হবে' })
+    if (!reference) return res.status(400).json({ error: 'Transaction reference দিতে হবে' })
 
     let wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
-    if (!wallet) {
-      wallet = await prisma.wallet.create({ data: { userId: req.userId } })
-    }
+    if (!wallet) wallet = await prisma.wallet.create({ data: { userId: req.userId } })
 
-    // ✅ PENDING — balance add হবে না, admin confirm করবে
     await prisma.transaction.create({
       data: {
         walletId: wallet.id,
         type: 'DEPOSIT',
-        amount: amount,
+        amount,
         method: method?.toUpperCase() || 'BKASH',
         status: 'PENDING',
         description: `Deposit request via ${method} | Ref: ${reference}`,
       }
     })
-
-    await createNotification(
-      req.userId,
-      '⏳ Payment Request Received',
-      `$${amount} deposit request পাওয়া হয়েছে। Admin 24 ঘণ্টার মধ্যে verify করবে।`,
-      'wallet'
-    )
-
-    res.json({
-      success: true,
-      message: 'Payment request submitted. Admin verify করবে।',
-      pending: true
-    })
+    await createNotification(req.userId, '⏳ Payment Request Received', `$${amount} deposit request পাওয়া হয়েছে। Admin 24 ঘণ্টার মধ্যে verify করবে।`, 'wallet')
+    res.json({ success: true, message: 'Payment request submitted. Admin verify করবে।', pending: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1064,9 +847,7 @@ app.post('/api/wallet/add', authMiddleware, async (req, res) => {
 app.post('/api/stripe/create-payment-intent', authMiddleware, async (req, res) => {
   try {
     const { amount } = req.body
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Valid amount দিতে হবে' })
-    }
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Valid amount দিতে হবে' })
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: 'usd',
@@ -1082,36 +863,17 @@ app.post('/api/stripe/confirm-payment', authMiddleware, async (req, res) => {
   try {
     const { paymentIntentId, amount } = req.body
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-    if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({ error: 'Payment successful হয়নি' })
-    }
-    if (paymentIntent.metadata.userId !== req.userId) {
-      return res.status(403).json({ error: 'Unauthorized' })
-    }
+    if (paymentIntent.status !== 'succeeded') return res.status(400).json({ error: 'Payment successful হয়নি' })
+    if (paymentIntent.metadata.userId !== req.userId) return res.status(403).json({ error: 'Unauthorized' })
+
     let wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
-    if (!wallet) {
-      wallet = await prisma.wallet.create({ data: { userId: req.userId } })
-    }
-    await prisma.wallet.update({
-      where: { userId: req.userId },
-      data: { balance: { increment: amount } }
-    })
+    if (!wallet) wallet = await prisma.wallet.create({ data: { userId: req.userId } })
+
+    await prisma.wallet.update({ where: { userId: req.userId }, data: { balance: { increment: amount } } })
     await prisma.transaction.create({
-      data: {
-        walletId: wallet.id,
-        type: 'DEPOSIT',
-        amount: amount,
-        method: 'CARD',
-        status: 'COMPLETED',
-        description: `Card payment via Stripe | ID: ${paymentIntentId}`
-      }
+      data: { walletId: wallet.id, type: 'DEPOSIT', amount, method: 'CARD', status: 'COMPLETED', description: `Card payment via Stripe | ID: ${paymentIntentId}` }
     })
-    await createNotification(
-      req.userId,
-      '💳 Card Payment Successful!',
-      `$${amount} আপনার wallet এ add হয়েছে।`,
-      'wallet'
-    )
+    await createNotification(req.userId, '💳 Card Payment Successful!', `$${amount} আপনার wallet এ add হয়েছে।`, 'wallet')
     res.json({ success: true, message: 'Payment successful!' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1137,10 +899,7 @@ app.get('/api/notifications', authMiddleware, async (req, res) => {
 
 app.patch('/api/notifications/read-all', authMiddleware, async (req, res) => {
   try {
-    await prisma.notification.updateMany({
-      where: { userId: req.userId, read: false },
-      data: { read: true }
-    })
+    await prisma.notification.updateMany({ where: { userId: req.userId, read: false }, data: { read: true } })
     res.json({ success: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1149,25 +908,44 @@ app.patch('/api/notifications/read-all', authMiddleware, async (req, res) => {
 
 app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
   try {
-    await prisma.notification.update({
-      where: { id: req.params.id },
-      data: { read: true }
-    })
+    await prisma.notification.update({ where: { id: req.params.id }, data: { read: true } })
     res.json({ success: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
+// ─────────────────────────────────────────
+// FILE UPLOAD
+// ─────────────────────────────────────────
+
 // Image Upload
 app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res) => {
   try {
     const b64 = Buffer.from(req.file.buffer).toString('base64')
     const dataURI = `data:${req.file.mimetype};base64,${b64}`
-    const result = await cloudinary.uploader.upload(dataURI, {
-      folder: 'reachflow'
-    })
+    const result = await cloudinary.uploader.upload(dataURI, { folder: 'reachflow' })
     res.json({ success: true, url: result.secure_url })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ✅ Video Upload (max 2 min)
+app.post('/api/upload/video', authMiddleware, upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Video file দিতে হবে' })
+
+    const b64 = Buffer.from(req.file.buffer).toString('base64')
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`
+
+    const result = await cloudinary.uploader.upload(dataURI, {
+      resource_type: 'video',
+      folder: 'reachflow/videos',
+      transformation: [{ duration: '120' }] // max 2 min
+    })
+
+    res.json({ success: true, url: result.secure_url, duration: result.duration })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1183,9 +961,7 @@ app.post('/api/tracking/generate', authMiddleware, async (req, res) => {
     const promoter = await prisma.promoter.findUnique({ where: { userId: req.userId } })
     if (!promoter) return res.status(404).json({ error: 'Promoter not found' })
 
-    const existing = await prisma.trackingLink.findFirst({
-      where: { campaignId, promoterId: promoter.id }
-    })
+    const existing = await prisma.trackingLink.findFirst({ where: { campaignId, promoterId: promoter.id } })
     if (existing) return res.json({ link: existing })
 
     const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } })
@@ -1211,11 +987,7 @@ app.get('/c/:shortCode', async (req, res) => {
       include: { campaign: true }
     })
     if (!link) return res.status(404).json({ error: 'Link not found' })
-
-    await prisma.trackingLink.update({
-      where: { id: link.id },
-      data: { clicks: { increment: 1 } }
-    })
+    await prisma.trackingLink.update({ where: { id: link.id }, data: { clicks: { increment: 1 } } })
 
     const campaign = link.campaign
     const title = campaign?.title || 'Check this out!'
@@ -1239,26 +1011,18 @@ app.get('/c/:shortCode', async (req, res) => {
   <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
   <script>window.location.href = "${redirectUrl}"</script>
 </head>
-<body>
-  <p>Redirecting...</p>
-</body>
+<body><p>Redirecting...</p></body>
 </html>`)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// Branded redirect
 app.get('/api/go/:shortCode', async (req, res) => {
   try {
-    const link = await prisma.trackingLink.findUnique({
-      where: { shortCode: req.params.shortCode }
-    })
+    const link = await prisma.trackingLink.findUnique({ where: { shortCode: req.params.shortCode } })
     if (!link) return res.status(404).json({ error: 'Link not found' })
-    await prisma.trackingLink.update({
-      where: { id: link.id },
-      data: { clicks: { increment: 1 } }
-    })
+    await prisma.trackingLink.update({ where: { id: link.id }, data: { clicks: { increment: 1 } } })
     res.json({ url: link.originalUrl })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1360,7 +1124,6 @@ app.get('/api/admin/submissions', adminMiddleware, async (req, res) => {
 app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
   try {
     const { status } = req.body
-
     const submission = await prisma.submission.update({
       where: { id: req.params.id },
       data: { status, reviewedAt: new Date() },
@@ -1369,128 +1132,44 @@ app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
 
     if (status === 'APPROVED') {
       const amount = submission.campaign.commissionAmount
-
-      // ── Escrow থেকে auto-release ──
-      const escrow = await prisma.escrow.findUnique({
-        where: { campaignId: submission.campaignId }
-      })
+      const escrow = await prisma.escrow.findUnique({ where: { campaignId: submission.campaignId } })
 
       if (escrow && escrow.status !== 'PENDING' && escrow.heldAmount >= amount) {
         const platformSettings = await prisma.platformSettings.findFirst()
         const feePercent = platformSettings?.platformFeePercent || 10
         const platformFee = (amount * feePercent) / 100
         const promoterAmount = amount - platformFee
-
-        const promoterWallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
+        const promoterWallet = await prisma.wallet.findUnique({ where: { userId: submission.promoter.userId } })
 
         await prisma.$transaction(async (tx) => {
-          await tx.escrow.update({
-            where: { id: escrow.id },
-            data: {
-              heldAmount: { decrement: amount },
-              releasedAmount: { increment: amount },
-              status: 'ACTIVE'
-            }
-          })
-          await tx.escrowTransaction.create({
-            data: {
-              escrowId: escrow.id,
-              type: 'RELEASE',
-              amount: amount,
-              toUserId: submission.promoter.userId,
-              submissionId: submission.id,
-              note: `Admin approved - Auto-released`
-            }
-          })
+          await tx.escrow.update({ where: { id: escrow.id }, data: { heldAmount: { decrement: amount }, releasedAmount: { increment: amount }, status: 'ACTIVE' } })
+          await tx.escrowTransaction.create({ data: { escrowId: escrow.id, type: 'RELEASE', amount, toUserId: submission.promoter.userId, submissionId: submission.id, note: 'Admin approved - Auto-released' } })
           if (promoterWallet) {
-            await tx.wallet.update({
-              where: { userId: submission.promoter.userId },
-              data: {
-                balance: { increment: promoterAmount },
-                totalEarned: { increment: promoterAmount }
-              }
-            })
-            await tx.transaction.create({
-              data: {
-                walletId: promoterWallet.id,
-                type: 'COMMISSION_EARNED',
-                amount: promoterAmount,
-                method: 'WALLET',
-                status: 'COMPLETED',
-                description: `Earned from campaign: ${submission.campaign.title}`
-              }
-            })
+            await tx.wallet.update({ where: { userId: submission.promoter.userId }, data: { balance: { increment: promoterAmount }, totalEarned: { increment: promoterAmount } } })
+            await tx.transaction.create({ data: { walletId: promoterWallet.id, type: 'COMMISSION_EARNED', amount: promoterAmount, method: 'WALLET', status: 'COMPLETED', description: `Earned from campaign: ${submission.campaign.title}` } })
           } else {
-            await tx.wallet.create({
-              data: {
-                userId: submission.promoter.userId,
-                balance: promoterAmount,
-                totalEarned: promoterAmount
-              }
-            })
+            await tx.wallet.create({ data: { userId: submission.promoter.userId, balance: promoterAmount, totalEarned: promoterAmount } })
           }
-          await tx.promoter.update({
-            where: { id: submission.promoterId },
-            data: { totalEarned: { increment: promoterAmount } }
-          })
-          await tx.campaign.update({
-            where: { id: submission.campaignId },
-            data: { spentBudget: { increment: amount } }
-          })
-          await tx.submission.update({
-            where: { id: submission.id },
-            data: { earnedAmount: promoterAmount }
-          })
-          // Platform revenue track
-          await tx.platformSettings.updateMany({
-            data: { totalRevenue: { increment: platformFee } }
-          })
+          await tx.promoter.update({ where: { id: submission.promoterId }, data: { totalEarned: { increment: promoterAmount } } })
+          await tx.campaign.update({ where: { id: submission.campaignId }, data: { spentBudget: { increment: amount } } })
+          await tx.submission.update({ where: { id: submission.id }, data: { earnedAmount: promoterAmount } })
+          await tx.platformSettings.updateMany({ data: { totalRevenue: { increment: platformFee } } })
         })
-
-        await createNotification(
-          submission.promoter.userId,
-          '💰 Payment Released!',
-          `$${promoterAmount.toFixed(2)} escrow থেকে release হয়েছে "${submission.campaign.title}" এর জন্য!`,
-          'submission'
-        )
-
+        await createNotification(submission.promoter.userId, '💰 Payment Released!', `$${(amount - (amount * (await prisma.platformSettings.findFirst())?.platformFeePercent || 10) / 100).toFixed(2)} escrow থেকে release হয়েছে!`, 'submission')
       } else {
-        // Escrow না থাকলে fallback
-        const wallet = await prisma.wallet.findUnique({
-          where: { userId: submission.promoter.userId }
-        })
+        const wallet = await prisma.wallet.findUnique({ where: { userId: submission.promoter.userId } })
         if (wallet) {
-          await prisma.wallet.update({
-            where: { userId: submission.promoter.userId },
-            data: { balance: { increment: amount }, totalEarned: { increment: amount } }
-          })
+          await prisma.wallet.update({ where: { userId: submission.promoter.userId }, data: { balance: { increment: amount }, totalEarned: { increment: amount } } })
         } else {
-          await prisma.wallet.create({
-            data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount }
-          })
+          await prisma.wallet.create({ data: { userId: submission.promoter.userId, balance: amount, totalEarned: amount } })
         }
-        await prisma.submission.update({
-          where: { id: req.params.id },
-          data: { earnedAmount: amount }
-        })
-        await createNotification(
-          submission.promoter.userId,
-          '🎉 Submission Approved!',
-          `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`,
-          'submission'
-        )
+        await prisma.submission.update({ where: { id: req.params.id }, data: { earnedAmount: amount } })
+        await createNotification(submission.promoter.userId, '🎉 Submission Approved!', `Your post for "${submission.campaign.title}" has been approved! $${amount} added to your wallet.`, 'submission')
       }
     }
 
     if (status === 'REJECTED' && submission.promoter) {
-      await createNotification(
-        submission.promoter.userId,
-        '❌ Submission Rejected',
-        `Your post for "${submission.campaign.title}" was rejected.`,
-        'submission'
-      )
+      await createNotification(submission.promoter.userId, '❌ Submission Rejected', `Your post for "${submission.campaign.title}" was rejected.`, 'submission')
     }
 
     res.json({ success: true, submission })
@@ -1601,85 +1280,37 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
 
 app.get('/api/public/promoter/:identifier', async (req, res) => {
   try {
-    const { identifier } = req.params;
-
+    const { identifier } = req.params
     const user = await prisma.user.findFirst({
-      where: {
-        role: 'PROMOTER',
-        status: 'ACTIVE',
-        id: identifier,
-      },
+      where: { role: 'PROMOTER', status: 'ACTIVE', id: identifier },
       select: {
-        id: true,
-        name: true,
-        avatar: true,
-        createdAt: true,
+        id: true, name: true, avatar: true, createdAt: true,
         promoter: {
           select: {
-            id: true,
-            bio: true,
-            country: true,
-            niche: true,
-            totalFollowers: true,
-            avgEngagement: true,
-            rating: true,
-            totalEarned: true,
-            verified: true,
-            socialAccounts: {
-              select: {
-                platform: true,
-                username: true,
-                profileUrl: true,
-                followers: true,
-                engagement: true,
-                verified: true,
-              }
-            },
+            id: true, bio: true, country: true, niche: true,
+            totalFollowers: true, avgEngagement: true, rating: true,
+            totalEarned: true, verified: true,
+            socialAccounts: { select: { platform: true, username: true, profileUrl: true, followers: true, engagement: true, verified: true } },
             submissions: {
-              where: { status: 'APPROVED' },
-              take: 6,
-              orderBy: { submittedAt: 'desc' },
+              where: { status: 'APPROVED' }, take: 6, orderBy: { submittedAt: 'desc' },
               select: {
-                id: true,
-                platform: true,
-                postUrl: true,
-                earnedAmount: true,
-                clicks: true,
-                reach: true,
-                submittedAt: true,
-                campaign: {
-                  select: {
-                    id: true,
-                    title: true,
-                    category: true,
-                    productImages: true,
-                    advertiser: {
-                      select: { businessName: true }
-                    }
-                  }
-                }
+                id: true, platform: true, postUrl: true, earnedAmount: true,
+                clicks: true, reach: true, submittedAt: true,
+                campaign: { select: { id: true, title: true, category: true, productImages: true, advertiser: { select: { businessName: true } } } }
               }
             },
-            _count: {
-              select: {
-                submissions: { where: { status: 'APPROVED' } },
-              }
-            }
+            _count: { select: { submissions: { where: { status: 'APPROVED' } } } }
           }
         }
       }
-    });
-
-    if (!user || !user.promoter) {
-      return res.status(404).json({ success: false, message: 'Promoter not found' });
-    }
-
-    res.json({ success: true, data: user });
+    })
+    if (!user || !user.promoter) return res.status(404).json({ success: false, message: 'Promoter not found' })
+    res.json({ success: true, data: user })
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error(error)
+    res.status(500).json({ success: false, message: 'Server error' })
   }
-});
+})
 
 // ─────────────────────────────────────────
 // CAMPAIGN ANALYTICS
@@ -1690,22 +1321,13 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
     const campaign = await prisma.campaign.findUnique({
       where: { id: req.params.id },
       include: {
-        submissions: {
-          where: { status: 'APPROVED' },
-          include: {
-            promoter: {
-              include: { user: { select: { name: true, avatar: true } } }
-            }
-          }
-        },
+        submissions: { where: { status: 'APPROVED' }, include: { promoter: { include: { user: { select: { name: true, avatar: true } } } } } },
         trackingLinks: true,
         advertiser: true,
       }
     })
-
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' })
 
-    // Platform breakdown
     const platformMap = {}
     campaign.submissions.forEach(s => {
       const p = s.platform || 'UNKNOWN'
@@ -1716,29 +1338,16 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
       platformMap[p].earned += s.earnedAmount || 0
     })
 
-    // Top promoters
     const promoterMap = {}
     campaign.submissions.forEach(s => {
       const pid = s.promoterId
-      if (!promoterMap[pid]) {
-        promoterMap[pid] = {
-          id: pid,
-          name: s.promoter?.user?.name || 'Unknown',
-          avatar: s.promoter?.user?.avatar || null,
-          clicks: 0, reach: 0, submissions: 0, earned: 0
-        }
-      }
+      if (!promoterMap[pid]) promoterMap[pid] = { id: pid, name: s.promoter?.user?.name || 'Unknown', avatar: s.promoter?.user?.avatar || null, clicks: 0, reach: 0, submissions: 0, earned: 0 }
       promoterMap[pid].clicks += s.clicks || 0
       promoterMap[pid].reach += s.reach || 0
       promoterMap[pid].submissions += 1
       promoterMap[pid].earned += s.earnedAmount || 0
     })
 
-    const topPromoters = Object.values(promoterMap)
-      .sort((a, b) => b.clicks - a.clicks)
-      .slice(0, 5)
-
-    // Totals
     const totalClicks = campaign.submissions.reduce((sum, s) => sum + (s.clicks || 0), 0)
     const totalReach = campaign.submissions.reduce((sum, s) => sum + (s.reach || 0), 0)
     const totalEngagement = campaign.submissions.reduce((sum, s) => sum + (s.engagement || 0), 0)
@@ -1748,27 +1357,10 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
     res.json({
       success: true,
       data: {
-        campaign: {
-          id: campaign.id,
-          title: campaign.title,
-          status: campaign.status,
-          totalBudget: campaign.totalBudget,
-          commissionAmount: campaign.commissionAmount,
-          startDate: campaign.startDate,
-          endDate: campaign.endDate,
-        },
-        totals: {
-          clicks: totalClicks,
-          reach: totalReach,
-          engagement: totalEngagement,
-          earned: totalEarned,
-          trackingClicks: totalTrackingClicks,
-          submissions: campaign.submissions.length,
-          budgetUsed: totalEarned,
-          budgetRemaining: campaign.totalBudget - totalEarned,
-        },
+        campaign: { id: campaign.id, title: campaign.title, status: campaign.status, totalBudget: campaign.totalBudget, commissionAmount: campaign.commissionAmount, startDate: campaign.startDate, endDate: campaign.endDate },
+        totals: { clicks: totalClicks, reach: totalReach, engagement: totalEngagement, earned: totalEarned, trackingClicks: totalTrackingClicks, submissions: campaign.submissions.length, budgetUsed: totalEarned, budgetRemaining: campaign.totalBudget - totalEarned },
         platformBreakdown: platformMap,
-        topPromoters,
+        topPromoters: Object.values(promoterMap).sort((a, b) => b.clicks - a.clicks).slice(0, 5),
       }
     })
   } catch (err) {
@@ -1777,9 +1369,8 @@ app.get('/api/campaigns/:id/analytics', authMiddleware, async (req, res) => {
   }
 })
 
-
 // ─────────────────────────────────────────
-// ADVERTISER DASHBOARD
+// ADVERTISER DASHBOARD & ANALYTICS
 // ─────────────────────────────────────────
 
 app.get('/api/advertiser/dashboard', authMiddleware, async (req, res) => {
@@ -1792,43 +1383,26 @@ app.get('/api/advertiser/dashboard', authMiddleware, async (req, res) => {
       include: { _count: { select: { applications: true } } },
       orderBy: { createdAt: 'desc' }
     })
-
     const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } })
-
-    const totalCampaigns = campaigns.length
-    const activeCampaigns = campaigns.filter(c => c.status === 'ACTIVE').length
-    const totalBudget = campaigns.reduce((sum, c) => sum + (c.totalBudget || 0), 0)
-    const totalSpent = campaigns.reduce((sum, c) => sum + (c.spentBudget || 0), 0)
-    const totalApplications = campaigns.reduce((sum, c) => sum + c._count.applications, 0)
-
-    const recentCampaigns = campaigns.slice(0, 5).map(c => ({
-      id: c.id,
-      title: c.title,
-      status: c.status,
-      budget: c.totalBudget,
-      spent: c.spentBudget || 0,
-      applicationsCount: c._count.applications,
-      endDate: c.endDate,
-    }))
 
     res.json({
       success: true,
-      totalCampaigns,
-      activeCampaigns,
-      totalBudget,
-      totalSpent,
-      totalApplications,
+      totalCampaigns: campaigns.length,
+      activeCampaigns: campaigns.filter(c => c.status === 'ACTIVE').length,
+      totalBudget: campaigns.reduce((sum, c) => sum + (c.totalBudget || 0), 0),
+      totalSpent: campaigns.reduce((sum, c) => sum + (c.spentBudget || 0), 0),
+      totalApplications: campaigns.reduce((sum, c) => sum + c._count.applications, 0),
       walletBalance: wallet?.balance || 0,
-      recentCampaigns,
+      recentCampaigns: campaigns.slice(0, 5).map(c => ({
+        id: c.id, title: c.title, status: c.status,
+        budget: c.totalBudget, spent: c.spentBudget || 0,
+        applicationsCount: c._count.applications, endDate: c.endDate,
+      }))
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
-
-// ─────────────────────────────────────────
-// ADVERTISER ANALYTICS
-// ─────────────────────────────────────────
 
 app.get('/api/advertiser/analytics', authMiddleware, async (req, res) => {
   try {
@@ -1837,10 +1411,8 @@ app.get('/api/advertiser/analytics', authMiddleware, async (req, res) => {
     if (!advertiser) return res.status(404).json({ error: 'Advertiser not found' })
 
     const now = new Date()
-    const startDate = period === 'week'
-      ? new Date(now - 7 * 24 * 60 * 60 * 1000)
-      : period === 'month'
-      ? new Date(now - 30 * 24 * 60 * 60 * 1000)
+    const startDate = period === 'week' ? new Date(now - 7 * 24 * 60 * 60 * 1000)
+      : period === 'month' ? new Date(now - 30 * 24 * 60 * 60 * 1000)
       : new Date(now - 365 * 24 * 60 * 60 * 1000)
 
     const campaigns = await prisma.campaign.findMany({
@@ -1852,39 +1424,25 @@ app.get('/api/advertiser/analytics', authMiddleware, async (req, res) => {
       }
     })
 
-    const totalSpend = campaigns.reduce((sum, c) => sum + (c.spentBudget || 0), 0)
-    const totalClicks = campaigns.reduce((sum, c) =>
-      sum + c.trackingLinks.reduce((s, t) => s + (t.clicks || 0), 0), 0)
-    const totalConversions = campaigns.reduce((sum, c) => sum + c.submissions.length, 0)
-    const activePromoters = campaigns.reduce((sum, c) => sum + c.applications.length, 0)
-
-    const campaignPerformance = campaigns.map(c => ({
-      title: c.title,
-      budget: c.totalBudget,
-      spent: c.spentBudget || 0,
-      promoters: c.applications.length,
-      clicks: c.trackingLinks.reduce((s, t) => s + (t.clicks || 0), 0),
-      conversions: c.submissions.length
-    }))
-
     res.json({
       success: true,
-      totalSpend,
-      totalClicks,
-      totalConversions,
-      activePromoters,
+      totalSpend: campaigns.reduce((sum, c) => sum + (c.spentBudget || 0), 0),
+      totalClicks: campaigns.reduce((sum, c) => sum + c.trackingLinks.reduce((s, t) => s + (t.clicks || 0), 0), 0),
+      totalConversions: campaigns.reduce((sum, c) => sum + c.submissions.length, 0),
+      activePromoters: campaigns.reduce((sum, c) => sum + c.applications.length, 0),
       spendByDay: [],
-      campaignPerformance,
+      campaignPerformance: campaigns.map(c => ({
+        title: c.title, budget: c.totalBudget, spent: c.spentBudget || 0,
+        promoters: c.applications.length,
+        clicks: c.trackingLinks.reduce((s, t) => s + (t.clicks || 0), 0),
+        conversions: c.submissions.length
+      })),
       topPromoters: []
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
-
-// ─────────────────────────────────────────
-// ADVERTISER CAMPAIGNS
-// ─────────────────────────────────────────
 
 app.get('/api/advertiser/campaigns', authMiddleware, async (req, res) => {
   try {
@@ -1905,31 +1463,15 @@ app.get('/api/advertiser/campaigns', authMiddleware, async (req, res) => {
 // REFERRAL SYSTEM
 // ─────────────────────────────────────────
 
-// Referral code generate / get করো
 app.get('/api/referral/my', authMiddleware, async (req, res) => {
   try {
     let user = await prisma.user.findUnique({ where: { id: req.userId } })
-    
-    // যদি referralCode না থাকে তাহলে generate করো
     if (!user.referralCode) {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-      user = await prisma.user.update({
-        where: { id: req.userId },
-        data: { referralCode: code }
-      })
+      user = await prisma.user.update({ where: { id: req.userId }, data: { referralCode: code } })
     }
-
-    // আমার referrals
-    const referrals = await prisma.referral.findMany({
-      where: { referrerId: req.userId },
-      include: {
-        // referee info
-      }
-    })
-
-    const totalEarned = referrals
-      .filter(r => r.status === 'REWARDED')
-      .reduce((sum, r) => sum + r.rewardAmount, 0)
+    const referrals = await prisma.referral.findMany({ where: { referrerId: req.userId } })
+    const totalEarned = referrals.filter(r => r.status === 'REWARDED').reduce((sum, r) => sum + r.rewardAmount, 0)
 
     res.json({
       success: true,
@@ -1938,13 +1480,7 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
       totalReferrals: referrals.length,
       completedReferrals: referrals.filter(r => r.status === 'REWARDED').length,
       totalEarned,
-      referrals: referrals.map(r => ({
-        id: r.id,
-        status: r.status,
-        rewardAmount: r.rewardAmount,
-        createdAt: r.createdAt,
-        completedAt: r.completedAt,
-      }))
+      referrals: referrals.map(r => ({ id: r.id, status: r.status, rewardAmount: r.rewardAmount, createdAt: r.createdAt, completedAt: r.completedAt }))
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1952,7 +1488,7 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
 })
 
 // ─────────────────────────────────────────
-// PAYMENT ROUTER
+// ROUTE REGISTRATIONS
 // ─────────────────────────────────────────
 
 app.use('/api/payment', authMiddleware, paymentRouter)
@@ -1963,20 +1499,17 @@ app.use('/api/ratings', authMiddleware, ratingRouter)
 app.use('/api/analytics', analyticsExportRouter)
 app.use('/api/subscriptions', subscriptionRouter)
 app.use('/api/escrow', escrowRouter)
+app.use('/api/landing', landingRouter) // ✅ NEW — Landing Page routes
 
-
-// One-time fix: verify all existing users
+// One-time fix
 app.get('/api/admin/verify-all-users', async (req, res) => {
   try {
-    const result = await prisma.user.updateMany({
-      data: { emailVerified: true }
-    })
+    const result = await prisma.user.updateMany({ data: { emailVerified: true } })
     res.json({ success: true, count: result.count })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
-
 
 // ─────────────────────────────────────────
 // START SERVER

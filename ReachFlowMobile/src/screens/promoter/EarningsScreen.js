@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, StatusBar } from 'react-native';
 import { getMyEarnings, getWallet, requestWithdrawal } from '../../api/apiService';
+import { useTheme } from '../../context/ThemeContext'; // ✅
 
 export default function EarningsScreen() {
+  const { theme, themeName } = useTheme(); // ✅
   const [earnings, setEarnings] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,10 +41,21 @@ export default function EarningsScreen() {
     ]);
   };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#6C63FF" />;
+  const styles = makeStyles(theme); // ✅
+
+  if (loading) return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+      <ActivityIndicator size="large" color={theme.primary} />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
+      <StatusBar
+        barStyle={themeName === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={theme.headerBg}
+      />
+
       <Text style={styles.header}>আমার আয়</Text>
 
       <View style={styles.walletCard}>
@@ -77,8 +90,12 @@ export default function EarningsScreen() {
             </View>
             <View style={styles.earningRight}>
               <Text style={styles.earningAmount}>৳{item.amount}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: item.status === 'paid' ? '#e8f5e9' : '#fff3e0' }]}>
-                <Text style={[styles.statusText, { color: item.status === 'paid' ? '#2e7d32' : '#e65100' }]}>
+              <View style={[styles.statusBadge, {
+                backgroundColor: item.status === 'paid' ? theme.primaryLight : '#fff3e0'
+              }]}>
+                <Text style={[styles.statusText, {
+                  color: item.status === 'paid' ? theme.primary : '#e65100'
+                }]}>
                   {item.status}
                 </Text>
               </View>
@@ -90,25 +107,44 @@ export default function EarningsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { fontSize: 22, fontWeight: 'bold', color: '#fff', backgroundColor: '#6C63FF', padding: 24, paddingTop: 60 },
-  walletCard: { backgroundColor: '#6C63FF', margin: 16, borderRadius: 20, padding: 24 },
-  walletLabel: { fontSize: 14, color: '#e0deff' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: {
+    fontSize: 22, fontWeight: 'bold', color: '#fff',
+    backgroundColor: theme.headerBg === '#ffffff' || theme.headerBg === '#f5f3ff'
+      ? theme.primary
+      : theme.headerBg,
+    padding: 24, paddingTop: 60,
+  },
+  walletCard: {
+    backgroundColor: theme.primary,
+    margin: 16, borderRadius: 20, padding: 24,
+  },
+  walletLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   walletAmount: { fontSize: 40, fontWeight: 'bold', color: '#fff', marginVertical: 8 },
   walletRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  walletSub: { fontSize: 13, color: '#e0deff' },
-  withdrawBtn: { backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-  withdrawText: { color: '#6C63FF', fontWeight: 'bold' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', paddingHorizontal: 16, marginBottom: 12 },
-  earningCard: { backgroundColor: '#fff', color: '#000', borderRadius: 12, padding: 16, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 1 },
-  earningTitle: { fontSize: 15, color: '#333', fontWeight: 'bold' },
-  earningDate: { fontSize: 12, color: '#888', marginTop: 4 },
+  walletSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  withdrawBtn: {
+    backgroundColor: theme.card,
+    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
+  },
+  withdrawText: { color: theme.primary, fontWeight: 'bold' },
+  sectionTitle: {
+    fontSize: 18, fontWeight: 'bold', color: theme.text,
+    paddingHorizontal: 16, marginBottom: 12,
+  },
+  earningCard: {
+    backgroundColor: theme.card, borderRadius: 12, padding: 16,
+    marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', borderWidth: 1, borderColor: theme.border,
+  },
+  earningTitle: { fontSize: 15, color: theme.text, fontWeight: 'bold' },
+  earningDate: { fontSize: 12, color: theme.subtext, marginTop: 4 },
   earningRight: { alignItems: 'flex-end' },
-  earningAmount: { fontSize: 18, fontWeight: 'bold', color: '#6C63FF' },
+  earningAmount: { fontSize: 18, fontWeight: 'bold', color: theme.primary },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, marginTop: 4 },
   statusText: { fontSize: 11, fontWeight: 'bold' },
   emptyCard: { alignItems: 'center', padding: 40 },
-  emptyText: { fontSize: 16, color: '#888' },
+  emptyText: { fontSize: 16, color: theme.subtext },
 });
 

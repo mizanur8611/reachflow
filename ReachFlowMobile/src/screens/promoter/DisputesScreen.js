@@ -7,15 +7,17 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getDisputes, createDispute } from '../../api/apiService';
+import { useTheme } from '../../context/ThemeContext'; // ✅
 
 const STATUS_CONFIG = {
-  OPEN:       { label: 'Open',       color: '#f59e0b', bg: '#1c1a0f' },
-  IN_REVIEW:  { label: 'In Review',  color: '#3b82f6', bg: '#0f172a' },
-  RESOLVED:   { label: 'Resolved',   color: '#22c55e', bg: '#14532d' },
-  REJECTED:   { label: 'Rejected',   color: '#ef4444', bg: '#450a0a' },
+  OPEN:      { label: 'Open',      color: '#f59e0b', bg: '#1c1a0f' },
+  IN_REVIEW: { label: 'In Review', color: '#3b82f6', bg: '#0f172a' },
+  RESOLVED:  { label: 'Resolved',  color: '#22c55e', bg: '#14532d' },
+  REJECTED:  { label: 'Rejected',  color: '#ef4444', bg: '#450a0a' },
 };
 
 const DisputesScreen = ({ navigation }) => {
+  const { theme, themeName } = useTheme(); // ✅
   const [disputes, setDisputes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,7 +39,6 @@ const DisputesScreen = ({ navigation }) => {
   };
 
   useEffect(() => { fetchDisputes(); }, []);
-
   const onRefresh = () => { setRefreshing(true); fetchDisputes(); };
 
   const handleSubmit = async () => {
@@ -58,35 +59,31 @@ const DisputesScreen = ({ navigation }) => {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('bn-BD', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
   };
+
+  const styles = makeStyles(theme); // ✅
 
   const renderItem = ({ item }) => {
     const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.OPEN;
     return (
       <View style={styles.card}>
-        {/* Top */}
         <View style={styles.cardTop}>
           <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
             <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
           </View>
           <Text style={styles.cardDate}>{formatDate(item.createdAt)}</Text>
         </View>
-
-        {/* Subject */}
         <Text style={styles.cardSubject} numberOfLines={1}>{item.subject}</Text>
         <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
-
-        {/* Campaign */}
         {item.campaignTitle && (
           <View style={styles.campaignTag}>
-            <Ionicons name="megaphone-outline" size={12} color="#71717a" />
+            <Ionicons name="megaphone-outline" size={12} color={theme.subtext} />
             <Text style={styles.campaignTagText}>{item.campaignTitle}</Text>
           </View>
         )}
-
-        {/* Resolution */}
         {item.resolution && (
           <View style={styles.resolutionBox}>
             <Text style={styles.resolutionLabel}>Resolution:</Text>
@@ -99,12 +96,14 @@ const DisputesScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      <StatusBar
+        barStyle={themeName === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={theme.headerBg}
+      />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Disputes</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
@@ -114,7 +113,7 @@ const DisputesScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8b5cf6" />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : (
         <FlatList
@@ -123,7 +122,10 @@ const DisputesScreen = ({ navigation }) => {
           renderItem={renderItem}
           contentContainerStyle={disputes.length === 0 ? styles.emptyList : styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" colors={['#8b5cf6']} />
+            <RefreshControl
+              refreshing={refreshing} onRefresh={onRefresh}
+              tintColor={theme.primary} colors={[theme.primary]}
+            />
           }
           ListHeaderComponent={
             disputes.length > 0 ? (
@@ -142,7 +144,7 @@ const DisputesScreen = ({ navigation }) => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="warning-outline" size={64} color="#3f3f46" />
+              <Ionicons name="warning-outline" size={64} color={theme.border} />
               <Text style={styles.emptyTitle}>কোনো dispute নেই</Text>
               <Text style={styles.emptySub}>কোনো সমস্যা হলে নতুন dispute খুলুন</Text>
               <TouchableOpacity style={styles.emptyBtn} onPress={() => setModalVisible(true)}>
@@ -154,14 +156,13 @@ const DisputesScreen = ({ navigation }) => {
         />
       )}
 
-      {/* FAB */}
       {disputes.length > 0 && (
         <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={26} color="#fff" />
         </TouchableOpacity>
       )}
 
-      {/* Create Dispute Modal */}
+      {/* Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -176,8 +177,8 @@ const DisputesScreen = ({ navigation }) => {
                 value={subject}
                 onChangeText={setSubject}
                 placeholder="সমস্যার বিষয়..."
-                placeholderTextColor="#52525b"
-                color="#f4f4f5"
+                placeholderTextColor={theme.subtext}
+                color={theme.text}
                 maxLength={100}
               />
 
@@ -187,8 +188,8 @@ const DisputesScreen = ({ navigation }) => {
                 value={description}
                 onChangeText={setDescription}
                 placeholder="সমস্যাটি বিস্তারিত লিখুন..."
-                placeholderTextColor="#52525b"
-                color="#f4f4f5"
+                placeholderTextColor={theme.subtext}
+                color={theme.text}
                 multiline
                 maxLength={500}
               />
@@ -220,104 +221,105 @@ const DisputesScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16,
-    borderBottomWidth: 1, borderBottomColor: '#1f1f23',
+    borderBottomWidth: 1, borderBottomColor: theme.border,
+    backgroundColor: theme.headerBg,
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#1f1f23', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.card, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: theme.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.text },
   addBtn: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#8b5cf6', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center',
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16 },
   emptyList: { flex: 1 },
-  statsRow: {
-    flexDirection: 'row', gap: 8, marginBottom: 16,
-  },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   statChip: {
-    flex: 1, backgroundColor: '#141417', borderRadius: 10,
-    padding: 10, alignItems: 'center', borderWidth: 1, borderColor: '#1f1f23',
+    flex: 1, backgroundColor: theme.card, borderRadius: 10,
+    padding: 10, alignItems: 'center', borderWidth: 1, borderColor: theme.border,
   },
   statChipCount: { fontSize: 18, fontWeight: '700' },
-  statChipLabel: { fontSize: 10, color: '#71717a', marginTop: 2 },
+  statChipLabel: { fontSize: 10, color: theme.subtext, marginTop: 2 },
   card: {
-    backgroundColor: '#141417', borderRadius: 14, padding: 16,
-    marginBottom: 10, borderWidth: 1, borderColor: '#1f1f23',
+    backgroundColor: theme.card, borderRadius: 14, padding: 16,
+    marginBottom: 10, borderWidth: 1, borderColor: theme.border,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusText: { fontSize: 11, fontWeight: '700' },
-  cardDate: { fontSize: 12, color: '#52525b' },
-  cardSubject: { fontSize: 15, fontWeight: '600', color: '#f4f4f5', marginBottom: 6 },
-  cardDesc: { fontSize: 13, color: '#71717a', lineHeight: 18, marginBottom: 10 },
+  cardDate: { fontSize: 12, color: theme.subtext },
+  cardSubject: { fontSize: 15, fontWeight: '600', color: theme.text, marginBottom: 6 },
+  cardDesc: { fontSize: 13, color: theme.subtext, lineHeight: 18, marginBottom: 10 },
   campaignTag: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#1f1f23', borderRadius: 6,
+    backgroundColor: theme.background, borderRadius: 6,
     paddingHorizontal: 8, paddingVertical: 4,
     alignSelf: 'flex-start', marginBottom: 10,
+    borderWidth: 1, borderColor: theme.border,
   },
-  campaignTagText: { fontSize: 12, color: '#71717a' },
+  campaignTagText: { fontSize: 12, color: theme.subtext },
   resolutionBox: {
-    backgroundColor: '#0a0a0a', borderRadius: 8, padding: 10,
+    backgroundColor: theme.background, borderRadius: 8, padding: 10,
     borderLeftWidth: 3, borderLeftColor: '#22c55e',
   },
   resolutionLabel: { fontSize: 11, color: '#22c55e', fontWeight: '700', marginBottom: 4 },
-  resolutionText: { fontSize: 13, color: '#a1a1aa', lineHeight: 18 },
+  resolutionText: { fontSize: 13, color: theme.subtext, lineHeight: 18 },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     paddingHorizontal: 32, paddingBottom: 80, gap: 10,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#71717a', marginTop: 12 },
-  emptySub: { fontSize: 14, color: '#3f3f46', textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: theme.subtext, marginTop: 12 },
+  emptySub: { fontSize: 14, color: theme.subtext, textAlign: 'center', opacity: 0.6 },
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#8b5cf6', borderRadius: 12,
+    backgroundColor: theme.primary, borderRadius: 12,
     paddingHorizontal: 20, paddingVertical: 12, marginTop: 8,
   },
   emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   fab: {
     position: 'absolute', bottom: 28, right: 20,
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#8b5cf6', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center',
     elevation: 6,
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalBox: {
-    backgroundColor: '#141417', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, borderTopWidth: 1, borderColor: '#1f1f23', maxHeight: '85%',
+    backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, borderTopWidth: 1, borderColor: theme.border, maxHeight: '85%',
   },
   modalHandle: {
-    width: 40, height: 4, backgroundColor: '#2d2d35',
+    width: 40, height: 4, backgroundColor: theme.border,
     borderRadius: 2, alignSelf: 'center', marginBottom: 20,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: '#f4f4f5', marginBottom: 4 },
-  modalSub: { fontSize: 13, color: '#71717a', marginBottom: 20 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#a1a1aa', marginBottom: 8 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: theme.text, marginBottom: 4 },
+  modalSub: { fontSize: 13, color: theme.subtext, marginBottom: 20 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: theme.subtext, marginBottom: 8 },
   input: {
-    backgroundColor: '#0a0a0a', borderRadius: 12, padding: 14,
-    marginBottom: 16, fontSize: 14, borderWidth: 1, borderColor: '#2d2d35',
+    backgroundColor: theme.background, borderRadius: 12, padding: 14,
+    marginBottom: 16, fontSize: 14, borderWidth: 1, borderColor: theme.border,
+    color: theme.text,
   },
   textarea: { height: 120, textAlignVertical: 'top' },
-  charCount: { fontSize: 11, color: '#52525b', textAlign: 'right', marginTop: -12, marginBottom: 16 },
+  charCount: { fontSize: 11, color: theme.subtext, textAlign: 'right', marginTop: -12, marginBottom: 16 },
   modalBtnRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 16 },
   cancelBtn: {
-    flex: 1, backgroundColor: '#1f1f23', borderRadius: 12, padding: 16, alignItems: 'center',
+    flex: 1, backgroundColor: theme.background, borderRadius: 12,
+    padding: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.border,
   },
-  cancelText: { color: '#a1a1aa', fontWeight: '700' },
-  submitBtn: { flex: 1, backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, alignItems: 'center' },
-  submitBtnDisabled: { backgroundColor: '#4c1d95' },
+  cancelText: { color: theme.subtext, fontWeight: '700' },
+  submitBtn: { flex: 1, backgroundColor: theme.primary, borderRadius: 12, padding: 16, alignItems: 'center' },
+  submitBtnDisabled: { opacity: 0.5 },
   submitText: { color: '#fff', fontWeight: '700' },
 });
 
 export default DisputesScreen;
-
-
 

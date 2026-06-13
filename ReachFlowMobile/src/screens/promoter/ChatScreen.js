@@ -7,8 +7,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getMessages, sendMessage } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext'; // ✅
 
 const ChatScreen = ({ route, navigation }) => {
+  const { theme, themeName } = useTheme(); // ✅
   const { conversationId, userName } = route.params || {};
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -30,7 +32,7 @@ const ChatScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000); // poll every 5s
+    const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -39,8 +41,6 @@ const ChatScreen = ({ route, navigation }) => {
     const msgText = text.trim();
     setText('');
     setSending(true);
-
-    // Optimistic update
     const tempMsg = {
       id: Date.now().toString(),
       content: msgText,
@@ -49,7 +49,6 @@ const ChatScreen = ({ route, navigation }) => {
       isTemp: true,
     };
     setMessages((prev) => [...prev, tempMsg]);
-
     try {
       await sendMessage(conversationId, msgText);
       fetchMessages();
@@ -64,9 +63,10 @@ const ChatScreen = ({ route, navigation }) => {
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    return new Date(dateStr).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
   };
+
+  const styles = makeStyles(theme); // ✅
 
   const renderMessage = ({ item, index }) => {
     const isMine = item.senderId === user?.id || item.sender?.id === user?.id;
@@ -80,15 +80,17 @@ const ChatScreen = ({ route, navigation }) => {
             <Text style={styles.msgAvatarText}>{userName?.charAt(0)?.toUpperCase() || '?'}</Text>
           </View>
         )}
-        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther, item.isTemp && styles.bubbleTemp]}>
+        <View style={[
+          styles.bubble,
+          isMine ? styles.bubbleMine : styles.bubbleOther,
+          item.isTemp && styles.bubbleTemp
+        ]}>
           <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
             {item.content || item.message}
           </Text>
           <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
             {formatTime(item.createdAt)}
-            {isMine && (
-              <Text> {item.isTemp ? '⏳' : '✓'}</Text>
-            )}
+            {isMine && <Text> {item.isTemp ? '⏳' : '✓'}</Text>}
           </Text>
         </View>
       </View>
@@ -101,12 +103,15 @@ const ChatScreen = ({ route, navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      <StatusBar
+        barStyle={themeName === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={theme.headerBg}
+      />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <View style={styles.headerAvatar}>
@@ -117,10 +122,9 @@ const ChatScreen = ({ route, navigation }) => {
         <View style={{ width: 38 }} />
       </View>
 
-      {/* Messages */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8b5cf6" />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : (
         <FlatList
@@ -145,8 +149,8 @@ const ChatScreen = ({ route, navigation }) => {
           value={text}
           onChangeText={setText}
           placeholder="Message লিখুন..."
-          placeholderTextColor="#52525b"
-          color="#f4f4f5"
+          placeholderTextColor={theme.subtext}
+          color={theme.text}
           multiline
           maxLength={500}
         />
@@ -165,31 +169,27 @@ const ChatScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f23',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14,
+    borderBottomWidth: 1, borderBottomColor: theme.border,
+    backgroundColor: theme.headerBg,
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#1f1f23',
-    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.card, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: theme.border,
   },
   headerInfo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#8b5cf6',
+    backgroundColor: theme.primary,
     justifyContent: 'center', alignItems: 'center',
   },
   headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  headerName: { fontSize: 16, fontWeight: '700', color: '#f4f4f5' },
+  headerName: { fontSize: 16, fontWeight: '700', color: theme.text },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   msgList: { padding: 16, gap: 4 },
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 4, gap: 8 },
@@ -197,60 +197,46 @@ const styles = StyleSheet.create({
   msgRowLeft: { justifyContent: 'flex-start' },
   msgAvatar: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#2d2d35',
+    backgroundColor: theme.card,
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: theme.border,
   },
-  msgAvatarText: { color: '#f4f4f5', fontWeight: '700', fontSize: 11 },
-  bubble: {
-    maxWidth: '75%', borderRadius: 16, padding: 10,
-    paddingHorizontal: 14,
-  },
-  bubbleMine: {
-    backgroundColor: '#8b5cf6',
-    borderBottomRightRadius: 4,
-  },
+  msgAvatarText: { color: theme.text, fontWeight: '700', fontSize: 11 },
+  bubble: { maxWidth: '75%', borderRadius: 16, padding: 10, paddingHorizontal: 14 },
+  bubbleMine: { backgroundColor: theme.primary, borderBottomRightRadius: 4 },
   bubbleOther: {
-    backgroundColor: '#141417',
-    borderWidth: 1,
-    borderColor: '#1f1f23',
-    borderBottomLeftRadius: 4,
+    backgroundColor: theme.card, borderWidth: 1,
+    borderColor: theme.border, borderBottomLeftRadius: 4,
   },
   bubbleTemp: { opacity: 0.7 },
   bubbleText: { fontSize: 14, lineHeight: 20 },
   bubbleTextMine: { color: '#fff' },
-  bubbleTextOther: { color: '#f4f4f5' },
+  bubbleTextOther: { color: theme.text },
   bubbleTime: { fontSize: 10, marginTop: 4 },
-  bubbleTimeMine: { color: '#ddd6fe', textAlign: 'right' },
-  bubbleTimeOther: { color: '#52525b' },
+  bubbleTimeMine: { color: 'rgba(255,255,255,0.7)', textAlign: 'right' },
+  bubbleTimeOther: { color: theme.subtext },
   emptyChat: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
-  emptyChatText: { color: '#52525b', fontSize: 14 },
+  emptyChatText: { color: theme.subtext, fontSize: 14 },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#1f1f23',
-    gap: 8,
+    flexDirection: 'row', alignItems: 'flex-end',
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: theme.border,
+    backgroundColor: theme.headerBg, gap: 8,
   },
   input: {
-    flex: 1,
-    backgroundColor: '#141417',
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#2d2d35',
-    maxHeight: 100,
+    flex: 1, backgroundColor: theme.card, borderRadius: 22,
+    paddingHorizontal: 16, paddingVertical: 10, fontSize: 14,
+    borderWidth: 1, borderColor: theme.border, maxHeight: 100,
+    color: theme.text,
   },
   sendBtn: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#8b5cf6',
+    backgroundColor: theme.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  sendBtnDisabled: { backgroundColor: '#2d2d35' },
+  sendBtnDisabled: { backgroundColor: theme.border },
 });
 
 export default ChatScreen;
+
 
