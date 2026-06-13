@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Plus, Upload, X, Sparkles, Link, Video, Image as ImageIcon, Check, Copy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Plus, Upload, X, Sparkles, Link as LinkIcon, Video, Image as ImageIcon, Check, Copy } from 'lucide-react'
 import Link from 'next/link'
 
 const PLATFORMS = [
@@ -513,7 +513,7 @@ export default function CreateCampaignPage() {
 
               {/* Share URL */}
               <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
-                <p className="text-sm text-gray-400 mb-3 flex items-center gap-2"><Link size={14} /> Share Link</p>
+                <p className="text-sm text-gray-400 mb-3 flex items-center gap-2"><LinkIcon size={14} /> Share Link</p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-violet-400 text-sm font-mono truncate">
                     {shareUrl}
