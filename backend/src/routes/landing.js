@@ -131,6 +131,7 @@ router.post('/create/:campaignId', authMiddleware, async (req, res) => {
         slug,
         template: template || 'modern',
         primaryColor: primaryColor || '#7C3AED',
+        isPublished: true,
         aiHeadline: aiContent.headline,
         aiDescription: aiContent.description,
         aiHashtags: aiContent.hashtags,
@@ -177,7 +178,7 @@ router.get('/:slug', async (req, res) => {
       where: { slug: req.params.slug },
       include: { campaign: { select: { title: true, status: true } } }
     })
-    if (!landingPage || !landingPage.isPublished) {
+    if (!landingPage) {
       return res.status(404).json({ error: 'Page not found' })
     }
     await prisma.campaignLandingPage.update({
