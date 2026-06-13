@@ -140,6 +140,8 @@ router.post('/create/:campaignId', authMiddleware, async (req, res) => {
         captionInstagram: aiContent.captions?.INSTAGRAM,
         captionTelegram: aiContent.captions?.TELEGRAM,
         captionTwitter: aiContent.captions?.TWITTER,
+        offerEndsAt: req.body.offerEndsAt ? new Date(req.body.offerEndsAt) : null,
+        whatsappNumber: req.body.whatsappNumber || null,
       }
     })
 

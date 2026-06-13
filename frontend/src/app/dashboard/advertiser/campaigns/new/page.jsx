@@ -50,6 +50,7 @@ export default function CreateCampaignPage() {
     productName: '', productTitle: '', productDetails: '',
     price: '', discountPrice: '', ctaText: 'এখনই কিনুন', ctaUrl: '',
     template: 'modern', primaryColor: '#7C3AED',
+    offerEndsAt: '', whatsappNumber: '',
   })
   const [productImages, setProductImages] = useState([])
   const [videoFile, setVideoFile] = useState(null)
@@ -450,6 +451,24 @@ export default function CreateCampaignPage() {
                     placeholder="https://yourshop.com/product" value={landingForm.ctaUrl}
                     onChange={e => setLandingForm(f => ({ ...f, ctaUrl: e.target.value }))} />
                 </div>
+              </div>
+
+
+              {/* Offer End Date */}
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Offer End Date (optional)</label>
+                <input type="datetime-local" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500"
+                  value={landingForm.offerEndsAt}
+                  onChange={e => setLandingForm(f => ({ ...f, offerEndsAt: e.target.value }))} />
+              </div>
+
+              {/* WhatsApp Number */}
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">WhatsApp Number (optional)</label>
+                <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
+                  placeholder="8801XXXXXXXXX"
+                  value={landingForm.whatsappNumber}
+                  onChange={e => setLandingForm(f => ({ ...f, whatsappNumber: e.target.value }))} />
               </div>
 
               <div>

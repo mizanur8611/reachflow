@@ -726,6 +726,8 @@ model CampaignLandingPage {
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  offerEndsAt   DateTime?  // countdown timer end date
+  whatsappNumber String?   // WhatsApp contact number
 
   campaign        Campaign @relation(fields: [campaignId], references: [id])
 
