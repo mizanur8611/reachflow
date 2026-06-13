@@ -15,6 +15,7 @@ const landingRouter = require('./routes/landing') // ✅ NEW
 const { calculateFraudScore, getFraudRiskLevel } = require('./services/fraudDetection')
 const Stripe = require('stripe')
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
+const imageaiRouter = require('./routes/imageai')
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -1500,6 +1501,7 @@ app.use('/api/analytics', analyticsExportRouter)
 app.use('/api/subscriptions', subscriptionRouter)
 app.use('/api/escrow', escrowRouter)
 app.use('/api/landing', landingRouter) // ✅ NEW — Landing Page routes
+app.use('/api/imageai', imageaiRouter)
 
 // One-time fix
 app.get('/api/admin/verify-all-users', async (req, res) => {
