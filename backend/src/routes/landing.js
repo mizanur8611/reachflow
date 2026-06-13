@@ -231,5 +231,5 @@ router.put('/update/:campaignId', authMiddleware, async (req, res) => {
 
 module.exports = router
 
-// landing/ update
+// landing/ 
  
