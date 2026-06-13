@@ -224,5 +224,112 @@ router.get('/insights/:campaignId', async (req, res) => {
   }
 })
 
+// ─────────────────────────────────────────
+// aiService.js এর শেষে এই functions যোগ করো
+// ─────────────────────────────────────────
+
+// ── AI Landing Page Content Generator ────
+export async function generateLandingPageContent({
+  productName,
+  productTitle,
+  productDetails,
+  price,
+  discountPrice,
+  platforms,
+  category,
+}) {
+  try {
+    const priceInfo = discountPrice
+      ? `Original: $${price}, Discount: $${discountPrice}`
+      : price ? `Price: $${price}` : 'Price not specified'
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-turbo-preview',
+      messages: [{
+        role: 'system',
+        content: `তুমি একজন expert Bangladeshi social media marketer। তোমাকে একটি product এর জন্য viral marketing content তৈরি করতে হবে। 
+        বাংলা এবং English mix করে লিখবে (Banglish style)। Content হবে engaging, emotional এবং conversion-focused।`
+      }, {
+        role: 'user',
+        content: `এই product এর জন্য landing page content তৈরি করো:
+
+Product Name: ${productName}
+Product Title: ${productTitle}  
+Details: ${productDetails}
+${priceInfo}
+Category: ${category}
+Platforms: ${platforms.join(', ')}
+
+নিচের format এ JSON response দাও (শুধু JSON, কোনো extra text না):
+{
+  "headline": "একটি catchy headline (max 10 words)",
+  "description": "SEO-friendly product description (2-3 sentences)",
+  "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"],
+  "captions": {
+    "FACEBOOK": "Facebook এর জন্য emotional long-form caption (emoji সহ, max 300 chars)",
+    "TIKTOK": "TikTok এর জন্য trendy short caption (emoji সহ, max 150 chars)",
+    "INSTAGRAM": "Instagram এর জন্য aesthetic caption (hashtags সহ, max 200 chars)",
+    "TELEGRAM": "Telegram এর জন্য direct offer-focused caption (max 200 chars)",
+    "TWITTER": "Twitter এর জন্য punchy caption (max 280 chars)",
+    "YOUTUBE": "YouTube description caption (max 300 chars)",
+    "WHATSAPP": "WhatsApp forward-friendly caption (max 200 chars)"
+  }
+}`
+      }],
+      max_tokens: 1200
+    })
+
+    const content = response.choices[0].message.content.trim()
+    const cleaned = content.replace(/```json|```/g, '').trim()
+    return JSON.parse(cleaned)
+  } catch (err) {
+    console.error('Landing page AI error:', err)
+    // Fallback content
+    return {
+      headline: productTitle,
+      description: productDetails,
+      hashtags: ['#offer', '#sale', '#bangladesh', '#trending', '#viral'],
+      captions: {
+        FACEBOOK: `🔥 ${productTitle}\n\n${productDetails}\n\nএখনই নিন! 👇`,
+        TIKTOK: `✨ ${productName} - Must Have! 🔥 Link in bio!`,
+        INSTAGRAM: `${productTitle} ✨\n\n${productDetails}\n\n#trending #viral #bangladesh`,
+        TELEGRAM: `🎯 Special Offer: ${productTitle}\n${productDetails}`,
+        TWITTER: `🔥 ${productTitle} - Don't miss this! ${productDetails}`,
+        YOUTUBE: `${productTitle} - ${productDetails}`,
+        WHATSAPP: `🛍️ ${productTitle}\n\n${productDetails}\n\nআজই অর্ডার করুন!`
+      }
+    }
+  }
+}
+
+// ── AI route for landing page ─────────────
+// এটা aiRouter এ add করো (router এর আগে):
+
+router.post('/generate-landing-content', async (req, res) => {
+  try {
+    const { productName, productTitle, productDetails, price, discountPrice, platforms, category } = req.body
+
+    if (!productName || !productTitle || !productDetails) {
+      return res.status(400).json({ error: 'Product name, title and details required' })
+    }
+
+    const content = await generateLandingPageContent({
+      productName, productTitle, productDetails,
+      price, discountPrice, platforms, category
+    })
+
+    res.json({ success: true, content })
+  } catch (err) {
+    res.status(500).json({ error: 'AI generation failed' })
+  }
+})
+
+
 export { router as aiRouter }
 export default router
+
+
+
+
+
+
