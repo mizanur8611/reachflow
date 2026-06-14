@@ -1,7 +1,4 @@
 'use client'
-// ReachFlow - Login / Register Page
-// File: frontend/src/app/(auth)/login/page.jsx
-
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -39,6 +36,7 @@ export default function AuthPage() {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState(searchParams.get('mode') || 'login')
   const [showPass, setShowPass] = useState(false)
+  const [loginRole, setLoginRole] = useState('PROMOTER')
   const [registerRole, setRegisterRole] = useState('ADVERTISER')
   const { setUser } = useAuthStore()
   const router = useRouter()
@@ -63,7 +61,7 @@ export default function AuthPage() {
     onSuccess: ({ data }) => {
       localStorage.setItem('rf_token', data.token)
       setUser(data.user)
-      toast.success('Account created! Check your email to verify. 🎉')
+      toast.success('Account created! 🎉')
       router.push(data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
     },
     onError: (err) => toast.error(err.response?.data?.error ?? 'Registration failed')
@@ -79,46 +77,23 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0b0f] flex">
-
-      {/* Left Panel - Branding */}
+      {/* Left Panel */}
       <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#0e0f1e] via-[#130d2e] to-[#0a0b0f] flex-col justify-between p-12 relative overflow-hidden">
-
-        {/* Gradient orbs */}
         <div className="absolute top-20 left-20 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl" />
         <div className="absolute bottom-40 right-10 w-48 h-48 bg-purple-600/15 rounded-full blur-3xl" />
-
-        {/* Logo */}
         <div className="flex items-center gap-3 relative z-10">
           <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-700 rounded-xl flex items-center justify-center text-white font-bold">R</div>
           <span className="font-bold text-white text-xl">ReachFlow</span>
         </div>
-
-        {/* Center Content */}
         <div className="relative z-10">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-bold text-white leading-tight mb-4"
-          >
+          <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-bold text-white leading-tight mb-4">
             Grow your brand<br />
-            <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-              without paid ads.
-            </span>
+            <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">without paid ads.</span>
           </motion.h2>
-          <p className="text-gray-400 text-lg leading-relaxed mb-8">
-            Connect with 80,000+ real promoters on TikTok, Instagram, Facebook, WhatsApp, Telegram and more.
-          </p>
-
-          {/* Stats */}
+          <p className="text-gray-400 text-lg leading-relaxed mb-8">Connect with 80,000+ real promoters on TikTok, Instagram, Facebook, WhatsApp, Telegram and more.</p>
           <div className="grid grid-cols-3 gap-4">
             {STATS.map((s, i) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.1 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-4"
-              >
+              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }} className="bg-white/5 border border-white/10 rounded-2xl p-4">
                 <s.icon size={20} className="text-violet-400 mb-2" />
                 <p className="text-2xl font-bold text-white">{s.value}</p>
                 <p className="text-gray-400 text-xs">{s.label}</p>
@@ -126,14 +101,7 @@ export default function AuthPage() {
             ))}
           </div>
         </div>
-
-        {/* Testimonial */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5 relative z-10"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="bg-white/5 border border-white/10 rounded-2xl p-5 relative z-10">
           <p className="text-gray-300 text-sm italic mb-3">"ReachFlow gave us 10x more reach than our Facebook ads at 1/5th the cost. Game changer!"</p>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-orange-500" />
@@ -145,42 +113,45 @@ export default function AuthPage() {
         </motion.div>
       </div>
 
-      {/* Right Panel - Auth Form */}
+      {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="w-full max-w-md"
-        >
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md">
           {/* Toggle */}
           <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 mb-8">
             {['login', 'register'].map(m => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all capitalize ${
-                  mode === m ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
-                }`}
-              >
+              <button key={m} onClick={() => setMode(m)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all capitalize ${mode === m ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
                 {m === 'login' ? 'Sign In' : 'Create Account'}
               </button>
             ))}
           </div>
 
           <AnimatePresence mode="wait">
-
-            {/* LOGIN FORM */}
+            {/* LOGIN */}
             {mode === 'login' && (
               <motion.div key="login" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <h1 className="text-2xl font-bold text-white mb-1">Welcome back!</h1>
-                <p className="text-gray-400 text-sm mb-6">Sign in to your ReachFlow account</p>
+                <p className="text-gray-400 text-sm mb-5">Sign in to your ReachFlow account</p>
 
-                {/* Google Login Button */}
-                <div className="mb-4">
-                  <GoogleAuthButton role="PROMOTER" onSuccess={handleGoogleSuccess} />
+                {/* Role select for Google login */}
+                <p className="text-gray-400 text-xs mb-2">I am a:</p>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {[
+                    { value: 'ADVERTISER', label: 'Advertiser', emoji: '📢' },
+                    { value: 'PROMOTER', label: 'Promoter', emoji: '💰' },
+                  ].map(r => (
+                    <button key={r.value} type="button" onClick={() => setLoginRole(r.value)}
+                      className={`p-3 rounded-xl border-2 transition-all text-center ${loginRole === r.value ? 'border-violet-500 bg-violet-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
+                      <span className="text-xl">{r.emoji}</span>
+                      <p className="text-white font-medium text-xs mt-1">{r.label}</p>
+                    </button>
+                  ))}
                 </div>
 
-                {/* Divider */}
+                {/* Google Button */}
+                <div className="mb-4">
+                  <GoogleAuthButton role={loginRole} onSuccess={handleGoogleSuccess} />
+                </div>
+
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px bg-white/10" />
                   <span className="text-gray-500 text-xs">or continue with email</span>
@@ -190,66 +161,44 @@ export default function AuthPage() {
                 <form onSubmit={loginForm.handleSubmit(d => loginMutation.mutate(d))} className="space-y-4">
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
-                    <input
-                      {...loginForm.register('email')}
-                      type="email"
-                      placeholder="you@example.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
-                    />
+                    <input {...loginForm.register('email')} type="email" placeholder="you@example.com" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors" />
                     {loginForm.formState.errors.email && <p className="text-red-400 text-xs mt-1">{loginForm.formState.errors.email.message}</p>}
                   </div>
-
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Password</label>
                     <div className="relative">
-                      <input
-                        {...loginForm.register('password')}
-                        type={showPass ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
-                      />
+                      <input {...loginForm.register('password')} type={showPass ? 'text' : 'password'} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors" />
                       <button type="button" onClick={() => setShowPass(s => !s)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
                         {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>
-
                   <div className="flex justify-end">
                     <Link href="/forgot-password" className="text-violet-400 text-sm hover:text-violet-300">Forgot password?</Link>
                   </div>
-
-                  <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    type="submit"
-                    disabled={loginMutation.isPending}
-                    className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
-                  >
+                  <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit" disabled={loginMutation.isPending}
+                    className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all">
                     {loginMutation.isPending ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
                   </motion.button>
                 </form>
               </motion.div>
             )}
 
-            {/* REGISTER FORM */}
+            {/* REGISTER */}
             {mode === 'register' && (
               <motion.div key="register" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <h1 className="text-2xl font-bold text-white mb-1">Join ReachFlow</h1>
-                <p className="text-gray-400 text-sm mb-6">Create your account in seconds</p>
+                <p className="text-gray-400 text-sm mb-5">Create your account in seconds</p>
 
                 {/* Role Selection */}
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   {[
                     { value: 'ADVERTISER', label: 'Advertiser', desc: 'I want to promote my product', emoji: '📢' },
                     { value: 'PROMOTER', label: 'Promoter', desc: 'I want to earn by promoting', emoji: '💰' },
                   ].map(r => (
                     <label key={r.value} className="cursor-pointer" onClick={() => setRegisterRole(r.value)}>
                       <input type="radio" {...registerForm.register('role')} value={r.value} className="sr-only" />
-                      <div className={`p-4 rounded-xl border-2 transition-all text-center ${
-                        registerForm.watch('role') === r.value
-                          ? 'border-violet-500 bg-violet-500/10'
-                          : 'border-white/10 bg-white/5 hover:border-white/20'
-                      }`}>
+                      <div className={`p-4 rounded-xl border-2 transition-all text-center ${registerForm.watch('role') === r.value ? 'border-violet-500 bg-violet-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
                         <span className="text-2xl">{r.emoji}</span>
                         <p className="text-white font-medium text-sm mt-1">{r.label}</p>
                         <p className="text-gray-400 text-xs mt-0.5">{r.desc}</p>
@@ -258,12 +207,11 @@ export default function AuthPage() {
                   ))}
                 </div>
 
-                {/* Google Register Button */}
+                {/* Google Button */}
                 <div className="mb-4">
                   <GoogleAuthButton role={registerRole} onSuccess={handleGoogleSuccess} />
                 </div>
 
-                {/* Divider */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px bg-white/10" />
                   <span className="text-gray-500 text-xs">or continue with email</span>
@@ -276,13 +224,11 @@ export default function AuthPage() {
                     <input {...registerForm.register('name')} placeholder="Your name" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors" />
                     {registerForm.formState.errors.name && <p className="text-red-400 text-xs mt-1">{registerForm.formState.errors.name.message}</p>}
                   </div>
-
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
                     <input {...registerForm.register('email')} type="email" placeholder="you@example.com" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors" />
                     {registerForm.formState.errors.email && <p className="text-red-400 text-xs mt-1">{registerForm.formState.errors.email.message}</p>}
                   </div>
-
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Password</label>
                     <div className="relative">
@@ -293,17 +239,10 @@ export default function AuthPage() {
                     </div>
                     {registerForm.formState.errors.password && <p className="text-red-400 text-xs mt-1">{registerForm.formState.errors.password.message}</p>}
                   </div>
-
-                  <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    type="submit"
-                    disabled={registerMutation.isPending}
-                    className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
-                  >
+                  <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit" disabled={registerMutation.isPending}
+                    className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all">
                     {registerMutation.isPending ? 'Creating account...' : <><Zap size={16} /><span>Create Free Account</span></>}
                   </motion.button>
-
                   <p className="text-gray-500 text-xs text-center">By signing up, you agree to our <Link href="/terms" className="text-violet-400">Terms</Link> and <Link href="/privacy" className="text-violet-400">Privacy Policy</Link></p>
                 </form>
               </motion.div>

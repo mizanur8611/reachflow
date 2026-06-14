@@ -1496,10 +1496,9 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
 // GOOGLE OAUTH
 // ─────────────────────────────────────────
 
-// Google One-Tap / Token verify
 app.post('/api/auth/google', async (req, res) => {
   try {
-    const { credential, role } = req.body // credential = Google ID token
+    const { credential, role } = req.body
 
     // Verify Google token
     const ticket = await googleClient.verifyIdToken({
@@ -1513,7 +1512,33 @@ app.post('/api/auth/google', async (req, res) => {
     let user = await prisma.user.findUnique({ where: { email } })
 
     if (user) {
-      // Existing user - login
+      // Existing user - role update করো if different
+      const newRole = role || user.role
+      if (newRole && newRole !== user.role) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: newRole }
+        })
+        user = { ...user, role: newRole }
+
+        // নতুন role এর profile create করো if not exists
+        if (newRole === 'ADVERTISER') {
+          const existing = await prisma.advertiser.findUnique({ where: { userId: user.id } })
+          if (!existing) {
+            await prisma.advertiser.create({
+              data: { userId: user.id, businessName: user.name, category: 'General', country: 'Unknown' }
+            })
+          }
+        } else if (newRole === 'PROMOTER') {
+          const existing = await prisma.promoter.findUnique({ where: { userId: user.id } })
+          if (!existing) {
+            await prisma.promoter.create({
+              data: { userId: user.id, country: 'Unknown' }
+            })
+          }
+        }
+      }
+
       // OAuthAccount link করো if not already
       const existingOAuth = await prisma.oAuthAccount.findUnique({
         where: { provider_providerAccountId: { provider: 'google', providerAccountId: googleId } }
@@ -1523,6 +1548,7 @@ app.post('/api/auth/google', async (req, res) => {
           data: { userId: user.id, provider: 'google', providerAccountId: googleId }
         })
       }
+
     } else {
       // New user - register
       const userRole = role || 'PROMOTER'
@@ -1532,7 +1558,7 @@ app.post('/api/auth/google', async (req, res) => {
           name,
           avatar: picture,
           role: userRole,
-          emailVerified: true, // Google already verified
+          emailVerified: true,
           password: null,
         }
       })
@@ -1562,18 +1588,21 @@ app.post('/api/auth/google', async (req, res) => {
       }
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+    // Fresh user data fetch
+    const freshUser = await prisma.user.findUnique({ where: { id: user.id } })
+
+    const token = jwt.sign({ userId: freshUser.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({
       success: true,
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
-      isNewUser: !user.createdAt || (new Date() - new Date(user.createdAt)) < 5000
+      user: { id: freshUser.id, name: freshUser.name, email: freshUser.email, role: freshUser.role, avatar: freshUser.avatar },
     })
   } catch (err) {
     console.error('Google auth error:', err)
     res.status(400).json({ error: 'Google authentication failed' })
   }
 })
+
 
 
 
