@@ -16,6 +16,8 @@ const { calculateFraudScore, getFraudRiskLevel } = require('./services/fraudDete
 const Stripe = require('stripe')
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
 const imageaiRouter = require('./routes/imageai')
+const { OAuth2Client } = require('google-auth-library')
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 dotenv.config()
 const paymentRouter = require('./routes/payment')
@@ -1489,6 +1491,99 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+
+
+
+// backend/src/index.js এ এই routes add করো
+// ROUTE REGISTRATIONS এর আগে
+
+const { OAuth2Client } = require('google-auth-library') // npm install google-auth-library
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+// ─────────────────────────────────────────
+// GOOGLE OAUTH
+// ─────────────────────────────────────────
+
+// Google One-Tap / Token verify
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { credential, role } = req.body // credential = Google ID token
+
+    // Verify Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+    const payload = ticket.getPayload()
+    const { email, name, picture, sub: googleId } = payload
+
+    // Check existing user
+    let user = await prisma.user.findUnique({ where: { email } })
+
+    if (user) {
+      // Existing user - login
+      // OAuthAccount link করো if not already
+      const existingOAuth = await prisma.oAuthAccount.findUnique({
+        where: { provider_providerAccountId: { provider: 'google', providerAccountId: googleId } }
+      })
+      if (!existingOAuth) {
+        await prisma.oAuthAccount.create({
+          data: { userId: user.id, provider: 'google', providerAccountId: googleId }
+        })
+      }
+    } else {
+      // New user - register
+      const userRole = role || 'PROMOTER'
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          avatar: picture,
+          role: userRole,
+          emailVerified: true, // Google already verified
+          password: null,
+        }
+      })
+
+      // Role specific profile
+      if (userRole === 'ADVERTISER') {
+        await prisma.advertiser.create({
+          data: { userId: user.id, businessName: name, category: 'General', country: 'Unknown' }
+        })
+      } else {
+        await prisma.promoter.create({
+          data: { userId: user.id, country: 'Unknown' }
+        })
+      }
+
+      // Wallet create
+      await prisma.wallet.create({ data: { userId: user.id } })
+
+      // OAuth link
+      await prisma.oAuthAccount.create({
+        data: { userId: user.id, provider: 'google', providerAccountId: googleId }
+      })
+
+      // Avatar update
+      if (picture) {
+        await prisma.user.update({ where: { id: user.id }, data: { avatar: picture } })
+      }
+    }
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+    res.json({
+      success: true,
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+      isNewUser: !user.createdAt || (new Date() - new Date(user.createdAt)) < 5000
+    })
+  } catch (err) {
+    console.error('Google auth error:', err)
+    res.status(400).json({ error: 'Google authentication failed' })
+  }
+})
+
+
 
 // ─────────────────────────────────────────
 // ROUTE REGISTRATIONS
