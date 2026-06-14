@@ -187,7 +187,7 @@ export default function PromoterDashboard() {
           ) : campaigns.length === 0 ? (
             <div className="text-gray-500 text-center py-12">No campaigns available yet.</div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
               {campaigns.map((c, i) => {
                 const app = getApplication(c.id)
                 const approved = app?.status === 'APPROVED'
@@ -284,7 +284,7 @@ export default function PromoterDashboard() {
             <div className="px-6 py-4 border-b border-white/5">
               <h2 className="font-semibold">My Applications</h2>
             </div>
-            <div className="overflow-x-auto"><table className="w-full min-w-[500px]">
+            <div className="overflow-x-auto"><table className="w-full min-w-[600px]">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
                   <th className="px-6 py-3 text-left">Campaign</th>
