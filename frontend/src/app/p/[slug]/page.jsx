@@ -11,6 +11,7 @@ export async function generateMetadata({ params }) {
     const title = page?.aiHeadline || page?.productTitle || 'ReachFlow'
     const description = page?.aiDescription || page?.productDetails || 'Best deals on ReachFlow'
     const image = page?.productImages?.[0] || 'https://reachflow-lovat.vercel.app/og-default.png'
+    const video = page?.productVideo || null
     const url = `https://reachflow-lovat.vercel.app/p/${params.slug}`
 
     return {
@@ -18,53 +19,50 @@ export async function generateMetadata({ params }) {
       description,
       metadataBase: new URL('https://reachflow-lovat.vercel.app'),
 
-      // ── Facebook, WhatsApp, Telegram, LinkedIn, TikTok ──
+      // ── Facebook, WhatsApp, Telegram, LinkedIn ──
       openGraph: {
         title,
         description,
         url,
-        type: 'website',
+        type: 'video.other',  // video type হলে video preview দেখাবে
         siteName: 'ReachFlow',
-        images: image ? [
-          {
-            url: image,
-            width: 1200,
-            height: 630,
-            alt: title,
-          }
-        ] : [],
+        images: [{ url: image, width: 1200, height: 630, alt: title }],
+        videos: video ? [{ url: video, type: 'video/mp4', width: 1280, height: 720 }] : [],
       },
 
       // ── Twitter / X ──
       twitter: {
-        card: 'summary_large_image',
+        card: video ? 'player' : 'summary_large_image',
         title,
         description,
-        images: image ? [image] : [],
+        images: [image],
         site: '@ReachFlow',
+        ...(video && { player: video, playerWidth: '1280', playerHeight: '720' }),
       },
 
-      // ── Extra raw meta tags (Instagram, TikTok, YouTube etc) ──
+      // ── Extra raw meta tags ──
       other: {
-        // Instagram uses og tags (same as Facebook)
         'og:image': image,
         'og:image:width': '1200',
         'og:image:height': '630',
         'og:image:type': 'image/jpeg',
+
+        // Video tags
+        ...(video && {
+          'og:video': video,
+          'og:video:url': video,
+          'og:video:secure_url': video,
+          'og:video:type': 'video/mp4',
+          'og:video:width': '1280',
+          'og:video:height': '720',
+        }),
 
         // TikTok
         'tiktok:title': title,
         'tiktok:description': description,
         'tiktok:image': image,
 
-        // YouTube / Google
         'thumbnail': image,
-
-        // Telegram uses og tags (already covered)
-        // LinkedIn uses og tags (already covered)
-
-        // WhatsApp uses og tags (already covered)
-        // Extra fallback
         'image': image,
       },
     }
@@ -76,5 +74,3 @@ export async function generateMetadata({ params }) {
 export default function LandingPage({ params }) {
   return <LandingPageClient params={params} />
 }
-
-
