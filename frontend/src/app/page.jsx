@@ -193,7 +193,7 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold text-white mb-4">How It Works</h2>
             <p className="text-gray-400 text-lg">Launch your first campaign in under 10 minutes</p>
           </div>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {HOW_IT_WORKS.map((step, i) => (
               <motion.div key={step.step} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} viewport={{ once: true }} className="text-center relative">
                 {i < HOW_IT_WORKS.length - 1 && (
