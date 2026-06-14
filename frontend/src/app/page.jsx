@@ -216,7 +216,7 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold text-white mb-4">Why Choose ReachFlow?</h2>
             <p className="text-gray-400 text-lg">Everything you need to run successful influencer campaigns</p>
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {FEATURES.map((f, i) => (
               <motion.div key={f.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} viewport={{ once: true }} className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 hover:border-violet-500/30 transition-all group">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
@@ -237,7 +237,7 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h2>
             <p className="text-gray-400 text-lg">No hidden fees. Cancel anytime.</p>
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {PRICING.map((plan, i) => (
               <motion.div key={plan.name} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} viewport={{ once: true }}
                 className={`rounded-2xl p-6 border relative ${plan.highlight ? 'bg-gradient-to-b from-violet-900/50 to-[#1a1b23] border-violet-500/50 shadow-2xl shadow-violet-500/20' : 'bg-[#1a1b23] border-white/5'}`}
@@ -276,7 +276,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">Loved by Brands & Creators</h2>
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {TESTIMONIALS.map((t, i) => (
               <motion.div key={t.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} viewport={{ once: true }} className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
                 <div className="flex gap-1 mb-4">
