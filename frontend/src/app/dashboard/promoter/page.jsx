@@ -187,7 +187,7 @@ export default function PromoterDashboard() {
           ) : campaigns.length === 0 ? (
             <div className="text-gray-500 text-center py-12">No campaigns available yet.</div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+            <div className="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
               {campaigns.map((c, i) => {
                 const app = getApplication(c.id)
                 const approved = app?.status === 'APPROVED'
@@ -280,7 +280,7 @@ export default function PromoterDashboard() {
         {/* My Applications Table */}
         {applications.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
+            className="bg-[#1a1b23] border border-white/5 rounded-2xl">
             <div className="px-6 py-4 border-b border-white/5">
               <h2 className="font-semibold">My Applications</h2>
             </div>
