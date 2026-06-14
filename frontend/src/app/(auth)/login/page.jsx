@@ -132,7 +132,7 @@ export default function AuthPage() {
                 <h1 className="text-2xl font-bold text-white mb-1">Welcome back!</h1>
                 <p className="text-gray-400 text-sm mb-5">Sign in to your ReachFlow account</p>
 
-                {/* Role select for Google login */}
+                {/* Role select */}
                 <p className="text-gray-400 text-xs mb-2">I am a:</p>
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   {[
@@ -147,9 +147,9 @@ export default function AuthPage() {
                   ))}
                 </div>
 
-                {/* Google Button */}
+                {/* Google Button - isLogin=true */}
                 <div className="mb-4">
-                  <GoogleAuthButton role={loginRole} onSuccess={handleGoogleSuccess} />
+                  <GoogleAuthButton role={loginRole} onSuccess={handleGoogleSuccess} isLogin={true} />
                 </div>
 
                 <div className="flex items-center gap-3 mb-4">
@@ -207,9 +207,9 @@ export default function AuthPage() {
                   ))}
                 </div>
 
-                {/* Google Button */}
+                {/* Google Button - isLogin=false */}
                 <div className="mb-4">
-                  <GoogleAuthButton role={registerRole} onSuccess={handleGoogleSuccess} />
+                  <GoogleAuthButton role={registerRole} onSuccess={handleGoogleSuccess} isLogin={false} />
                 </div>
 
                 <div className="flex items-center gap-3 mb-4">

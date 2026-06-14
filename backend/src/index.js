@@ -1498,7 +1498,7 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
 
 app.post('/api/auth/google', async (req, res) => {
   try {
-    const { credential, role } = req.body
+    const { credential, role, isLogin } = req.body
 
     // Verify Google token
     const ticket = await googleClient.verifyIdToken({
@@ -1512,31 +1512,12 @@ app.post('/api/auth/google', async (req, res) => {
     let user = await prisma.user.findUnique({ where: { email } })
 
     if (user) {
-      // Existing user - role update করো if different
-      const newRole = role || user.role
-      if (newRole && newRole !== user.role) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { role: newRole }
+      // Existing user - LOGIN mode
+      // Role mismatch check
+      if (role && role !== user.role && user.role !== 'ADMIN') {
+        return res.status(400).json({
+          error: `আপনি ${user.role === 'ADVERTISER' ? 'Advertiser' : 'Promoter'} হিসেবে registered। সঠিক role select করুন।`
         })
-        user = { ...user, role: newRole }
-
-        // নতুন role এর profile create করো if not exists
-        if (newRole === 'ADVERTISER') {
-          const existing = await prisma.advertiser.findUnique({ where: { userId: user.id } })
-          if (!existing) {
-            await prisma.advertiser.create({
-              data: { userId: user.id, businessName: user.name, category: 'General', country: 'Unknown' }
-            })
-          }
-        } else if (newRole === 'PROMOTER') {
-          const existing = await prisma.promoter.findUnique({ where: { userId: user.id } })
-          if (!existing) {
-            await prisma.promoter.create({
-              data: { userId: user.id, country: 'Unknown' }
-            })
-          }
-        }
       }
 
       // OAuthAccount link করো if not already
@@ -1550,7 +1531,14 @@ app.post('/api/auth/google', async (req, res) => {
       }
 
     } else {
-      // New user - register
+      // New user - REGISTER mode
+      if (isLogin) {
+        // Login mode তে নতুন user হলে error
+        return res.status(400).json({
+          error: 'এই Google account দিয়ে কোনো account নেই। Create Account থেকে register করুন।'
+        })
+      }
+
       const userRole = role || 'PROMOTER'
       user = await prisma.user.create({
         data: {
@@ -1582,15 +1570,12 @@ app.post('/api/auth/google', async (req, res) => {
         data: { userId: user.id, provider: 'google', providerAccountId: googleId }
       })
 
-      // Avatar update
       if (picture) {
         await prisma.user.update({ where: { id: user.id }, data: { avatar: picture } })
       }
     }
 
-    // Fresh user data fetch
     const freshUser = await prisma.user.findUnique({ where: { id: user.id } })
-
     const token = jwt.sign({ userId: freshUser.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({
       success: true,
@@ -1602,6 +1587,7 @@ app.post('/api/auth/google', async (req, res) => {
     res.status(400).json({ error: 'Google authentication failed' })
   }
 })
+
 
 
 
