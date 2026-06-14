@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import GoogleAuthButton from '@/components/GoogleAuthButton'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -38,11 +39,13 @@ export default function AuthPage() {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState(searchParams.get('mode') || 'login')
   const [showPass, setShowPass] = useState(false)
+  const [registerRole, setRegisterRole] = useState('ADVERTISER')
   const { setUser } = useAuthStore()
   const router = useRouter()
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema) })
   const registerForm = useForm({ resolver: zodResolver(registerSchema), defaultValues: { role: 'ADVERTISER' } })
+
   const loginMutation = useMutation({
     mutationFn: (data) => api.post('/auth/login', data),
     onSuccess: ({ data }) => {
@@ -65,6 +68,14 @@ export default function AuthPage() {
     },
     onError: (err) => toast.error(err.response?.data?.error ?? 'Registration failed')
   })
+
+  const handleGoogleSuccess = (data) => {
+    localStorage.setItem('rf_token', data.token)
+    localStorage.setItem('rf_user', JSON.stringify(data.user))
+    setUser(data.user)
+    toast.success(`Welcome, ${data.user.name}! 🎉`)
+    router.push(data.user.role === 'ADMIN' ? '/admin' : data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0b0f] flex">
@@ -164,6 +175,18 @@ export default function AuthPage() {
                 <h1 className="text-2xl font-bold text-white mb-1">Welcome back!</h1>
                 <p className="text-gray-400 text-sm mb-6">Sign in to your ReachFlow account</p>
 
+                {/* Google Login Button */}
+                <div className="mb-4">
+                  <GoogleAuthButton role="PROMOTER" onSuccess={handleGoogleSuccess} />
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-gray-500 text-xs">or continue with email</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+
                 <form onSubmit={loginForm.handleSubmit(d => loginMutation.mutate(d))} className="space-y-4">
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
@@ -220,7 +243,7 @@ export default function AuthPage() {
                     { value: 'ADVERTISER', label: 'Advertiser', desc: 'I want to promote my product', emoji: '📢' },
                     { value: 'PROMOTER', label: 'Promoter', desc: 'I want to earn by promoting', emoji: '💰' },
                   ].map(r => (
-                    <label key={r.value} className="cursor-pointer">
+                    <label key={r.value} className="cursor-pointer" onClick={() => setRegisterRole(r.value)}>
                       <input type="radio" {...registerForm.register('role')} value={r.value} className="sr-only" />
                       <div className={`p-4 rounded-xl border-2 transition-all text-center ${
                         registerForm.watch('role') === r.value
@@ -233,6 +256,18 @@ export default function AuthPage() {
                       </div>
                     </label>
                   ))}
+                </div>
+
+                {/* Google Register Button */}
+                <div className="mb-4">
+                  <GoogleAuthButton role={registerRole} onSuccess={handleGoogleSuccess} />
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-gray-500 text-xs">or continue with email</span>
+                  <div className="flex-1 h-px bg-white/10" />
                 </div>
 
                 <form onSubmit={registerForm.handleSubmit(d => registerMutation.mutate(d))} className="space-y-4">
