@@ -1492,14 +1492,6 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
   }
 })
 
-
-
-// backend/src/index.js এ এই routes add করো
-// ROUTE REGISTRATIONS এর আগে
-
-const { OAuth2Client } = require('google-auth-library') // npm install google-auth-library
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-
 // ─────────────────────────────────────────
 // GOOGLE OAUTH
 // ─────────────────────────────────────────
