@@ -284,7 +284,7 @@ export default function PromoterDashboard() {
             <div className="px-6 py-4 border-b border-white/5">
               <h2 className="font-semibold">My Applications</h2>
             </div>
-            <table className="w-full">
+            <div className="overflow-x-auto"><table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
                   <th className="px-6 py-3 text-left">Campaign</th>
@@ -326,7 +326,7 @@ export default function PromoterDashboard() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </motion.div>
         )}
       </div>
