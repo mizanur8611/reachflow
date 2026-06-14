@@ -12,11 +12,12 @@ export default function DashboardLayout({ children }) {
   }, [])
 
   return (
-    <div className="flex h-screen bg-[#0a0b0f] pl-64">
+    <div className="flex h-screen bg-[#0a0b0f]">
       <Sidebar role={role} />
-      <main className="flex-1 overflow-y-auto flex flex-col">
+      <main className="flex-1 overflow-y-auto flex flex-col pt-14 md:pt-0 md:pl-64">
         {children}
       </main>
     </div>
   )
 }
+
