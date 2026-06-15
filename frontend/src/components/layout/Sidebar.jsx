@@ -18,6 +18,7 @@ const ADVERTISER_NAV = [
   { label: 'Analytics', icon: BarChart2, href: '/dashboard/advertiser/analytics' },
   { label: 'Payments', icon: Wallet, href: '/dashboard/advertiser/wallet' },
   { label: 'Messages', icon: MessageSquare, href: '/dashboard/advertiser/messages' },
+  { label: 'My Profile', icon: User, href: '/dashboard/advertiser/profile' },
   { label: 'Subscription', icon: Crown, href: '/dashboard/advertiser/subscription' },
 ]
 
