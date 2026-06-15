@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   User, Edit3, Save, X, Plus, Trash2, Globe, Star,
-  CheckCircle, TrendingUp, Wallet, ExternalLink
+  CheckCircle, TrendingUp, Wallet, ExternalLink, Camera
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL
@@ -188,8 +188,26 @@ export default function PromoterProfilePage() {
           className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 mb-6">
           <div className="flex items-start gap-5 mb-6">
             {/* Avatar */}
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-3xl font-bold shrink-0">
-              {profile?.name?.[0] || 'U'}
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+                {profile?.avatar ? <img src={profile.avatar} alt="avatar" className="w-full h-full object-cover" /> : (profile?.name?.[0] || 'U')}
+              </div>
+              <label className="absolute -bottom-2 -right-2 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-violet-500 transition-colors">
+                <Camera size={13} className="text-white" />
+                <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                  const file = e.target.files[0]
+                  if (!file) return
+                  const formData = new FormData()
+                  formData.append('image', file)
+                  const token = localStorage.getItem('rf_token')
+                  const res = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData })
+                  const data = await res.json()
+                  if (data.url) {
+                    await fetch(`${API}/api/promoter/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ avatar: data.url }) })
+                    setProfile(p => ({ ...p, avatar: data.url }))
+                  }
+                }} />
+              </label>
             </div>
             <div className="flex-1">
               {editing ? (
