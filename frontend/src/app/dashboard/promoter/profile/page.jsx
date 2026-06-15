@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useAuthStore } from '@/store/authStore'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   User, Edit3, Save, X, Plus, Trash2, Globe, Star,
@@ -23,6 +24,7 @@ const PLATFORM_COLORS = {
 
 export default function PromoterProfilePage() {
   const [profile, setProfile] = useState(null)
+  const { setUser } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -209,6 +211,7 @@ export default function PromoterProfilePage() {
                     if (stored) {
                       const u = JSON.parse(stored)
                       localStorage.setItem('rf_user', JSON.stringify({ ...u, avatar: data.url }))
+                      setUser({ ...u, avatar: data.url })
                     }
                   }
                 }} />
