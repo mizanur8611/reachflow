@@ -97,7 +97,7 @@ export default function AdvertiserProfilePage() {
                   const res = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData })
                   const data = await res.json()
                   if (data.url) {
-                    await fetch(`${API}/api/auth/rofile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ avatar: data.url }) })
+                    await fetch(`${API}/api/auth/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ avatar: data.url }) })
                     setProfile(p => ({ ...p, avatar: data.url }))
                     const stored = localStorage.getItem('rf_user')
                     if (stored) {
