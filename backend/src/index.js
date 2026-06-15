@@ -407,7 +407,7 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
     const { name, phone, bio, avatar } = req.body
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: { name, ...(avatar && { avatar }) },
+      data: { ...(name && { name }), ...(phone && { phone }), ...(avatar && { avatar }) },
       select: { id: true, name: true, email: true, role: true, avatar: true }
     })
     res.json({ user })
