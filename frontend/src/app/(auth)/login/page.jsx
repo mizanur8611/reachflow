@@ -35,6 +35,7 @@ const STATS = [
 export default function AuthPage() {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState(searchParams.get('mode') || 'login')
+  const refCode = searchParams.get('ref')
   const [showPass, setShowPass] = useState(false)
   const [loginRole, setLoginRole] = useState('PROMOTER')
   const [registerRole, setRegisterRole] = useState('ADVERTISER')
@@ -218,7 +219,7 @@ export default function AuthPage() {
                   <div className="flex-1 h-px bg-white/10" />
                 </div>
 
-                <form onSubmit={registerForm.handleSubmit(d => registerMutation.mutate(d))} className="space-y-4">
+                <form onSubmit={registerForm.handleSubmit(d => registerMutation.mutate({ ...d, referralCode: refCode }))} className="space-y-4">
                   <div>
                     <label className="text-sm text-gray-400 mb-1.5 block">Full Name</label>
                     <input {...registerForm.register('name')} placeholder="Your name" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors" />
