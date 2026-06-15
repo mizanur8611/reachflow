@@ -24,6 +24,8 @@ export default function AdvertiserProfilePage() {
         if (data.user) {
           setProfile(data.user)
           setForm({ name: data.user.name || '', phone: data.user.phone || '', company: data.user.company || '' })
+          localStorage.setItem('rf_user', JSON.stringify(data.user))
+          setUser(data.user)
         }
       } catch (err) {}
     }
