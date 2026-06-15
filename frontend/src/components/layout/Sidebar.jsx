@@ -25,7 +25,7 @@ const ADVERTISER_NAV = [
 const PROMOTER_NAV = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/promoter' },
   { label: 'My Profile', icon: User, href: '/dashboard/promoter/profile' },
-  { label: 'Browse Campaigns', icon: Megaphone, href: '/dashboard/promoter' },
+  { label: 'Browse Campaigns', icon: Megaphone, href: '/dashboard/promoter/campaigns' },
   { label: 'My Submissions', icon: TrendingUp, href: '/dashboard/promoter/submissions' },
   { label: 'Earnings', icon: Wallet, href: '/dashboard/promoter/earnings' },
   { label: 'Withdrawal', icon: ArrowDownToLine, href: '/dashboard/promoter/withdrawal' },
