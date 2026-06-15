@@ -394,7 +394,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, name: true, email: true, role: true, avatar: true, phone: true, company: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true }
     })
     res.json({ user })
   } catch (err) {
