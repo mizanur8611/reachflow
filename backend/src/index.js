@@ -240,9 +240,9 @@ app.get('/api/promoter/profile', authMiddleware, async (req, res) => {
 
 app.put('/api/promoter/profile', authMiddleware, async (req, res) => {
   try {
-    const { name, bio, country, niche } = req.body
-    if (name) {
-      await prisma.user.update({ where: { id: req.userId }, data: { name } })
+    const { name, bio, country, niche, avatar } = req.body
+    if (name || avatar) {
+      await prisma.user.update({ where: { id: req.userId }, data: { ...(name && { name }), ...(avatar && { avatar }) } })
     }
     await prisma.promoter.update({
       where: { userId: req.userId },
