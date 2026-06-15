@@ -205,6 +205,11 @@ export default function PromoterProfilePage() {
                   if (data.url) {
                     await fetch(`${API}/api/promoter/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ avatar: data.url }) })
                     setProfile(p => ({ ...p, avatar: data.url }))
+                    const stored = localStorage.getItem('rf_user')
+                    if (stored) {
+                      const u = JSON.parse(stored)
+                      localStorage.setItem('rf_user', JSON.stringify({ ...u, avatar: data.url }))
+                    }
                   }
                 }} />
               </label>
