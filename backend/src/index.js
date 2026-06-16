@@ -1189,20 +1189,41 @@ app.patch('/api/admin/submissions/:id', adminMiddleware, async (req, res) => {
 
 app.get('/api/users', authMiddleware, async (req, res) => {
   try {
-    const allUsers = await prisma.user.findMany({
-      where: { id: { not: req.userId } },
-      select: { id: true, name: true, role: true },
-    })
+    const { search } = req.query
+
+    if (search) {
+      // Search mode — name দিয়ে খোঁজো
+      const users = await prisma.user.findMany({
+        where: {
+          id: { not: req.userId },
+          name: { contains: search, mode: 'insensitive' }
+        },
+        select: { id: true, name: true, role: true },
+        take: 10
+      })
+      return res.json({ users })
+    }
+
+    // Default — যাদের সাথে message হয়েছে তারা
     const lastMessages = await prisma.message.findMany({
       where: { OR: [{ senderId: req.userId }, { receiverId: req.userId }] },
       orderBy: { createdAt: 'desc' },
-      distinct: ['senderId', 'receiverId'],
+      include: {
+        sender: { select: { id: true, name: true, role: true } },
+        receiver: { select: { id: true, name: true, role: true } }
+      }
     })
-    const getLastMessageTime = (userId) => {
-      const msg = lastMessages.find(m => m.senderId === userId || m.receiverId === userId)
-      return msg ? new Date(msg.createdAt).getTime() : 0
-    }
-    const users = allUsers.sort((a, b) => getLastMessageTime(b.id) - getLastMessageTime(a.id))
+
+    const seen = new Set()
+    const users = []
+    lastMessages.forEach(m => {
+      const other = m.senderId === req.userId ? m.receiver : m.sender
+      if (other && !seen.has(other.id)) {
+        seen.add(other.id)
+        users.push(other)
+      }
+    })
+
     res.json({ users })
   } catch (err) {
     res.status(500).json({ error: err.message })
