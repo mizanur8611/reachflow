@@ -264,17 +264,23 @@ export default function CreateCampaignPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
+                  className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 sm:p-8 max-w-3xl w-full max-h-[92vh] overflow-y-auto">
 
-                  <div className="flex items-center gap-2 mb-5">
-                    <Sparkles size={18} className="text-violet-400" />
-                    <h2 className="text-lg font-bold text-white">AI Generated Brief</h2>
+                  <div className="flex items-center gap-2 mb-6">
+                    <Sparkles size={20} className="text-violet-400" />
+                    <h2 className="text-xl font-bold text-white">AI Generated Brief</h2>
+                    {briefPreview.productCategory && (
+                      <span className="ml-auto px-3 py-1 bg-violet-500/10 text-violet-300 text-xs rounded-full border border-violet-500/20">
+                        {briefPreview.productCategory}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-5 mb-6">
+
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Title</p>
-                      <p className="text-white font-medium">{briefPreview.title}</p>
+                      <p className="text-white font-semibold text-lg">{briefPreview.title}</p>
                     </div>
 
                     <div>
@@ -282,20 +288,32 @@ export default function CreateCampaignPage() {
                       <p className="text-gray-300 text-sm leading-relaxed">{briefPreview.description}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Product Specs - Dynamic */}
+                    {briefPreview.productSpecs && briefPreview.productSpecs.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-2">Product Details</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/5 rounded-xl p-4">
+                          {briefPreview.productSpecs.map((spec, i) => (
+                            <div key={i}>
+                              <p className="text-[11px] text-gray-500">{spec.label}</p>
+                              <p className="text-sm text-white font-medium">{spec.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Category</p>
                         <p className="text-gray-300 text-sm">{briefPreview.category}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Suggested Budget</p>
+                        <p className="text-xs text-gray-500 mb-1">Budget</p>
                         <p className="text-gray-300 text-sm">${briefPreview.suggestedBudget}</p>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Suggested Commission</p>
+                        <p className="text-xs text-gray-500 mb-1">Commission</p>
                         <p className="text-gray-300 text-sm">${briefPreview.suggestedCommission}</p>
                       </div>
                       <div>
@@ -303,11 +321,27 @@ export default function CreateCampaignPage() {
                         <p className="text-gray-300 text-sm">{briefPreview.platforms}</p>
                       </div>
                     </div>
+
+                    {/* Social Captions Preview */}
+                    {briefPreview.socialCaptions && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-2">Social Media Captions (preview)</p>
+                        <div className="space-y-3">
+                          {Object.entries(briefPreview.socialCaptions).map(([platform, caption]) => (
+                            <div key={platform} className="bg-white/5 rounded-xl p-4">
+                              <p className="text-xs font-semibold text-violet-400 mb-1.5 capitalize">{platform}</p>
+                              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{caption}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                   </div>
 
                   <p className="text-sm text-gray-400 mb-4 text-center">এই AI generated brief টা কি ব্যবহার করতে চাও?</p>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 sticky bottom-0 bg-[#1a1b23] pt-2">
                     <button
                       onClick={handleRejectBrief}
                       className="flex-1 py-3 rounded-xl font-semibold border border-white/10 text-gray-400 hover:bg-white/5 transition-colors">
