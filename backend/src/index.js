@@ -1300,6 +1300,29 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
   }
 })
 
+// AI Brief Generator
+app.post('/api/ai/brief', authMiddleware, async (req, res) => {
+  try {
+    const { prompt } = req.body
+    const Anthropic = require('@anthropic-ai/sdk')
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const message = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: `তুমি একটা Influencer Marketing Campaign Brief তৈরি করবে।\n\nProduct/Brand: "${prompt}"\n\nনিচের JSON format এ শুধু JSON return করো:\n{\n  "title": "Campaign title (max 60 chars)",\n  "description": "2-3 sentences",\n  "category": "Fashion/Food/Tech/Beauty/Health/Education/Gaming/General",\n  "suggestedBudget": "number only",\n  "suggestedCommission": "number only",\n  "platforms": "FACEBOOK,INSTAGRAM,TIKTOK comma separated"\n}`
+      }]
+    })
+    const text = message.content[0].text
+    const clean = text.replace(/```json|```/g, '').trim()
+    const brief = JSON.parse(clean)
+    res.json({ success: true, brief })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ─────────────────────────────────────────
 // PUBLIC PROMOTER PROFILE
 // ─────────────────────────────────────────
