@@ -39,6 +39,7 @@ export default function CreateCampaignPage() {
   // AI Brief Generator
   const [showAiBrief, setShowAiBrief] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
+  const [briefPreview, setBriefPreview] = useState(null)
 
   // Step 1
   const [imagePreview, setImagePreview] = useState(null)
@@ -65,9 +66,10 @@ export default function CreateCampaignPage() {
   const [aiEditorIndex, setAiEditorIndex] = useState(null)
 
   // ── AI Brief Generator ──
-  const handleGenerateBrief = async () => {
+ const handleGenerateBrief = async () => {
     if (!aiPrompt.trim()) return
     setAiBriefLoading(true)
+    setError('')
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/brief`, {
         method: 'POST',
@@ -76,18 +78,7 @@ export default function CreateCampaignPage() {
       })
       const data = await response.json()
       if (data.success) {
-        const brief = data.brief
-        setForm(f => ({
-          ...f,
-          title: brief.title || f.title,
-          description: brief.description || f.description,
-          category: brief.category || f.category,
-          budget: brief.suggestedBudget || f.budget,
-          commissionAmount: brief.suggestedCommission || f.commissionAmount,
-          platforms: brief.platforms ? brief.platforms.split(',').map(p => p.trim()) : f.platforms,
-        }))
-        setShowAiBrief(false)
-        setAiPrompt('')
+        setBriefPreview(data.brief)   // ← সরাসরি form fill না করে preview এ রাখলাম
       } else {
         setError('AI Brief generate হয়নি, আবার try করো')
       }
@@ -96,6 +87,27 @@ export default function CreateCampaignPage() {
     } finally {
       setAiBriefLoading(false)
     }
+  }
+
+  // ── Brief Preview Accept/Reject ──
+  const handleAcceptBrief = () => {
+    const brief = briefPreview
+    setForm(f => ({
+      ...f,
+      title: brief.title || f.title,
+      description: brief.description || f.description,
+      category: brief.category || f.category,
+      budget: brief.suggestedBudget || f.budget,
+      commissionAmount: brief.suggestedCommission || f.commissionAmount,
+      platforms: brief.platforms ? brief.platforms.split(',').map(p => p.trim()) : f.platforms,
+    }))
+    setBriefPreview(null)
+    setShowAiBrief(false)
+    setAiPrompt('')
+  }
+
+  const handleRejectBrief = () => {
+    setBriefPreview(null)
   }
 
   // ── Image Upload ──
@@ -239,6 +251,78 @@ export default function CreateCampaignPage() {
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
       <div className="max-w-2xl mx-auto">
+
+        {/* AI Brief Preview Modal */}
+          <AnimatePresence>
+            {briefPreview && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
+
+                  <div className="flex items-center gap-2 mb-5">
+                    <Sparkles size={18} className="text-violet-400" />
+                    <h2 className="text-lg font-bold text-white">AI Generated Brief</h2>
+                  </div>
+
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Title</p>
+                      <p className="text-white font-medium">{briefPreview.title}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Description</p>
+                      <p className="text-gray-300 text-sm leading-relaxed">{briefPreview.description}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Category</p>
+                        <p className="text-gray-300 text-sm">{briefPreview.category}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Suggested Budget</p>
+                        <p className="text-gray-300 text-sm">${briefPreview.suggestedBudget}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Suggested Commission</p>
+                        <p className="text-gray-300 text-sm">${briefPreview.suggestedCommission}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Platforms</p>
+                        <p className="text-gray-300 text-sm">{briefPreview.platforms}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-400 mb-4 text-center">এই AI generated brief টা কি ব্যবহার করতে চাও?</p>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleRejectBrief}
+                      className="flex-1 py-3 rounded-xl font-semibold border border-white/10 text-gray-400 hover:bg-white/5 transition-colors">
+                      ❌ No, আবার try করো
+                    </button>
+                    <button
+                      onClick={handleAcceptBrief}
+                      className="flex-1 py-3 rounded-xl font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors">
+                      ✅ Yes, এটা ব্যবহার করো
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
