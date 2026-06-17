@@ -31,11 +31,11 @@ export default function MessagesPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages/conversations`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
-      setUsers(data.messages?.map(m => m.senderId === myId ? m.receiver : m.sender).filter(Boolean) || [])
+      setUsers(data.users || [])
     } catch (err) {}
   }
   fetchUsers()
@@ -120,7 +120,24 @@ useEffect(() => {
               className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
               placeholder="Search users..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={async (e) => {
+                const val = e.target.value
+                setSearch(val)
+                const token = localStorage.getItem('rf_token')
+                if (val.trim()) {
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users?search=${val}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  })
+                  const data = await res.json()
+                  setUsers(data.users || [])
+                } else {
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  })
+                  const data = await res.json()
+                  setUsers(data.users || [])
+                }
+              }}
             />
           </div>
         </div>
