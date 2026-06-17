@@ -118,10 +118,23 @@ export default function CreateCampaignPage() {
   const handleAiBriefImageChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
+
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setAiBriefImage(reader.result)
-      setAiBriefImagePreview(reader.result)
+    reader.onload = (event) => {
+      const img = new window.Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_WIDTH = 800
+        const scale = Math.min(1, MAX_WIDTH / img.width)
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const compressed = canvas.toDataURL('image/jpeg', 0.7)
+        setAiBriefImage(compressed)
+        setAiBriefImagePreview(compressed)
+      }
+      img.src = event.target.result
     }
     reader.readAsDataURL(file)
   }
