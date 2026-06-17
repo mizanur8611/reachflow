@@ -713,7 +713,7 @@ app.get('/api/submissions/my', authMiddleware, async (req, res) => {
     if (!promoter) return res.json({ submissions: [] })
     const submissions = await prisma.submission.findMany({
       where: { promoterId: promoter.id },
-      include: { campaign: { select: { title: true, advertiserId: true, advertiser: { select: { userId: true } } } } },
+      include: { campaign: { select: { title: true, advertiserId: true, advertiser: { select: { userId: true } }, landingPage: { select: { captionFacebook: true, captionTiktok: true, captionInstagram: true, captionTelegram: true, captionTwitter: true } } } } },
       orderBy: { submittedAt: 'desc' }
     })
     res.json({ submissions })
