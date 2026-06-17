@@ -14,6 +14,7 @@ export default function MySubmissionsPage() {
   const [submittingRating, setSubmittingRating] = useState(false)
   const [ratedCampaigns, setRatedCampaigns] = useState([])
   const [qrModal, setQrModal] = useState(null) // { url, title }
+  const [captionsModal, setCaptionsModal] = useState(null) // { title, captions }
   const qrRef = useRef(null)
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('rf_token') : ''
@@ -116,6 +117,14 @@ export default function MySubmissionsPage() {
     </div>
   )
 
+  const CAPTION_PLATFORMS = [
+    { key: 'captionFacebook', label: '📘 Facebook' },
+    { key: 'captionTiktok', label: '🎵 TikTok' },
+    { key: 'captionInstagram', label: '📸 Instagram' },
+    { key: 'captionTelegram', label: '✈️ Telegram' },
+    { key: 'captionTwitter', label: '🐦 Twitter' },
+  ]
+
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
       <div className="max-w-5xl mx-auto">
@@ -197,17 +206,26 @@ export default function MySubmissionsPage() {
                         )}
                       </td>
 
-                      {/* QR Code Button */}
+                      {/* QR Code + Captions Buttons */}
                       <td className="px-6 py-4 text-center">
-                        {trackUrl ? (
-                          <button
-                            onClick={() => setQrModal({ url: trackUrl, title: s.campaign?.title })}
-                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-all mx-auto">
-                            <QrCode size={12} /> QR Code
-                          </button>
-                        ) : (
-                          <span className="text-gray-600 text-xs">Link নাও আগে</span>
-                        )}
+                        <div className="flex flex-col gap-1.5 items-center">
+                          {trackUrl ? (
+                            <button
+                              onClick={() => setQrModal({ url: trackUrl, title: s.campaign?.title })}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-all">
+                              <QrCode size={12} /> QR Code
+                            </button>
+                          ) : (
+                            <span className="text-gray-600 text-xs">Link নাও আগে</span>
+                          )}
+                          {s.campaign?.landingPage && (
+                            <button
+                              onClick={() => setCaptionsModal({ title: s.campaign?.title, captions: s.campaign.landingPage })}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                              <Copy size={12} /> Captions
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-6 py-4 text-center">
@@ -279,6 +297,49 @@ export default function MySubmissionsPage() {
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white transition-all hover:opacity-90">
                   <Download size={14} /> Download
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Captions Modal ── */}
+      <AnimatePresence>
+        {captionsModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={(e) => e.target === e.currentTarget && setCaptionsModal(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#1a1b23] border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-bold text-lg">Platform Captions</h3>
+                  <p className="text-gray-400 text-sm mt-0.5">{captionsModal.title}</p>
+                </div>
+                <button onClick={() => setCaptionsModal(null)} className="text-gray-500 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {CAPTION_PLATFORMS.filter(p => captionsModal.captions?.[p.key]).map(p => (
+                  <div key={p.key} className="bg-white/5 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-white">{p.label}</span>
+                      <button
+                        onClick={() => copyLink(p.key, captionsModal.captions[p.key])}
+                        className="p-1.5 bg-white/10 hover:bg-violet-500/20 rounded-lg transition-colors">
+                        {copied === p.key ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-gray-400" />}
+                      </button>
+                    </div>
+                    <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{captionsModal.captions[p.key]}</p>
+                  </div>
+                ))}
+
+                {CAPTION_PLATFORMS.filter(p => captionsModal.captions?.[p.key]).length === 0 && (
+                  <p className="text-gray-500 text-sm text-center py-6">এই campaign এর জন্য কোনো caption পাওয়া যায়নি।</p>
+                )}
               </div>
             </motion.div>
           </motion.div>
