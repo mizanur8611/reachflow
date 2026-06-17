@@ -103,6 +103,20 @@ export default function CreateCampaignPage() {
       commissionAmount: brief.suggestedCommission || f.commissionAmount,
       platforms: brief.platforms ? brief.platforms.split(',').map(p => p.trim()) : f.platforms,
     }))
+
+    // Step 2 এর Product Name, Title, Details auto-fill
+    const specsText = brief.productSpecs && brief.productSpecs.length > 0
+      ? brief.productSpecs.map(spec => `${spec.label}: ${spec.value}`).join('\n')
+      : ''
+    const fullDetails = `${brief.description || ''}${specsText ? '\n\n' + specsText : ''}`
+
+    setLandingForm(f => ({
+      ...f,
+      productName: brief.title || f.productName,
+      productTitle: brief.title || f.productTitle,
+      productDetails: fullDetails || f.productDetails,
+    }))
+
     setBriefPreview(null)
     setShowAiBrief(false)
     setAiPrompt('')
