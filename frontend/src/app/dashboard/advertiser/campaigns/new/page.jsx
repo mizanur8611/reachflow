@@ -40,6 +40,8 @@ export default function CreateCampaignPage() {
   const [showAiBrief, setShowAiBrief] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [briefPreview, setBriefPreview] = useState(null)
+  const [aiBriefImage, setAiBriefImage] = useState(null)
+  const [aiBriefImagePreview, setAiBriefImagePreview] = useState(null)
 
   // Step 1
   const [imagePreview, setImagePreview] = useState(null)
@@ -66,15 +68,15 @@ export default function CreateCampaignPage() {
   const [aiEditorIndex, setAiEditorIndex] = useState(null)
 
   // ── AI Brief Generator ──
- const handleGenerateBrief = async () => {
-    if (!aiPrompt.trim()) return
+  const handleGenerateBrief = async () => {
+    if (!aiPrompt.trim() && !aiBriefImage) return
     setAiBriefLoading(true)
     setError('')
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/brief`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ prompt: aiPrompt })
+        body: JSON.stringify({ prompt: aiPrompt, image: aiBriefImage })
       })
       const data = await response.json()
       if (data.success) {
@@ -104,10 +106,29 @@ export default function CreateCampaignPage() {
     setBriefPreview(null)
     setShowAiBrief(false)
     setAiPrompt('')
+    setAiBriefImage(null)
+    setAiBriefImagePreview(null)
   }
 
   const handleRejectBrief = () => {
     setBriefPreview(null)
+  }
+
+  // ── AI Brief Image Upload ──
+  const handleAiBriefImageChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAiBriefImage(reader.result)
+      setAiBriefImagePreview(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveAiBriefImage = () => {
+    setAiBriefImage(null)
+    setAiBriefImagePreview(null)
   }
 
   // ── Image Upload ──
@@ -253,110 +274,110 @@ export default function CreateCampaignPage() {
       <div className="max-w-2xl mx-auto">
 
         {/* AI Brief Preview Modal */}
-          <AnimatePresence>
-            {briefPreview && (
+        <AnimatePresence>
+          {briefPreview && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 sm:p-8 max-w-5xl w-full h-[95vh] overflow-y-auto">
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 sm:p-8 max-w-5xl w-full h-[95vh] overflow-y-auto">
 
-                  <div className="flex items-center gap-2 mb-6">
-                    <Sparkles size={20} className="text-violet-400" />
-                    <h2 className="text-xl font-bold text-white">AI Generated Brief</h2>
-                    {briefPreview.productCategory && (
-                      <span className="ml-auto px-3 py-1 bg-violet-500/10 text-violet-300 text-xs rounded-full border border-violet-500/20">
-                        {briefPreview.productCategory}
-                      </span>
-                    )}
+                <div className="flex items-center gap-2 mb-6">
+                  <Sparkles size={20} className="text-violet-400" />
+                  <h2 className="text-xl font-bold text-white">AI Generated Brief</h2>
+                  {briefPreview.productCategory && (
+                    <span className="ml-auto px-3 py-1 bg-violet-500/10 text-violet-300 text-xs rounded-full border border-violet-500/20">
+                      {briefPreview.productCategory}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-5 mb-6">
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Title</p>
+                    <p className="text-white font-semibold text-lg">{briefPreview.title}</p>
                   </div>
 
-                  <div className="space-y-5 mb-6">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Description</p>
+                    <p className="text-gray-300 text-sm leading-relaxed">{briefPreview.description}</p>
+                  </div>
 
+                  {/* Product Specs - Dynamic */}
+                  {briefPreview.productSpecs && briefPreview.productSpecs.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Title</p>
-                      <p className="text-white font-semibold text-lg">{briefPreview.title}</p>
+                      <p className="text-xs text-gray-500 mb-2">Product Details</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/5 rounded-xl p-4">
+                        {briefPreview.productSpecs.map((spec, i) => (
+                          <div key={i}>
+                            <p className="text-[11px] text-gray-500">{spec.label}</p>
+                            <p className="text-sm text-white font-medium">{spec.value}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
 
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Description</p>
-                      <p className="text-gray-300 text-sm leading-relaxed">{briefPreview.description}</p>
+                      <p className="text-xs text-gray-500 mb-1">Category</p>
+                      <p className="text-gray-300 text-sm">{briefPreview.category}</p>
                     </div>
-
-                    {/* Product Specs - Dynamic */}
-                    {briefPreview.productSpecs && briefPreview.productSpecs.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-2">Product Details</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/5 rounded-xl p-4">
-                          {briefPreview.productSpecs.map((spec, i) => (
-                            <div key={i}>
-                              <p className="text-[11px] text-gray-500">{spec.label}</p>
-                              <p className="text-sm text-white font-medium">{spec.value}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Category</p>
-                        <p className="text-gray-300 text-sm">{briefPreview.category}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Budget</p>
-                        <p className="text-gray-300 text-sm">${briefPreview.suggestedBudget}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Commission</p>
-                        <p className="text-gray-300 text-sm">${briefPreview.suggestedCommission}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Platforms</p>
-                        <p className="text-gray-300 text-sm">{briefPreview.platforms}</p>
-                      </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Budget</p>
+                      <p className="text-gray-300 text-sm">${briefPreview.suggestedBudget}</p>
                     </div>
-
-                    {/* Social Captions Preview */}
-                    {briefPreview.socialCaptions && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-2">Social Media Captions (preview)</p>
-                        <div className="space-y-3">
-                          {Object.entries(briefPreview.socialCaptions).map(([platform, caption]) => (
-                            <div key={platform} className="bg-white/5 rounded-xl p-4">
-                              <p className="text-xs font-semibold text-violet-400 mb-1.5 capitalize">{platform}</p>
-                              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{caption}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Commission</p>
+                      <p className="text-gray-300 text-sm">${briefPreview.suggestedCommission}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Platforms</p>
+                      <p className="text-gray-300 text-sm">{briefPreview.platforms}</p>
+                    </div>
                   </div>
 
-                  <p className="text-sm text-gray-400 mb-4 text-center">এই AI generated brief টা কি ব্যবহার করতে চাও?</p>
+                  {/* Social Captions Preview */}
+                  {briefPreview.socialCaptions && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">Social Media Captions (preview)</p>
+                      <div className="space-y-3">
+                        {Object.entries(briefPreview.socialCaptions).map(([platform, caption]) => (
+                          <div key={platform} className="bg-white/5 rounded-xl p-4">
+                            <p className="text-xs font-semibold text-violet-400 mb-1.5 capitalize">{platform}</p>
+                            <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{caption}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="flex gap-3 sticky bottom-0 bg-[#1a1b23] pt-2">
-                    <button
-                      onClick={handleRejectBrief}
-                      className="flex-1 py-3 rounded-xl font-semibold border border-white/10 text-gray-400 hover:bg-white/5 transition-colors">
-                      ❌ No, আবার try করো
-                    </button>
-                    <button
-                      onClick={handleAcceptBrief}
-                      className="flex-1 py-3 rounded-xl font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors">
-                      ✅ Yes, এটা ব্যবহার করো
-                    </button>
-                  </div>
-                </motion.div>
+                </div>
+
+                <p className="text-sm text-gray-400 mb-4 text-center">এই AI generated brief টা কি ব্যবহার করতে চাও?</p>
+
+                <div className="flex gap-3 sticky bottom-0 bg-[#1a1b23] pt-2">
+                  <button
+                    onClick={handleRejectBrief}
+                    className="flex-1 py-3 rounded-xl font-semibold border border-white/10 text-gray-400 hover:bg-white/5 transition-colors">
+                    ❌ No, আবার try করো
+                  </button>
+                  <button
+                    onClick={handleAcceptBrief}
+                    className="flex-1 py-3 rounded-xl font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors">
+                    ✅ Yes, এটা ব্যবহার করো
+                  </button>
+                </div>
               </motion.div>
-            )}
-          </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -423,9 +444,30 @@ export default function CreateCampaignPage() {
                           placeholder="যেমন: আমি একটা Skincare Product Promote করতে চাই। এটা Natural ingredients দিয়ে তৈরি, 18-35 বছর বয়সী মেয়েদের জন্য..."
                           className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-violet-500 resize-none"
                         />
+
+                        {/* AI Brief Image Upload */}
+                        <div>
+                          {aiBriefImagePreview ? (
+                            <div className="relative w-full h-32 rounded-xl overflow-hidden border border-violet-500/30">
+                              <img src={aiBriefImagePreview} className="w-full h-full object-cover" />
+                              <button
+                                onClick={handleRemoveAiBriefImage}
+                                className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-lg hover:bg-black/80">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="w-full h-20 border-2 border-dashed border-violet-500/20 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:border-violet-500/50 transition-all">
+                              <ImageIcon size={18} className="text-gray-500" />
+                              <span className="text-gray-500 text-sm">Product এর ছবি upload করো (optional)</span>
+                              <input type="file" accept="image/*" className="hidden" onChange={handleAiBriefImageChange} />
+                            </label>
+                          )}
+                        </div>
+
                         <button
                           onClick={handleGenerateBrief}
-                          disabled={aiBriefLoading || !aiPrompt.trim()}
+                          disabled={aiBriefLoading || (!aiPrompt.trim() && !aiBriefImage)}
                           className="w-full flex items-center justify-center gap-2 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors">
                           {aiBriefLoading ? (
                             <><Sparkles size={14} className="animate-pulse" /> AI লিখছে...</>
