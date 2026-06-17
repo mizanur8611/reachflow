@@ -29,11 +29,16 @@ export default function CreateCampaignPage() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiBriefLoading, setAiBriefLoading] = useState(false)
   const [error, setError] = useState('')
   const [createdCampaignId, setCreatedCampaignId] = useState(null)
   const [shareUrl, setShareUrl] = useState('')
   const [aiContent, setAiContent] = useState(null)
   const [copied, setCopied] = useState('')
+
+  // AI Brief Generator
+  const [showAiBrief, setShowAiBrief] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
 
   // Step 1
   const [imagePreview, setImagePreview] = useState(null)
@@ -57,9 +62,59 @@ export default function CreateCampaignPage() {
   const [videoPreview, setVideoPreview] = useState(null)
   const [videoUploading, setVideoUploading] = useState(false)
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState('')
-
-  // AI Editor state — which image is being edited
   const [aiEditorIndex, setAiEditorIndex] = useState(null)
+
+  // ── AI Brief Generator ──
+  const handleGenerateBrief = async () => {
+    if (!aiPrompt.trim()) return
+    setAiBriefLoading(true)
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `তুমি একটা Influencer Marketing Campaign Brief তৈরি করবে। 
+
+Product/Brand: "${aiPrompt}"
+
+নিচের JSON format এ শুধু JSON return করো, কোনো extra text না:
+{
+  "title": "Campaign এর একটা catchy title (max 60 chars)",
+  "description": "Campaign এর detailed description (2-3 sentences, Bangla বা English mix করতে পারো)",
+  "category": "এই list থেকে একটা: Fashion, Food, Tech, Beauty, Health, Education, Gaming, General",
+  "suggestedBudget": "suggested budget in USD (number only)",
+  "suggestedCommission": "suggested commission per post in USD (number only)",
+  "platforms": "এই list থেকে relevant platforms: FACEBOOK, INSTAGRAM, TIKTOK, YOUTUBE, TWITTER, TELEGRAM (comma separated)"
+}`
+          }]
+        })
+      })
+      const data = await response.json()
+      const text = data.content?.[0]?.text || ''
+      const clean = text.replace(/```json|```/g, '').trim()
+      const brief = JSON.parse(clean)
+      
+      setForm(f => ({
+        ...f,
+        title: brief.title || f.title,
+        description: brief.description || f.description,
+        category: brief.category || f.category,
+        budget: brief.suggestedBudget || f.budget,
+        commissionAmount: brief.suggestedCommission || f.commissionAmount,
+        platforms: brief.platforms ? brief.platforms.split(',').map(p => p.trim()) : f.platforms,
+      }))
+      setShowAiBrief(false)
+      setAiPrompt('')
+    } catch (err) {
+      setError('AI Brief generate হয়নি, আবার try করো')
+    } finally {
+      setAiBriefLoading(false)
+    }
+  }
 
   // ── Image Upload ──
   const handleImageChange = async (e) => {
@@ -103,7 +158,6 @@ export default function CreateCampaignPage() {
     }
   }
 
-  // ── AI Editor: image update callback ──
   const handleAIImageUpdate = (index, newUrl) => {
     setProductImages(prev => prev.map((img, i) =>
       i === index ? { ...img, url: newUrl, preview: newUrl } : img
@@ -243,6 +297,48 @@ export default function CreateCampaignPage() {
             <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 space-y-6">
 
+              {/* AI Brief Generator Button */}
+              <div>
+                <button
+                  onClick={() => setShowAiBrief(!showAiBrief)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600/20 to-purple-600/20 hover:from-violet-600/30 hover:to-purple-600/30 border border-violet-500/30 rounded-xl text-violet-300 text-sm font-medium transition-all">
+                  <Sparkles size={16} className="text-violet-400" />
+                  ✨ AI দিয়ে Campaign Brief তৈরি করো
+                </button>
+
+                {/* AI Brief Panel */}
+                <AnimatePresence>
+                  {showAiBrief && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden">
+                      <div className="mt-3 p-4 bg-violet-500/5 border border-violet-500/20 rounded-xl space-y-3">
+                        <p className="text-xs text-violet-400">তোমার product বা brand সম্পর্কে লেখো — AI পুরো campaign brief তৈরি করবে!</p>
+                        <textarea
+                          rows={3}
+                          value={aiPrompt}
+                          onChange={e => setAiPrompt(e.target.value)}
+                          placeholder="যেমন: আমি একটা Skincare Product Promote করতে চাই। এটা Natural ingredients দিয়ে তৈরি, 18-35 বছর বয়সী মেয়েদের জন্য..."
+                          className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-violet-500 resize-none"
+                        />
+                        <button
+                          onClick={handleGenerateBrief}
+                          disabled={aiBriefLoading || !aiPrompt.trim()}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors">
+                          {aiBriefLoading ? (
+                            <><Sparkles size={14} className="animate-pulse" /> AI লিখছে...</>
+                          ) : (
+                            <><Sparkles size={14} /> Generate Brief</>
+                          )}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Product Image (thumbnail)</label>
                 {imagePreview ? (
@@ -353,7 +449,6 @@ export default function CreateCampaignPage() {
                         <button onClick={() => { setProductImages(p => p.filter((_, idx) => idx !== i)); if (aiEditorIndex === i) setAiEditorIndex(null) }}
                           className="absolute top-1 right-1 p-0.5 bg-black/70 rounded-full"><X size={10} /></button>
                       </div>
-                      {/* AI Edit Button */}
                       <button
                         onClick={() => setAiEditorIndex(aiEditorIndex === i ? null : i)}
                         className={`mt-1 w-20 py-1 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${aiEditorIndex === i ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-violet-500/20 hover:text-violet-400'}`}>
@@ -369,8 +464,6 @@ export default function CreateCampaignPage() {
                     </label>
                   )}
                 </div>
-
-                {/* AI Editor Panel */}
                 {aiEditorIndex !== null && productImages[aiEditorIndex] && (
                   <ImageAIEditor
                     imageUrl={productImages[aiEditorIndex].url}
@@ -453,8 +546,6 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-
-              {/* Offer End Date */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Offer End Date (optional)</label>
                 <input type="datetime-local" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500"
@@ -462,7 +553,6 @@ export default function CreateCampaignPage() {
                   onChange={e => setLandingForm(f => ({ ...f, offerEndsAt: e.target.value }))} />
               </div>
 
-              {/* WhatsApp Number */}
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">WhatsApp Number (optional)</label>
                 <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
