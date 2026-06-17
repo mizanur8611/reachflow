@@ -1304,22 +1304,85 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
 app.post('/api/ai/brief', authMiddleware, async (req, res) => {
   try {
     const { prompt } = req.body
+
+    if (!prompt || prompt.trim() === '') {
+      return res.status(400).json({ error: 'Prompt দাও — product বা brand সম্পর্কে লেখো' })
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(503).json({ error: 'AI service এখন available নেই। পরে try করো।' })
+    }
+
     const Anthropic = require('@anthropic-ai/sdk')
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1000,
+      max_tokens: 2000,
       messages: [{
         role: 'user',
-        content: `তুমি একটা Influencer Marketing Campaign Brief তৈরি করবে।\n\nProduct/Brand: "${prompt}"\n\nনিচের JSON format এ শুধু JSON return করো:\n{\n  "title": "Campaign title (max 60 chars)",\n  "description": "2-3 sentences",\n  "category": "Fashion/Food/Tech/Beauty/Health/Education/Gaming/General",\n  "suggestedBudget": "number only",\n  "suggestedCommission": "number only",\n  "platforms": "FACEBOOK,INSTAGRAM,TIKTOK comma separated"\n}`
+        content: `তুমি একজন Expert Influencer Marketing Strategist। তোমার কাজ হলো একটা product/brand description পড়ে সেটা কোন category এর (Electronics, Fashion, Food, Beauty, Home Appliance, ইত্যাদি) বুঝে, সেই category এর জন্য সবচেয়ে গুরুত্বপূর্ণ এবং highlight-worthy details সহ একটা সম্পূর্ণ campaign brief বানাবে।
+
+Product/Brand Description: "${prompt}"
+
+নিয়ম:
+1. প্রথমে বুঝো এটা কোন productCategory (যেমন: "Electronics", "Mobile Phone", "Fashion", "Home Appliance", "Beauty", "Food", "Furniture", ইত্যাদি)
+2. সেই category অনুযায়ী productSpecs এ সবচেয়ে relevant specs/details suggest করো:
+   - Mobile Phone হলে: Brand, Model, RAM, Storage, Camera, Battery, Display, Price, Color options
+   - Fashion (কাপড়/জুতা) হলে: Brand, Size range, Age group (যদি baby/kids), Fabric/Material, Color options, Price
+   - Electronics (AC/Fridge/TV) হলে: Brand, Model, Capacity/Size, Energy rating, Special features, Warranty, Price
+   - Beauty/Skincare হলে: Brand, Ingredients, Skin type suitable for, Volume/Size, Price
+   - Food হলে: Brand, Ingredients/Type, Weight/Quantity, Price, Special diet info (vegan, halal, etc)
+   - অন্য কোনো category হলে সবচেয়ে relevant 4-6 টা specs বানাও
+3. realistic এবং practical budget suggest করো (Bangladesh market অনুযায়ী, টাকায় না, USD এ — কিন্তু ছোট, realistic amount, যেমন $50-$500, কখনো $50000 এর মতো অবাস্তব না)
+4. প্রতিটা social media platform (Facebook, Instagram, TikTok, Telegram, Twitter) এর জন্য আলাদা আলাদা ready-to-post style caption লিখবে — ঠিক যেভাবে real marketers post করে (emoji, hook line, highlight, CTA সহ)
+
+শুধু এই exact JSON ফরম্যাটে রিপ্লাই করো, অন্য কোনো text/explanation ছাড়া:
+
+{
+  "title": "আকর্ষণীয় campaign title",
+  "description": "campaign এর সংক্ষিপ্ত বিবরণ (২-৩ লাইন)",
+  "category": "Fashion/Tech/Beauty/Food/Education/Gaming/General এর মধ্যে যেটা সবচেয়ে কাছাকাছি",
+  "productCategory": "নির্দিষ্ট product category (যেমন: Mobile Phone, Baby Fashion, Home Appliance)",
+  "productSpecs": [
+    { "label": "Brand", "value": "..." },
+    { "label": "...", "value": "..." }
+  ],
+  "suggestedBudget": realistic_number,
+  "suggestedCommission": realistic_number,
+  "platforms": "INSTAGRAM,FACEBOOK,TIKTOK",
+  "socialCaptions": {
+    "facebook": "Facebook এর জন্য সম্পূর্ণ ready caption with emoji and CTA",
+    "instagram": "Instagram এর জন্য caption with hashtags",
+    "tiktok": "TikTok এর জন্য short punchy hook line + caption",
+    "telegram": "Telegram এর জন্য caption",
+    "twitter": "Twitter এর জন্য ছোট caption (280 char এর মধ্যে)"
+  }
+}`
       }]
     })
+
     const text = message.content[0].text
     const clean = text.replace(/```json|```/g, '').trim()
     const brief = JSON.parse(clean)
     res.json({ success: true, brief })
+
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('AI Brief Error:', err)
+
+    if (err.status === 529 || err.message?.includes('overloaded')) {
+      return res.status(503).json({ error: 'AI service এখন busy। কিছুক্ষণ পর আবার try করো।' })
+    }
+
+    if (err.status === 400 || err.message?.includes('credit') || err.message?.includes('billing')) {
+      return res.status(503).json({ error: 'AI service temporarily unavailable। Admin কে জানাও।' })
+    }
+
+    if (err instanceof SyntaxError) {
+      return res.status(500).json({ error: 'AI response process করতে সমস্যা হয়েছে। আবার try করো।' })
+    }
+
+    res.status(500).json({ error: 'Brief generate হয়নি। আবার try করো।' })
   }
 })
 
