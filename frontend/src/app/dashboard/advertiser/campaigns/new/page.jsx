@@ -264,7 +264,7 @@ export default function CreateCampaignPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 sm:p-8 max-w-3xl w-full max-h-[92vh] overflow-y-auto">
+                  className="bg-[#1a1b23] border border-violet-500/30 rounded-2xl p-6 sm:p-8 max-w-5xl w-full h-[95vh] overflow-y-auto">
 
                   <div className="flex items-center gap-2 mb-6">
                     <Sparkles size={20} className="text-violet-400" />
