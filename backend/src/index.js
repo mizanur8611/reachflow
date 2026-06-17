@@ -1303,10 +1303,10 @@ app.post('/api/messages', authMiddleware, async (req, res) => {
 // AI Brief Generator
 app.post('/api/ai/brief', authMiddleware, async (req, res) => {
   try {
-    const { prompt } = req.body
+    const { prompt, image } = req.body
 
-    if (!prompt || prompt.trim() === '') {
-      return res.status(400).json({ error: 'Prompt দাও — product বা brand সম্পর্কে লেখো' })
+    if ((!prompt || prompt.trim() === '') && !image) {
+      return res.status(400).json({ error: 'Prompt লেখো বা product এর ছবি upload করো' })
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -1316,14 +1316,29 @@ app.post('/api/ai/brief', authMiddleware, async (req, res) => {
     const Anthropic = require('@anthropic-ai/sdk')
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      messages: [{
-        role: 'user',
-        content: `তুমি একজন Expert Influencer Marketing Strategist। তোমার কাজ হলো একটা product/brand description পড়ে সেটা কোন category এর (Electronics, Fashion, Food, Beauty, Home Appliance, ইত্যাদি) বুঝে, সেই category এর জন্য সবচেয়ে গুরুত্বপূর্ণ এবং highlight-worthy details সহ একটা সম্পূর্ণ campaign brief বানাবে।
+    // Build content blocks (image + text)
+    const contentBlocks = []
 
-Product/Brand Description: "${prompt}"
+    if (image) {
+      const matches = image.match(/^data:(image\/\w+);base64,(.+)$/)
+      if (matches) {
+        contentBlocks.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: matches[1],
+            data: matches[2]
+          }
+        })
+      }
+    }
+
+    contentBlocks.push({
+      type: 'text',
+      text: `তুমি একজন Expert Influencer Marketing Strategist। তোমার কাজ হলো ${image ? 'এই product এর ছবি দেখে এবং নিচের description পড়ে' : 'নিচের product/brand description পড়ে'} সেটা কোন category এর (Electronics, Fashion, Food, Beauty, Home Appliance, ইত্যাদি) বুঝে, সেই category এর জন্য সবচেয়ে গুরুত্বপূর্ণ এবং highlight-worthy details সহ একটা সম্পূর্ণ campaign brief বানাবে।
+
+${image ? 'ছবি থেকে product এর brand, color, type, style বোঝার চেষ্টা করো।' : ''}
+Product/Brand Description: "${prompt || 'ছবি দেখে বুঝে নাও'}"
 
 নিয়ম:
 1. প্রথমে বুঝো এটা কোন productCategory (যেমন: "Electronics", "Mobile Phone", "Fashion", "Home Appliance", "Beauty", "Food", "Furniture", ইত্যাদি)
@@ -1334,8 +1349,8 @@ Product/Brand Description: "${prompt}"
    - Beauty/Skincare হলে: Brand, Ingredients, Skin type suitable for, Volume/Size, Price
    - Food হলে: Brand, Ingredients/Type, Weight/Quantity, Price, Special diet info (vegan, halal, etc)
    - অন্য কোনো category হলে সবচেয়ে relevant 4-6 টা specs বানাও
-3. realistic এবং practical budget suggest করো (Bangladesh market অনুযায়ী, টাকায় না, USD এ — কিন্তু ছোট, realistic amount, যেমন $50-$500, কখনো $50000 এর মতো অবাস্তব না)
-4. প্রতিটা social media platform (Facebook, Instagram, TikTok, Telegram, Twitter) এর জন্য আলাদা আলাদা ready-to-post style caption লিখবে — ঠিক যেভাবে real marketers post করে (emoji, hook line, highlight, CTA সহ)
+3. realistic এবং practical budget suggest করো (USD এ, ছোট realistic amount, যেমন $50-$500)
+4. প্রতিটা social media platform (Facebook, Instagram, TikTok, Telegram, Twitter) এর জন্য আলাদা আলাদা ready-to-post style caption লিখবে
 
 শুধু এই exact JSON ফরম্যাটে রিপ্লাই করো, অন্য কোনো text/explanation ছাড়া:
 
@@ -1343,7 +1358,7 @@ Product/Brand Description: "${prompt}"
   "title": "আকর্ষণীয় campaign title",
   "description": "campaign এর সংক্ষিপ্ত বিবরণ (২-৩ লাইন)",
   "category": "Fashion/Tech/Beauty/Food/Education/Gaming/General এর মধ্যে যেটা সবচেয়ে কাছাকাছি",
-  "productCategory": "নির্দিষ্ট product category (যেমন: Mobile Phone, Baby Fashion, Home Appliance)",
+  "productCategory": "নির্দিষ্ট product category",
   "productSpecs": [
     { "label": "Brand", "value": "..." },
     { "label": "...", "value": "..." }
@@ -1359,6 +1374,14 @@ Product/Brand Description: "${prompt}"
     "twitter": "Twitter এর জন্য ছোট caption (280 char এর মধ্যে)"
   }
 }`
+    })
+
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: contentBlocks
       }]
     })
 
