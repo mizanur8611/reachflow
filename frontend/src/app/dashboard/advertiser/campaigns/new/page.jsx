@@ -69,46 +69,28 @@ export default function CreateCampaignPage() {
     if (!aiPrompt.trim()) return
     setAiBriefLoading(true)
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/brief`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `তুমি একটা Influencer Marketing Campaign Brief তৈরি করবে। 
-
-Product/Brand: "${aiPrompt}"
-
-নিচের JSON format এ শুধু JSON return করো, কোনো extra text না:
-{
-  "title": "Campaign এর একটা catchy title (max 60 chars)",
-  "description": "Campaign এর detailed description (2-3 sentences, Bangla বা English mix করতে পারো)",
-  "category": "এই list থেকে একটা: Fashion, Food, Tech, Beauty, Health, Education, Gaming, General",
-  "suggestedBudget": "suggested budget in USD (number only)",
-  "suggestedCommission": "suggested commission per post in USD (number only)",
-  "platforms": "এই list থেকে relevant platforms: FACEBOOK, INSTAGRAM, TIKTOK, YOUTUBE, TWITTER, TELEGRAM (comma separated)"
-}`
-          }]
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt: aiPrompt })
       })
       const data = await response.json()
-      const text = data.content?.[0]?.text || ''
-      const clean = text.replace(/```json|```/g, '').trim()
-      const brief = JSON.parse(clean)
-      
-      setForm(f => ({
-        ...f,
-        title: brief.title || f.title,
-        description: brief.description || f.description,
-        category: brief.category || f.category,
-        budget: brief.suggestedBudget || f.budget,
-        commissionAmount: brief.suggestedCommission || f.commissionAmount,
-        platforms: brief.platforms ? brief.platforms.split(',').map(p => p.trim()) : f.platforms,
-      }))
-      setShowAiBrief(false)
-      setAiPrompt('')
+      if (data.success) {
+        const brief = data.brief
+        setForm(f => ({
+          ...f,
+          title: brief.title || f.title,
+          description: brief.description || f.description,
+          category: brief.category || f.category,
+          budget: brief.suggestedBudget || f.budget,
+          commissionAmount: brief.suggestedCommission || f.commissionAmount,
+          platforms: brief.platforms ? brief.platforms.split(',').map(p => p.trim()) : f.platforms,
+        }))
+        setShowAiBrief(false)
+        setAiPrompt('')
+      } else {
+        setError('AI Brief generate হয়নি, আবার try করো')
+      }
     } catch (err) {
       setError('AI Brief generate হয়নি, আবার try করো')
     } finally {
