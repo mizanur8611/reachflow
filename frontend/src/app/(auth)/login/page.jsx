@@ -39,6 +39,9 @@ export default function AuthPage() {
   const [showPass, setShowPass] = useState(false)
   const [loginRole, setLoginRole] = useState('PROMOTER')
   const [registerRole, setRegisterRole] = useState('ADVERTISER')
+  const [showVerifyNotice, setShowVerifyNotice] = useState(false)
+  const [verifyEmail, setVerifyEmail] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
   const { setUser } = useAuthStore()
   const router = useRouter()
 
@@ -54,16 +57,36 @@ export default function AuthPage() {
       toast.success(`Welcome back, ${data.user.name}! 👋`)
       router.push(data.user.role === 'ADMIN' ? '/admin' : data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
     },
-    onError: (err) => toast.error(err.response?.data?.error ?? 'Login failed')
+    onError: (err) => {
+      if (err.response?.data?.error === 'EMAIL_NOT_VERIFIED') {
+        setVerifyEmail(loginForm.getValues('email'))
+        setShowVerifyNotice(true)
+      } else {
+        setShowVerifyNotice(false)
+        toast.error(err.response?.data?.error ?? 'Login failed')
+      }
+    }
   })
+
+  const handleResendCode = async () => {
+    setResendLoading(true)
+    try {
+      await api.post('/auth/resend-verification', { email: verifyEmail })
+      toast.success('Verification email আবার পাঠানো হয়েছে! Inbox চেক করো।')
+    } catch (err) {
+      toast.error(err.response?.data?.error ?? 'Resend failed')
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   const registerMutation = useMutation({
     mutationFn: (data) => api.post('/auth/register', data),
     onSuccess: ({ data }) => {
-      localStorage.setItem('rf_token', data.token)
-      setUser(data.user)
-      toast.success('Account created! 🎉')
-      router.push(data.user.role === 'ADVERTISER' ? '/dashboard/advertiser' : '/dashboard/promoter')
+      toast.success('Account created! Email এ verification link পাঠানো হয়েছে — verify করে login করো। 🎉')
+      setMode('login')
+      setVerifyEmail(data.user?.email || registerForm.getValues('email'))
+      setShowVerifyNotice(true)
     },
     onError: (err) => toast.error(err.response?.data?.error ?? 'Registration failed')
   })
@@ -132,6 +155,19 @@ export default function AuthPage() {
               <motion.div key="login" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <h1 className="text-2xl font-bold text-white mb-1">Welcome back!</h1>
                 <p className="text-gray-400 text-sm mb-5">Sign in to your ReachFlow account</p>
+
+                {showVerifyNotice && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-5">
+                    <p className="text-amber-400 text-sm font-medium mb-1">📧 Email Verify করা হয়নি</p>
+                    <p className="text-gray-400 text-xs mb-3">{verifyEmail} এ পাঠানো verification link টা inbox এ চেক করো (Spam folder ও দেখো)।</p>
+                    <button
+                      onClick={handleResendCode}
+                      disabled={resendLoading}
+                      className="text-xs px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg transition-all disabled:opacity-50">
+                      {resendLoading ? 'পাঠানো হচ্ছে...' : 'আবার Email পাঠাও'}
+                    </button>
+                  </div>
+                )}
 
                 {/* Role select */}
                 <p className="text-gray-400 text-xs mb-2">I am a:</p>
