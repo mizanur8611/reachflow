@@ -395,6 +395,25 @@ app.post('/api/auth/login', async (req, res) => {
   }
 })
 
+// Resend Verification Email
+app.post('/api/auth/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) return res.status(404).json({ error: 'User পাওয়া যায়নি' })
+    if (user.emailVerified) return res.status(400).json({ error: 'Email already verified' })
+
+    const verifyToken = crypto.randomBytes(32).toString('hex')
+    const { sendVerificationEmail } = require('./services/emailService')
+    await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
+
+    res.json({ success: true, message: 'Verification email পাঠানো হয়েছে' })
+  } catch (err) {
+    console.error('Resend verification error:', err)
+    res.status(500).json({ error: 'Resend failed' })
+  }
+})
+
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
