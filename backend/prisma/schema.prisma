@@ -23,6 +23,8 @@ model User {
   role          UserRole  @default(PROMOTER)
   status        Status    @default(ACTIVE)
   emailVerified Boolean   @default(false)
+  verificationCode       String?
+  verificationCodeExpiry DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   referralCode  String?   @unique

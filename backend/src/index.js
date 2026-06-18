@@ -383,8 +383,13 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(400).json({ error: 'Invalid credentials' })
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) return res.status(400).json({ error: 'Invalid credentials' })
+
+    if (!user.emailVerified) {
+      return res.status(403).json({ error: 'EMAIL_NOT_VERIFIED', message: 'Email verify করা হয়নি। Inbox চেক করো।' })
+    }
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
-    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } })
+    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role, a...
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
