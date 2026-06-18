@@ -345,14 +345,12 @@ app.post('/api/auth/register', async (req, res) => {
           }
         })
       }
-      const verifyToken = crypto.randomBytes(32).toString('hex')
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: false, referralCode: user.referralCode }
-      })
-      const { sendVerificationEmail } = require('./services/emailService')
-      await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
     }
+
+    // Send verification email for every new registration (not just referral signups)
+    const verifyToken = crypto.randomBytes(32).toString('hex')
+    const { sendVerificationEmail } = require('./services/emailService')
+    await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
