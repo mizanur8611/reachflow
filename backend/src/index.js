@@ -374,7 +374,7 @@ app.get('/api/auth/verify-email', async (req, res) => {
     const userId = parts[parts.length - 1]
     if (!userId) return res.status(400).json({ error: 'Invalid token' })
     await prisma.user.update({ where: { id: userId }, data: { emailVerified: true } })
-    res.redirect(`${process.env.FRONTEND_URL || 'https://reachflow-lovat.vercel.app'}/login?verified=true`)
+    res.redirect(`${process.env.FRONTEND_URL || 'https://reachflowbd.com'}/login?verified=true`)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1023,7 +1023,7 @@ app.get('/c/:shortCode', async (req, res) => {
     const campaign = link.campaign
     const title = campaign?.title || 'Check this out!'
     const description = campaign?.description || 'Amazing offer for you!'
-    const image = campaign?.productImages?.[0] || 'https://reachflow-lovat.vercel.app/og-default.png'
+    const image = campaign?.productImages?.[0] || 'https://reachflowbd.com/og-default.png'
     const redirectUrl = link.campaign?.landingPage?.slug 
     ? `${process.env.FRONTEND_URL}/p/${link.campaign.landingPage.slug}?ref=${link.shortCode}`
     : link.originalUrl
@@ -1035,7 +1035,7 @@ app.get('/c/:shortCode', async (req, res) => {
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:image" content="${image}" />
-  <meta property="og:url" content="https://reachflow-j34o.onrender.com/c/${req.params.shortCode}" />
+  <meta property="og:url" content="https://reachflowbd.com/c/${req.params.shortCode}" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
@@ -1639,7 +1639,7 @@ app.get('/api/referral/my', authMiddleware, async (req, res) => {
     res.json({
       success: true,
       referralCode: user.referralCode,
-      referralLink: `${process.env.FRONTEND_URL || 'https://reachflow-lovat.vercel.app'}/register?ref=${user.referralCode}`,
+      referralLink: `${process.env.FRONTEND_URL || 'https://reachflowbd.com'}/register?ref=${user.referralCode}`,
       totalReferrals: referrals.length,
       completedReferrals: referrals.filter(r => r.status === 'REWARDED').length,
       totalEarned,
