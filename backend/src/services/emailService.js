@@ -4,16 +4,30 @@ const { Resend } = require('resend')
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.FROM_EMAIL || 'onboarding@resend.dev'
 const APP_NAME = 'ReachFlow'
-const APP_URL = 'https://reachflow-lovat.vercel.app'
+const APP_URL = 'https://reachflowbd.com'
+
+if (!process.env.RESEND_API_KEY) {
+  console.error('⚠️  RESEND_API_KEY is not set — emails will fail to send.')
+}
+if (!process.env.FROM_EMAIL) {
+  console.warn('⚠️  FROM_EMAIL not set, falling back to onboarding@resend.dev')
+}
 
 // ─────────────────────────────────────────
 // HELPER
 // ─────────────────────────────────────────
 const sendEmail = async (to, subject, html) => {
   try {
-    await resend.emails.send({ from: FROM, to, subject, html })
+    const result = await resend.emails.send({ from: FROM, to, subject, html })
+    if (result?.error) {
+      console.error('Resend API returned an error:', JSON.stringify(result.error))
+      throw new Error(result.error.message || 'Resend send failed')
+    }
+    console.log(`✅ Email sent to ${to} (id: ${result?.data?.id || 'unknown'})`)
+    return result
   } catch (err) {
-    console.error('Email error:', err)
+    console.error('❌ Email error:', err?.message || err)
+    throw err
   }
 }
 

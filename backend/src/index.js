@@ -51,7 +51,9 @@ const prisma = new PrismaClient()
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://reachflow-lovat.vercel.app'
+    'https://reachflow-lovat.vercel.app',
+    'https://reachflowbd.com',
+    'https://www.reachflowbd.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -350,7 +352,11 @@ app.post('/api/auth/register', async (req, res) => {
     // Send verification email for every new registration (not just referral signups)
     const verifyToken = crypto.randomBytes(32).toString('hex')
     const { sendVerificationEmail } = require('./services/emailService')
-    await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
+    try {
+      await sendVerificationEmail(user.email, user.name, verifyToken + '_' + user.id)
+    } catch (emailErr) {
+      console.error('🚨 Verification email failed to send for', user.email, '-', emailErr?.message)
+    }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
