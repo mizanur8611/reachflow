@@ -130,10 +130,10 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative min-h-screen flex items-center pt-20">
         {/* BG Effects */}
+        
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(124,58,237,0.25),transparent_70%)]" />
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-violet-950/40 via-transparent to-black/40" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-6 text-center">
