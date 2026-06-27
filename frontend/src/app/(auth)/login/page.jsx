@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -36,6 +36,7 @@ export default function AuthPage() {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState(searchParams.get('mode') || 'login')
   const refCode = searchParams.get('ref')
+  const justVerified = searchParams.get('verified') === 'true'
   const [showPass, setShowPass] = useState(false)
   const [loginRole, setLoginRole] = useState('PROMOTER')
   const [registerRole, setRegisterRole] = useState('ADVERTISER')
@@ -44,6 +45,11 @@ export default function AuthPage() {
   const [resendLoading, setResendLoading] = useState(false)
   const { setUser } = useAuthStore()
   const router = useRouter()
+  useEffect(() => {
+    if (justVerified) {
+      toast.success('✅ Email Verify সফল হয়েছে! এখন Login করো।', { duration: 5000 })
+    }
+  }, [justVerified])
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema) })
   const registerForm = useForm({ resolver: zodResolver(registerSchema), defaultValues: { role: 'ADVERTISER' } })
@@ -156,6 +162,13 @@ export default function AuthPage() {
                 <h1 className="text-2xl font-bold text-white mb-1">Welcome back!</h1>
                 <p className="text-gray-400 text-sm mb-5">Sign in to your ReachFlow account</p>
 
+                {justVerified && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-5">
+                    <p className="text-emerald-400 text-sm font-medium">✅ Email Verify সফল হয়েছে!</p>
+                    <p className="text-gray-400 text-xs mt-1">এখন তোমার Email এবং Password দিয়ে Sign In করো।</p>
+                  </div>
+                )}
+                
                 {showVerifyNotice && (
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-5">
                     <p className="text-amber-400 text-sm font-medium mb-1">📧 Email Verify করা হয়নি</p>
