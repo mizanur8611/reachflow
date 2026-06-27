@@ -130,9 +130,10 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative min-h-screen flex items-center pt-20">
         {/* BG Effects */}
-
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1e1235] via-[#0f0a1a] to-black" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-6 text-center">
@@ -143,7 +144,7 @@ export default function LandingPage() {
 
             <h1 className="text-6xl md:text-7xl font-black leading-none mb-6">
               Grow Your Brand<br />
-              <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-violet-500 via-pink-500 to-orange-400 bg-clip-text text-transparent">
                 Without Paid Ads
               </span>
             </h1>
