@@ -94,47 +94,48 @@ export default function CampaignAnalyticsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-3 sm:gap-4 mb-8 flex-wrap">
           <Link href={`/dashboard/advertiser/campaigns/${id}`}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+            className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors shrink-0">
             <ArrowLeft size={20} />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <TrendingUp size={22} className="text-violet-400" />
-              Campaign Analytics
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <TrendingUp size={22} className="text-violet-400 shrink-0" />
+              <span className="truncate">Campaign Analytics</span>
             </h1>
-            <p className="text-gray-400 text-sm mt-0.5">{campaign.title}</p>
+            <p className="text-gray-400 text-sm mt-0.5 truncate">{campaign.title}</p>
           </div>
-          <ExportButton
-              type="campaign"
-              campaignId={id}
-              campaignTitle={campaign.title}
-              className="ml-auto mr-3"
-            />
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            campaign.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
-            campaign.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400' :
-            'bg-gray-500/10 text-gray-400'
-          }`}>
-            {campaign.status}
-          </span>
+          <div className="flex items-center gap-3 ml-auto shrink-0">
+            <ExportButton
+                type="campaign"
+                campaignId={id}
+                campaignTitle={campaign.title}
+              />
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+              campaign.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
+              campaign.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400' :
+              'bg-gray-500/10 text-gray-400'
+            }`}>
+              {campaign.status}
+            </span>
+          </div>
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {statCards.map((s, i) => (
             <motion.div key={s.label}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-5">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <s.icon size={18} className="text-white" />
               </div>
-              <p className="text-2xl font-bold">{s.value}</p>
+              <p className="text-xl sm:text-2xl font-bold">{s.value}</p>
               <p className="text-gray-400 text-xs mt-1">{s.label}</p>
               <p className="text-gray-600 text-xs mt-0.5">{s.sub}</p>
             </motion.div>
@@ -143,12 +144,12 @@ export default function CampaignAnalyticsPage() {
 
         {/* Budget Progress */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
+          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h2 className="font-semibold flex items-center gap-2"><Zap size={16} className="text-violet-400" /> Budget Overview</h2>
             <span className="text-sm text-gray-400">{budgetPercent.toFixed(1)}% used</span>
           </div>
-          <div className="flex items-center justify-between text-sm mb-3">
+          <div className="flex items-center justify-between text-sm mb-3 flex-wrap gap-2">
             <span className="text-gray-400">Spent: <span className="text-white font-semibold">${totals.budgetUsed.toFixed(2)}</span></span>
             <span className="text-gray-400">Total: <span className="text-white font-semibold">${campaign.totalBudget.toFixed(2)}</span></span>
           </div>
@@ -160,7 +161,7 @@ export default function CampaignAnalyticsPage() {
               className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500"
             />
           </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-600">
+          <div className="flex justify-between mt-2 text-xs text-gray-600 flex-wrap gap-1">
             <span>$0</span>
             <span className="text-emerald-500">${totals.budgetRemaining.toFixed(2)} remaining</span>
             <span>${campaign.totalBudget.toFixed(2)}</span>
@@ -168,11 +169,11 @@ export default function CampaignAnalyticsPage() {
         </motion.div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
 
           {/* Platform Breakdown Pie */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
+            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
               <Target size={16} className="text-violet-400" /> Platform Breakdown
             </h2>
@@ -207,7 +208,7 @@ export default function CampaignAnalyticsPage() {
 
           {/* Top Promoters Bar */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
+            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
               <Users size={16} className="text-violet-400" /> Top Promoters by Clicks
             </h2>
@@ -232,9 +233,10 @@ export default function CampaignAnalyticsPage() {
         {topPromoters.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
             className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/5">
+            <div className="px-4 sm:px-6 py-4 border-b border-white/5">
               <h2 className="font-semibold">Promoter Performance</h2>
             </div>
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
@@ -250,10 +252,10 @@ export default function CampaignAnalyticsPage() {
                   <tr key={i} className="hover:bg-white/[0.02]">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-bold">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-bold shrink-0">
                           {p.name?.[0]?.toUpperCase()}
                         </div>
-                        <span className="text-sm font-medium">{p.name}</span>
+                        <span className="text-sm font-medium whitespace-nowrap">{p.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-300">{p.submissions}</td>
@@ -266,6 +268,7 @@ export default function CampaignAnalyticsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </motion.div>
         )}
 
