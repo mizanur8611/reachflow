@@ -126,26 +126,26 @@ export default function MySubmissionsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">My Submissions 📋</h1>
-          <p className="text-gray-400 mt-1">Track your submitted proofs and their status.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">My Submissions 📋</h1>
+          <p className="text-gray-400 mt-1 text-sm sm:text-base">Track your submitted proofs and their status.</p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
           {[
             { label: 'Total', value: submissions.length, color: 'from-violet-500 to-purple-600' },
             { label: 'Approved', value: submissions.filter(s => s.status === 'APPROVED').length, color: 'from-emerald-500 to-teal-600' },
             { label: 'Pending', value: submissions.filter(s => s.status === 'PENDING').length, color: 'from-orange-500 to-amber-600' },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-3 sm:p-5 min-w-0">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <span className="text-white font-bold text-sm">{s.value}</span>
               </div>
-              <p className="text-2xl font-bold">{s.value}</p>
+              <p className="text-xl sm:text-2xl font-bold">{s.value}</p>
               <p className="text-gray-400 text-xs mt-1">{s.label} Submissions</p>
             </motion.div>
           ))}
@@ -162,16 +162,19 @@ export default function MySubmissionsPage() {
           ) : submissions.length === 0 ? (
             <div className="px-6 py-12 text-center text-gray-500">No submissions yet.</div>
           ) : (
+            <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
-                  <th className="px-6 py-3 text-left">Campaign</th>
-                  <th className="px-6 py-3 text-left">Post URL</th>
-                  <th className="px-6 py-3 text-left">Tracking Link</th>
-                  <th className="px-6 py-3 text-center">QR Code</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-center">Rate</th>
-                  <th className="px-6 py-3 text-right">Submitted</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Campaign</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Post URL</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Tracking Link</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">QR Code</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Rate</th>
+                  <th className="px-6 py-3 text-right whitespace-nowrap">Submitted</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -182,58 +185,58 @@ export default function MySubmissionsPage() {
                   const alreadyRated = ratedCampaigns.includes(s.campaignId)
                   return (
                     <tr key={i} className="hover:bg-white/[0.02]">
-                      <td className="px-6 py-4 text-sm font-medium">{s.campaign?.title || '-'}</td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">{s.campaign?.title || '-'}</td>
+                      <td className="px-6 py-4 text-sm whitespace-nowrap">
                         <a href={s.postUrl} target="_blank" rel="noreferrer"
                           className="text-violet-400 hover:text-violet-300 flex items-center gap-1">
                           View Post <ExternalLink size={12} />
                         </a>
                       </td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-6 py-4 text-sm whitespace-nowrap">
                         {trackUrl ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-400 text-xs truncate max-w-[120px]">{trackUrl}</span>
+                            <span title={trackUrl} className="text-gray-400 text-xs truncate max-w-[120px]">{trackUrl}</span>
                             <button onClick={() => copyLink(s.campaign?.id, trackUrl)}
-                              className="p-1 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                              className="p-1 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all shrink-0">
                               {copied === s.campaign?.id ? <Check size={12} /> : <Copy size={12} />}
                             </button>
                           </div>
                         ) : (
                           <button onClick={() => generateLink(s.campaignId || s.campaign?.id)}
-                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all whitespace-nowrap">
                             <Link size={12} /> Get Link
                           </button>
                         )}
                       </td>
 
                       {/* QR Code + Captions Buttons */}
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         <div className="flex flex-col gap-1.5 items-center">
                           {trackUrl ? (
                             <button
                               onClick={() => setQrModal({ url: trackUrl, title: s.campaign?.title })}
-                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-all">
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-all whitespace-nowrap">
                               <QrCode size={12} /> QR Code
                             </button>
                           ) : (
-                            <span className="text-gray-600 text-xs">Link নাও আগে</span>
+                            <span className="text-gray-600 text-xs whitespace-nowrap">Link নাও আগে</span>
                           )}
                           {s.campaign?.landingPage && (
                             <button
                               onClick={() => setCaptionsModal({ title: s.campaign?.title, captions: s.campaign.landingPage })}
-                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all whitespace-nowrap">
                               <Copy size={12} /> Captions
                             </button>
                           )}
                         </div>
                       </td>
 
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 justify-center w-fit mx-auto ${config.color}`}>
                           <Icon size={12} /> {config.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         {s.status === 'APPROVED' && (
                           alreadyRated ? (
                             <span className="text-xs text-yellow-400">⭐ Rated</span>
@@ -250,7 +253,7 @@ export default function MySubmissionsPage() {
                           )
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right text-sm text-gray-400">
+                      <td className="px-6 py-4 text-right text-sm text-gray-400 whitespace-nowrap">
                         {new Date(s.submittedAt).toLocaleDateString()}
                       </td>
                     </tr>
@@ -258,6 +261,85 @@ export default function MySubmissionsPage() {
                 })}
               </tbody>
             </table>
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden divide-y divide-white/5">
+              {submissions.map((s, i) => {
+                const config = statusConfig[s.status] || statusConfig.PENDING
+                const Icon = config.icon
+                const trackUrl = trackingLinks[s.campaignId || s.campaign?.id]
+                const alreadyRated = ratedCampaigns.includes(s.campaignId)
+                return (
+                  <div key={i} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-medium text-sm">{s.campaign?.title || '-'}</h3>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 shrink-0 ${config.color}`}>
+                        <Icon size={12} /> {config.label}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <a href={s.postUrl} target="_blank" rel="noreferrer"
+                        className="text-violet-400 hover:text-violet-300 flex items-center gap-1">
+                        View Post <ExternalLink size={11} />
+                      </a>
+                      <span>{new Date(s.submittedAt).toLocaleDateString()}</span>
+                    </div>
+
+                    {/* Tracking link */}
+                    {trackUrl ? (
+                      <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2">
+                        <span title={trackUrl} className="text-gray-400 text-xs truncate flex-1 min-w-0">{trackUrl}</span>
+                        <button onClick={() => copyLink(s.campaign?.id, trackUrl)}
+                          className="p-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all shrink-0">
+                          {copied === s.campaign?.id ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => generateLink(s.campaignId || s.campaign?.id)}
+                        className="w-full flex items-center justify-center gap-1 text-xs px-3 py-2 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                        <Link size={12} /> Get Link
+                      </button>
+                    )}
+
+                    {/* Action row: QR, Captions, Rate */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {trackUrl && (
+                        <button
+                          onClick={() => setQrModal({ url: trackUrl, title: s.campaign?.title })}
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-all">
+                          <QrCode size={12} /> QR Code
+                        </button>
+                      )}
+                      {s.campaign?.landingPage && (
+                        <button
+                          onClick={() => setCaptionsModal({ title: s.campaign?.title, captions: s.campaign.landingPage })}
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-all">
+                          <Copy size={12} /> Captions
+                        </button>
+                      )}
+                      {s.status === 'APPROVED' && (
+                        alreadyRated ? (
+                          <span className="text-xs text-yellow-400 flex items-center gap-1">⭐ Rated</span>
+                        ) : (
+                          <button
+                            onClick={() => setRatingModal({
+                              campaignId: s.campaignId,
+                              campaignTitle: s.campaign?.title,
+                              advertiserId: s.campaign?.advertiser?.userId,
+                            })}
+                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg transition-all">
+                            <Star size={12} /> Rate
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            </>
           )}
         </motion.div>
       </div>
