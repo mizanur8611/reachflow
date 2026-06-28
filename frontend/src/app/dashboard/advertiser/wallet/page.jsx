@@ -121,36 +121,36 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Wallet</h1>
-            <p className="text-gray-400 mt-1">Manage your balance and transactions</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Wallet</h1>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">Manage your balance and transactions</p>
           </div>
           <div className="flex gap-3">
             <button onClick={fetchWallet} className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
               <RefreshCw size={16} className="text-gray-400" />
             </button>
             <button onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all">
+              className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all whitespace-nowrap">
               <Plus size={16} /> Add Money
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 mb-8">
           {[
             { label: 'Available Balance', value: `$${(wallet?.balance || 0).toFixed(2)}`, icon: Wallet, color: 'from-violet-500 to-purple-600' },
             { label: 'Pending', value: `$${(wallet?.pending || 0).toFixed(2)}`, icon: ArrowUpRight, color: 'from-amber-500 to-orange-600' },
             { label: 'Total Deposited', value: `$${(wallet?.totalEarned || 0).toFixed(2)}`, icon: ArrowDownLeft, color: 'from-emerald-500 to-teal-600' },
           ].map((c, i) => (
             <motion.div key={c.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 min-w-0">
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center mb-4`}>
                 <c.icon size={22} className="text-white" />
               </div>
-              <p className="text-3xl font-bold text-white">{c.value}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white truncate">{c.value}</p>
               <p className="text-gray-400 text-sm mt-1">{c.label}</p>
             </motion.div>
           ))}
@@ -185,13 +185,14 @@ export default function WalletPage() {
           {!wallet?.transactions?.length ? (
             <div className="px-6 py-12 text-center text-gray-500">No transactions yet</div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
-                  <th className="px-6 py-3 text-left">Description</th>
-                  <th className="px-6 py-3 text-left">Method</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-right">Amount</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Description</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Method</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-right whitespace-nowrap">Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -199,15 +200,15 @@ export default function WalletPage() {
                   const isCredit = ['DEPOSIT', 'COMMISSION_EARNED', 'REFUND'].includes(tx.type)
                   return (
                     <tr key={tx.id} className="hover:bg-white/[0.02]">
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <p className="text-white text-sm">{tx.description || TYPE_LABELS[tx.type] || tx.type}</p>
                         <p className="text-gray-500 text-xs mt-0.5">{new Date(tx.createdAt).toLocaleDateString()}</p>
                       </td>
-                      <td className="px-6 py-4"><span className="bg-white/5 text-gray-400 text-xs px-2 py-1 rounded-full">{tx.method}</span></td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 whitespace-nowrap"><span className="bg-white/5 text-gray-400 text-xs px-2 py-1 rounded-full">{tx.method}</span></td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         <span className={`text-xs px-2 py-1 rounded-full ${STATUS_STYLES[tx.status] || 'bg-white/5 text-gray-400'}`}>{tx.status}</span>
                       </td>
-                      <td className={`px-6 py-4 text-right font-semibold text-sm ${isCredit ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <td className={`px-6 py-4 text-right font-semibold text-sm whitespace-nowrap ${isCredit ? 'text-emerald-400' : 'text-red-400'}`}>
                         {isCredit ? '+' : '-'}${tx.amount.toFixed(2)}
                       </td>
                     </tr>
@@ -215,6 +216,7 @@ export default function WalletPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
