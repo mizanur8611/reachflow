@@ -239,10 +239,10 @@ export default function Sidebar({ role = 'advertiser' }) {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)}
-              className="md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" />
+              className="md:hidden fixed inset-0 bg-black/70 z-[100] backdrop-blur-sm" />
             <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="md:hidden fixed left-0 top-0 h-screen w-72 bg-[#0e0f16] border-r border-white/5 z-50 overflow-hidden">
+              className="md:hidden fixed left-0 top-0 h-screen w-72 bg-[#0e0f16] border-r border-white/5 z-[101] overflow-hidden">
               <SidebarContent isMobile={true} />
             </motion.div>
           </>
