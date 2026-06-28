@@ -94,19 +94,19 @@ export default function WithdrawalPage() {
   const hasPending = withdrawals.some(w => w.status === 'PENDING')
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Withdrawal 💸</h1>
-            <p className="text-gray-400 mt-1">তোমার wallet থেকে টাকা তুলো।</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Withdrawal 💸</h1>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">তোমার wallet থেকে টাকা তুলো।</p>
           </div>
           {!hasPending && (
             <button
               onClick={() => { setShowForm(!showForm); setError(''); setSuccess('') }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
             >
               <ArrowDownToLine size={16} />
               Withdraw করো
@@ -131,19 +131,19 @@ export default function WithdrawalPage() {
         </AnimatePresence>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
           {[
             { label: 'Available Balance', value: `$${wallet?.balance?.toFixed(2) || '0.00'}`, sub: `৳${((wallet?.balance || 0) * BDT_RATE).toFixed(0)}`, icon: Wallet, color: 'from-violet-500 to-purple-600' },
             { label: 'Pending Withdrawal', value: `$${wallet?.pending?.toFixed(2) || '0.00'}`, sub: `৳${((wallet?.pending || 0) * BDT_RATE).toFixed(0)}`, icon: Clock, color: 'from-yellow-500 to-orange-500' },
             { label: 'Total Earned', value: `$${wallet?.totalEarned?.toFixed(2) || '0.00'}`, sub: `৳${((wallet?.totalEarned || 0) * BDT_RATE).toFixed(0)}`, icon: CheckCircle, color: 'from-emerald-500 to-teal-600' },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-5 min-w-0">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <s.icon size={18} className="text-white" />
               </div>
-              <p className="text-2xl font-bold">{s.value}</p>
-              <p className="text-gray-500 text-xs mt-0.5">{s.sub}</p>
+              <p className="text-2xl font-bold truncate">{s.value}</p>
+              <p className="text-gray-500 text-xs mt-0.5 truncate">{s.sub}</p>
               <p className="text-gray-400 text-xs mt-1">{s.label}</p>
             </motion.div>
           ))}
@@ -153,12 +153,12 @@ export default function WithdrawalPage() {
         <AnimatePresence>
           {showForm && (
             <motion.div initial={{ opacity: 0, y: -10, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -10, height: 0 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 mb-6 overflow-hidden">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6 overflow-hidden">
               <h2 className="font-semibold mb-5 flex items-center gap-2">
                 <ArrowDownToLine size={16} className="text-violet-400" /> নতুন Withdrawal Request
               </h2>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Amount */}
                 <div>
                   <label className="text-xs text-gray-400 mb-1.5 block">Amount (USD) — min $10</label>
@@ -192,7 +192,7 @@ export default function WithdrawalPage() {
 
                 {/* bKash / Nagad */}
                 {(form.method === 'BKASH' || form.method === 'NAGAD') && (
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <label className="text-xs text-gray-400 mb-1.5 block">{METHOD_LABELS[form.method]} নম্বর</label>
                     <div className="relative">
                       <Phone size={14} className="absolute left-3 top-3 text-gray-500" />
@@ -230,7 +230,7 @@ export default function WithdrawalPage() {
                         className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500/50"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <label className="text-xs text-gray-400 mb-1.5 block">Account Name</label>
                       <input
                         type="text" placeholder="তোমার নাম"
@@ -267,7 +267,7 @@ export default function WithdrawalPage() {
         {/* History Table */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/5">
             <h2 className="font-semibold">Withdrawal History</h2>
           </div>
 
@@ -276,14 +276,17 @@ export default function WithdrawalPage() {
           ) : withdrawals.length === 0 ? (
             <div className="px-6 py-12 text-center text-gray-500">কোনো withdrawal request নেই।</div>
           ) : (
+            <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
-                  <th className="px-6 py-3 text-left">Amount</th>
-                  <th className="px-6 py-3 text-left">Method</th>
-                  <th className="px-6 py-3 text-left">Account</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-right">Date</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Amount</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Method</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Account</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-right whitespace-nowrap">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -293,18 +296,18 @@ export default function WithdrawalPage() {
                   const accountDetail = w.accountInfo?.phone || w.accountInfo?.accountNumber || '—'
                   return (
                     <tr key={i} className="hover:bg-white/[0.02]">
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <p className="font-semibold">${w.amount?.toFixed(2)}</p>
                         <p className="text-xs text-gray-500">৳{w.amountBDT}</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">{METHOD_LABELS[w.method] || w.method}</td>
-                      <td className="px-6 py-4 text-sm text-gray-400">{accountDetail}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-sm text-gray-300 whitespace-nowrap">{METHOD_LABELS[w.method] || w.method}</td>
+                      <td className="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">{accountDetail}</td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 justify-center w-fit mx-auto ${s.cls}`}>
                           <Icon size={12} /> {s.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-sm text-gray-400">
+                      <td className="px-6 py-4 text-right text-sm text-gray-400 whitespace-nowrap">
                         {new Date(w.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
@@ -312,6 +315,29 @@ export default function WithdrawalPage() {
                 })}
               </tbody>
             </table>
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden divide-y divide-white/5">
+              {withdrawals.map((w, i) => {
+                const s = statusConfig[w.status] || statusConfig.PENDING
+                const Icon = s.icon
+                const accountDetail = w.accountInfo?.phone || w.accountInfo?.accountNumber || '—'
+                return (
+                  <div key={i} className="p-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm">${w.amount?.toFixed(2)} <span className="text-xs text-gray-500 font-normal">(৳{w.amountBDT})</span></p>
+                      <p className="text-xs text-gray-400 mt-1">{METHOD_LABELS[w.method] || w.method} • {accountDetail}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{new Date(w.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 shrink-0 ${s.cls}`}>
+                      <Icon size={12} /> {s.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            </>
           )}
         </motion.div>
       </div>
