@@ -85,6 +85,7 @@ export default function AnalyticsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
+                className="min-w-0"
               >
                 <Link href={`/dashboard/advertiser/campaigns/${campaign.id}/analytics`} className="block">
                   <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5 hover:border-violet-500/30 hover:bg-[#1e1f2e] transition-all cursor-pointer group overflow-hidden">
