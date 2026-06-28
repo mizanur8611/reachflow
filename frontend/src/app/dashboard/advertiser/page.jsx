@@ -151,6 +151,7 @@ export default function AdvertiserDashboard() {
               View All <ChevronRight size={14} />
             </Link>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
@@ -201,6 +202,7 @@ export default function AdvertiserDashboard() {
               )}
             </tbody>
           </table>
+          </div>
         </motion.div>
       </div>
     </div>
