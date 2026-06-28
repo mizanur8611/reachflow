@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Send, MessageSquare, Search } from 'lucide-react'
+import { Send, MessageSquare, Search, ArrowLeft } from 'lucide-react'
 
 export default function MessagesPage() {
   const [selectedUser, setSelectedUser] = useState(null)
@@ -111,8 +111,8 @@ useEffect(() => {
 
   return (
     <div className="flex bg-[#0a0b0f] text-white overflow-hidden" style={{height: '100vh', marginLeft: '0', width: '100%'}}>
-      {/* Sidebar */}
-      <div className="w-72 border-r border-white/5 flex flex-col shrink-0" style={{minWidth: '288px'}}>
+      {/* Sidebar - user list. On mobile: full width, hidden once a user is selected. On desktop: fixed width, always visible. */}
+      <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-72 border-r border-white/5 flex-col shrink-0 md:min-w-[288px]`}>
         <div className="p-4 border-b border-white/5">
           <h2 className="font-bold text-lg mb-3">Messages</h2>
           <div className="relative">
@@ -143,7 +143,7 @@ useEffect(() => {
                   <p className="text-xs text-gray-600 capitalize">{u.role?.toLowerCase()}</p>
                 </div>
                   {unreadCounts[u.id] > 0 && (
-                   <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                   <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shrink-0">
                     {unreadCounts[u.id]}
                    </span>
                   )}
@@ -153,27 +153,31 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Chat Area - on mobile: full width, only visible once a user is selected. On desktop: always visible. */}
+      <div className={`${selectedUser ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-w-0`}>
         {selectedUser ? (
           <>
-            <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-bold">
+            <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center gap-3">
+              <button onClick={() => setSelectedUser(null)}
+                className="md:hidden p-1.5 -ml-1 hover:bg-white/5 rounded-lg transition-colors shrink-0">
+                <ArrowLeft size={18} />
+              </button>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-bold shrink-0">
                 {selectedUser.name?.[0]?.toUpperCase()}
               </div>
-              <div>
-                <p className="font-semibold text-white">{selectedUser.name}</p>
+              <div className="min-w-0">
+                <p className="font-semibold text-white truncate">{selectedUser.name}</p>
                 <p className="text-xs text-gray-500 capitalize">{selectedUser.role?.toLowerCase()}</p>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3">
               {messages.map((m, i) => {
                 const isMe = m.senderId === myId
                 return (
                   <motion.div key={m.id || i} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                     className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-violet-600 text-white rounded-br-sm' : 'bg-white/10 text-white rounded-bl-sm'}`}>
-                      <p>{m.content}</p>
+                    <div className={`max-w-[80%] sm:max-w-xs px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-violet-600 text-white rounded-br-sm' : 'bg-white/10 text-white rounded-bl-sm'}`}>
+                      <p className="break-words">{m.content}</p>
                       <p className={`text-xs mt-1 ${isMe ? 'text-violet-200' : 'text-gray-500'}`}>
                         {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
@@ -183,23 +187,23 @@ useEffect(() => {
               })}
               <div ref={bottomRef} />
             </div>
-            <div className="px-6 py-4 border-t border-white/5 flex items-center gap-3">
+            <div className="px-4 sm:px-6 py-4 border-t border-white/5 flex items-center gap-3">
               <input
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 text-sm"
+                className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 text-sm"
                 placeholder="Type a message..."
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
               />
               <button onClick={sendMessage} disabled={loading || !newMessage.trim()}
-                className="p-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors">
+                className="p-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl transition-colors shrink-0">
                 <Send size={16} />
               </button>
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
+            <div className="text-center px-4">
               <MessageSquare size={48} className="mx-auto text-gray-600 mb-4" />
               <p className="text-gray-400 font-medium">Select a user to start messaging</p>
               <p className="text-gray-600 text-sm mt-1">Search for users on the left</p>
