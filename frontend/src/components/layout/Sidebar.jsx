@@ -250,10 +250,12 @@ export default function Sidebar({ role = 'advertiser' }) {
       </AnimatePresence>
 
       {/* Desktop Sidebar */}
-      <motion.aside animate={{ width: collapsed ? 72 : 256 }} transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="hidden md:flex fixed left-0 top-0 h-screen bg-[#0e0f16] border-r border-white/5 flex-col z-40 overflow-hidden">
-        <SidebarContent isMobile={false} />
-      </motion.aside>
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen z-40 overflow-hidden">
+        <motion.div animate={{ width: collapsed ? 72 : 256 }} transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="h-screen bg-[#0e0f16] border-r border-white/5 flex flex-col overflow-hidden">
+          <SidebarContent isMobile={false} />
+        </motion.div>
+      </aside>
     </>
   )
 }
