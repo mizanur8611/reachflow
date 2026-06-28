@@ -138,19 +138,19 @@ export default function SubscriptionPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 sm:p-8">
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-10">
-          <Link href="/dashboard" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+        <div className="flex flex-wrap items-center gap-4 mb-10">
+          <Link href="/dashboard" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors shrink-0">
             <ArrowLeft size={20} />
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Subscription Plans</h1>
-            <p className="text-gray-400 mt-1">Choose the plan that fits your needs</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold">Subscription Plans</h1>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">Choose the plan that fits your needs</p>
           </div>
-          <div className="ml-auto text-right">
+          <div className="ml-auto text-right shrink-0">
             <p className="text-xs text-gray-500">Wallet Balance</p>
             <p className="text-lg font-bold text-violet-400">${walletBalance.toFixed(2)}</p>
           </div>
@@ -182,7 +182,7 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           {filteredPlans.map((plan, i) => {
             const Icon = PLAN_ICONS[plan.name] || Star
             const colors = PLAN_COLORS[plan.name]
