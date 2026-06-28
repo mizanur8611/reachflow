@@ -66,7 +66,7 @@ export default function AdvertiserDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
@@ -90,7 +90,7 @@ export default function AdvertiserDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-8">
           {STATS.map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
@@ -106,7 +106,7 @@ export default function AdvertiserDashboard() {
         {/* Campaign Performance */}
         {campaigns.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="grid grid-cols-3 gap-4 mb-8">
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {campaigns.slice(0, 3).map((c, i) => {
               const spent = c.spentBudget || 0
               const budget = c.totalBudget || 1
