@@ -98,78 +98,80 @@ export default function CampaignDetailsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8 pb-32">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8 pb-32">
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/dashboard/advertiser" className="p-2 bg-white/5 rounded-xl hover:bg-white/10">
+        <div className="flex items-start gap-3 sm:gap-4 mb-8 flex-wrap">
+          <Link href="/dashboard/advertiser" className="p-2 bg-white/5 rounded-xl hover:bg-white/10 shrink-0">
             <ArrowLeft size={20} />
           </Link>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">{campaign.title}</h1>
-            <p className="text-gray-400 text-sm mt-1">{campaign.description}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">{campaign.title}</h1>
+            <p className="text-gray-400 text-sm mt-1 line-clamp-1">{campaign.description}</p>
           </div>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
             <Link href={`/dashboard/advertiser/campaigns/${id}/analytics`}
-              className="flex items-center gap-2 px-4 py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-xl text-sm font-medium transition-colors">
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
               <TrendingUp size={15} /> Analytics
             </Link>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            campaign.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
-            campaign.status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400' :
-            'bg-orange-500/10 text-orange-400'
-          }`}>
-            {campaign.status}
-          </span>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${
+              campaign.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
+              campaign.status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400' :
+              'bg-orange-500/10 text-orange-400'
+            }`}>
+              {campaign.status}
+            </span>
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
           {stats.map((s, i) => (
             <motion.div
               key={s.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5"
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-5"
             >
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <s.icon size={18} className="text-white" />
               </div>
-              <p className="text-2xl font-bold text-white">{s.value}</p>
+              <p className="text-xl sm:text-2xl font-bold text-white">{s.value}</p>
               <p className="text-gray-400 text-xs mt-1">{s.label}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Campaign Info */}
-        <div className="grid grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6"
+            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 min-w-0"
           >
             <h2 className="font-semibold mb-4">Campaign Details</h2>
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Category</span>
-                <span>{campaign.category}</span>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-gray-400 shrink-0">Category</span>
+                <span className="text-right truncate">{campaign.category}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Commission Type</span>
-                <span>{campaign.commissionType}</span>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-gray-400 shrink-0">Commission Type</span>
+                <span className="text-right truncate">{campaign.commissionType}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Commission Amount</span>
-                <span>${campaign.commissionAmount}</span>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-gray-400 shrink-0">Commission Amount</span>
+                <span className="text-right truncate">${campaign.commissionAmount}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Start Date</span>
-                <span>{new Date(campaign.startDate).toLocaleDateString()}</span>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-gray-400 shrink-0">Start Date</span>
+                <span className="text-right truncate">{new Date(campaign.startDate).toLocaleDateString()}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">End Date</span>
-                <span>{new Date(campaign.endDate).toLocaleDateString()}</span>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-gray-400 shrink-0">End Date</span>
+                <span className="text-right truncate">{new Date(campaign.endDate).toLocaleDateString()}</span>
               </div>
             </div>
           </motion.div>
@@ -178,7 +180,7 @@ export default function CampaignDetailsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6"
+            className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 min-w-0"
           >
             <h2 className="font-semibold mb-4">Platforms</h2>
             <div className="flex flex-wrap gap-2">
@@ -213,20 +215,21 @@ export default function CampaignDetailsPage() {
               No promoters have applied yet.
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
-                  <th className="px-6 py-3 text-left">Promoter</th>
-                  <th className="px-6 py-3 text-left">Message</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-center">Action</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Promoter</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Message</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {campaign.applications.map((app, i) => (
                   <tr key={i} className="hover:bg-white/[0.02]">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
                         <span className="text-sm font-medium">{app.promoter?.user?.name || 'Unknown'}</span>
                         {app.promoter?.userId && (
                           <Link
@@ -239,9 +242,9 @@ export default function CampaignDetailsPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-400">{app.message || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-400 max-w-[200px] truncate">{app.message || '-'}</td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${
                         app.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' :
                         app.status === 'REJECTED' ? 'bg-red-500/10 text-red-400' :
                         'bg-yellow-500/10 text-yellow-400'
@@ -269,6 +272,7 @@ export default function CampaignDetailsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </motion.div>
         {/* Submissions */}
@@ -285,21 +289,22 @@ export default function CampaignDetailsPage() {
   {submissions.length === 0 ? (
     <div className="px-6 py-12 text-center text-gray-500">No submissions yet.</div>
   ) : (
+    <div className="overflow-x-auto">
     <table className="w-full">
       <thead>
         <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
-          <th className="px-6 py-3 text-left">Promoter</th>
-          <th className="px-6 py-3 text-left">Post URL</th>
-          <th className="px-6 py-3 text-left">Caption</th>
-          <th className="px-6 py-3 text-center">Status</th>
-          <th className="px-6 py-3 text-center">Action</th>
+          <th className="px-6 py-3 text-left whitespace-nowrap">Promoter</th>
+          <th className="px-6 py-3 text-left whitespace-nowrap">Post URL</th>
+          <th className="px-6 py-3 text-left whitespace-nowrap">Caption</th>
+          <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+          <th className="px-6 py-3 text-center whitespace-nowrap">Action</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-white/5">
         {submissions.map((s, i) => (
           <tr key={i} className="hover:bg-white/[0.02]">
             <td className="px-6 py-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="text-sm font-medium">{s.promoter?.user?.name || 'Unknown'}</span>
                 {s.promoter?.userId && (
                   <Link
@@ -312,15 +317,15 @@ export default function CampaignDetailsPage() {
                 )}
               </div>
             </td>
-            <td className="px-6 py-4 text-sm">
+            <td className="px-6 py-4 text-sm whitespace-nowrap">
               <a href={s.postUrl} target="_blank" rel="noreferrer"
                 className="text-violet-400 hover:text-violet-300 underline">
                 View Post
               </a>
             </td>
-            <td className="px-6 py-4 text-sm text-gray-400">{s.caption || '-'}</td>
+            <td className="px-6 py-4 text-sm text-gray-400 max-w-[200px] truncate">{s.caption || '-'}</td>
             <td className="px-6 py-4 text-center">
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${
                 s.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' :
                 s.status === 'REJECTED' ? 'bg-red-500/10 text-red-400' :
                 'bg-yellow-500/10 text-yellow-400'
@@ -346,9 +351,11 @@ export default function CampaignDetailsPage() {
         ))}
       </tbody>
     </table>
+    </div>
   )}
 </motion.div>
       </div>
     </div>
   )
 }
+

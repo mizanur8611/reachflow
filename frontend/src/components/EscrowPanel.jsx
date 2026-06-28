@@ -100,7 +100,7 @@ export default function EscrowPanel({ campaignId, campaign, onUpdate }) {
   const StatusIcon = statusConfig.icon
 
   return (
-    <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6">
+    <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
