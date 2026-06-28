@@ -45,27 +45,27 @@ export default function ReferralPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Gift size={28} className="text-violet-400" /> Referral Program
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+            <Gift size={28} className="text-violet-400 shrink-0" /> Referral Program
           </h1>
-          <p className="text-gray-400 mt-1">বন্ধুদের invite করো এবং প্রতিটি সফল referral এ <span className="text-emerald-400 font-semibold">$5</span> earn করো!</p>
+          <p className="text-gray-400 mt-1 text-sm sm:text-base">বন্ধুদের invite করো এবং প্রতিটি সফল referral এ <span className="text-emerald-400 font-semibold">$5</span> earn করো!</p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {stats.map((s, i) => (
             <motion.div key={s.label}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-5 min-w-0">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <s.icon size={18} className="text-white" />
               </div>
-              <p className="text-2xl font-bold">{s.value}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{s.value}</p>
               <p className="text-gray-400 text-xs mt-1">{s.label}</p>
             </motion.div>
           ))}
@@ -73,7 +73,7 @@ export default function ReferralPage() {
 
         {/* Referral Link Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 mb-6">
+          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6">
           <h2 className="font-semibold mb-1 flex items-center gap-2">
             <TrendingUp size={16} className="text-violet-400" /> তোমার Referral Link
           </h2>
@@ -105,9 +105,9 @@ export default function ReferralPage() {
 
         {/* How it works */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 mb-6">
+          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6">
           <h2 className="font-semibold mb-4">কীভাবে কাজ করে?</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {[
               { step: '01', title: 'Link শেয়ার করো', desc: 'তোমার unique referral link বন্ধু বা social media তে শেয়ার করো', icon: '🔗' },
               { step: '02', title: 'বন্ধু Register করুক', desc: 'তোমার link দিয়ে নতুন promoter ReachFlow এ join করুক', icon: '👤' },
@@ -126,7 +126,7 @@ export default function ReferralPage() {
         {/* Referrals List */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/5">
             <h2 className="font-semibold">Referral History</h2>
           </div>
           {!data?.referrals || data.referrals.length === 0 ? (
@@ -135,22 +135,25 @@ export default function ReferralPage() {
               <p className="text-gray-500 text-sm">এখনো কোনো referral নেই। link শেয়ার করো!</p>
             </div>
           ) : (
+            <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-white/5">
-                  <th className="px-6 py-3 text-left">Date</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-center">Reward</th>
-                  <th className="px-6 py-3 text-right">Completed</th>
+                  <th className="px-6 py-3 text-left whitespace-nowrap">Date</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-center whitespace-nowrap">Reward</th>
+                  <th className="px-6 py-3 text-right whitespace-nowrap">Completed</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {data.referrals.map((r, i) => (
                   <tr key={i} className="hover:bg-white/[0.02]">
-                    <td className="px-6 py-4 text-sm text-gray-400">
+                    <td className="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">
                       {new Date(r.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                         r.status === 'REWARDED' ? 'bg-emerald-500/10 text-emerald-400' :
                         r.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400' :
@@ -159,18 +162,41 @@ export default function ReferralPage() {
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
                       <span className={`text-sm font-semibold ${r.status === 'REWARDED' ? 'text-emerald-400' : 'text-gray-500'}`}>
                         ${r.rewardAmount.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-sm text-gray-500">
+                    <td className="px-6 py-4 text-right text-sm text-gray-500 whitespace-nowrap">
                       {r.completedAt ? new Date(r.completedAt).toLocaleDateString() : '—'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden divide-y divide-white/5">
+              {data.referrals.map((r, i) => (
+                <div key={i} className="p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</p>
+                    <span className={`inline-block mt-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${
+                      r.status === 'REWARDED' ? 'bg-emerald-500/10 text-emerald-400' :
+                      r.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400' :
+                      'bg-yellow-500/10 text-yellow-400'
+                    }`}>
+                      {r.status}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-semibold shrink-0 ${r.status === 'REWARDED' ? 'text-emerald-400' : 'text-gray-500'}`}>
+                    ${r.rewardAmount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </motion.div>
 
