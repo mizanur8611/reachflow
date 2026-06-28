@@ -39,7 +39,7 @@ export default function AnalyticsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
@@ -88,11 +88,11 @@ export default function AnalyticsPage() {
               >
                 <Link href={`/dashboard/advertiser/campaigns/${campaign.id}/analytics`}>
                   <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5 hover:border-violet-500/30 hover:bg-[#1e1f2e] transition-all cursor-pointer group">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-white text-lg">{campaign.title}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STATUS_COLORS[campaign.status] || STATUS_COLORS.ACTIVE}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <h3 className="font-semibold text-white text-lg truncate max-w-full">{campaign.title}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${STATUS_COLORS[campaign.status] || STATUS_COLORS.ACTIVE}`}>
                             {campaign.status || 'ACTIVE'}
                           </span>
                         </div>
@@ -100,27 +100,27 @@ export default function AnalyticsPage() {
                           <p className="text-gray-400 text-sm mb-3 line-clamp-1">{campaign.description}</p>
                         )}
                         <div className="flex flex-wrap gap-1 mb-3">
-                          {campaign.platforms?.map(p => (
+                          {campaign.targetPlatforms?.map(p => (
                             <span key={p} className="text-xs px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-gray-400">{p}</span>
                           ))}
                         </div>
-                        <div className="flex items-center gap-6 text-sm text-gray-400">
+                        <div className="flex items-center gap-4 sm:gap-6 text-sm text-gray-400 flex-wrap">
                           <span className="flex items-center gap-1.5">
-                            <DollarSign size={14} className="text-violet-400" />
-                            Budget: <span className="text-white font-medium">${campaign.budget}</span>
+                            <DollarSign size={14} className="text-violet-400 shrink-0" />
+                            Budget: <span className="text-white font-medium">${campaign.totalBudget}</span>
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <TrendingUp size={14} className="text-violet-400" />
+                            <TrendingUp size={14} className="text-violet-400 shrink-0" />
                             ${campaign.commissionAmount}/{campaign.commissionType === 'PER_POST' ? 'Post' : campaign.commissionType === 'PER_SALE' ? 'Sale' : 'Click'}
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Users size={14} className="text-violet-400" />
+                            <Users size={14} className="text-violet-400 shrink-0" />
                             {campaign._count?.applications || campaign.promoterCount || 0} Promoters
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-violet-600/20 group-hover:bg-violet-600/40 text-violet-400 rounded-xl text-sm font-medium transition-colors">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-violet-600/20 group-hover:bg-violet-600/40 text-violet-400 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
                           <BarChart2 size={15} /> Analytics
                           <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </div>
