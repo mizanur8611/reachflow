@@ -122,24 +122,24 @@ export default function PromoterProfilePage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-white p-8">
+    <div className="min-h-screen bg-[#0a0b0f] text-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">My Profile 👤</h1>
-            <p className="text-gray-400 mt-1">তোমার profile manage করো।</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">My Profile 👤</h1>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">তোমার profile manage করো।</p>
           </div>
           {!editing ? (
             <button onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-medium transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-medium transition-colors whitespace-nowrap self-start sm:self-auto">
               <Edit3 size={16} /> Edit Profile
             </button>
           ) : (
             <div className="flex gap-2">
               <button onClick={handleSave} disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors">
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
                 <Save size={16} /> {saving ? 'Saving...' : 'Save'}
               </button>
               <button onClick={() => { setEditing(false); setError('') }}
@@ -167,7 +167,7 @@ export default function PromoterProfilePage() {
         </AnimatePresence>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {[
             { label: 'Total Earned', value: `$${profile?.totalEarned?.toFixed(2) || '0.00'}`, icon: Wallet, color: 'from-emerald-500 to-teal-600' },
             { label: 'Balance', value: `$${profile?.balance?.toFixed(2) || '0.00'}`, icon: TrendingUp, color: 'from-violet-500 to-purple-600' },
@@ -175,11 +175,11 @@ export default function PromoterProfilePage() {
             { label: 'Rating', value: profile?.rating?.toFixed(1) || '0.0', icon: Star, color: 'from-yellow-500 to-orange-500' },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5">
+              className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-5 min-w-0">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
                 <s.icon size={18} className="text-white" />
               </div>
-              <p className="text-2xl font-bold">{s.value}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{s.value}</p>
               <p className="text-gray-400 text-xs mt-1">{s.label}</p>
             </motion.div>
           ))}
@@ -187,11 +187,11 @@ export default function PromoterProfilePage() {
 
         {/* Profile Info */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-6 mb-6">
-          <div className="flex items-start gap-5 mb-6">
+          className="bg-[#1a1b23] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6">
+          <div className="flex items-start gap-4 sm:gap-5 mb-6">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold overflow-hidden">
                 {profile?.avatar ? <img src={profile.avatar} alt="avatar" className="w-full h-full object-cover" /> : (profile?.name?.[0] || 'U')}
               </div>
               <label className="absolute -bottom-2 -right-2 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-violet-500 transition-colors">
@@ -217,14 +217,14 @@ export default function PromoterProfilePage() {
                 }} />
               </label>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {editing ? (
                 <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                   className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-2.5 text-lg font-bold focus:outline-none focus:border-violet-500/50 mb-2" />
               ) : (
-                <h2 className="text-xl font-bold mb-1">{profile?.name}</h2>
+                <h2 className="text-xl font-bold mb-1 truncate">{profile?.name}</h2>
               )}
-              <p className="text-gray-400 text-sm">{profile?.email}</p>
+              <p className="text-gray-400 text-sm truncate">{profile?.email}</p>
               {profile?.verified && (
                 <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full mt-1">
                   <CheckCircle size={11} /> Verified
@@ -233,9 +233,9 @@ export default function PromoterProfilePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Bio */}
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="text-xs text-gray-400 mb-1.5 block">Bio</label>
               {editing ? (
                 <textarea rows={3} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })}
@@ -284,10 +284,10 @@ export default function PromoterProfilePage() {
         {/* Social Accounts */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="bg-[#1a1b23] border border-white/5 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between gap-3">
             <h2 className="font-semibold">Social Accounts</h2>
             <button onClick={() => { setShowSocialForm(!showSocialForm); setError('') }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-lg text-xs font-medium transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0">
               <Plus size={14} /> Add Account
             </button>
           </div>
@@ -297,7 +297,7 @@ export default function PromoterProfilePage() {
             {showSocialForm && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden border-b border-white/5">
-                <div className="p-6 grid grid-cols-2 gap-4">
+                <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-gray-400 mb-1.5 block">Platform</label>
                     <select value={socialForm.platform} onChange={e => setSocialForm({ ...socialForm, platform: e.target.value })}
@@ -323,7 +323,7 @@ export default function PromoterProfilePage() {
                       placeholder="10000"
                       className="w-full bg-[#0a0b0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500/50" />
                   </div>
-                  <div className="col-span-2 flex gap-3">
+                  <div className="sm:col-span-2 flex gap-3">
                     <button onClick={handleAddSocial}
                       className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-medium transition-colors">
                       Add করো
@@ -344,17 +344,17 @@ export default function PromoterProfilePage() {
           ) : (
             <div className="divide-y divide-white/5">
               {profile?.socialAccounts?.map((s, i) => (
-                <div key={i} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${PLATFORM_COLORS[s.platform] || 'bg-white/5 text-gray-400'}`}>
+                <div key={i} className="px-4 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${PLATFORM_COLORS[s.platform] || 'bg-white/5 text-gray-400'}`}>
                       {s.platform}
                     </span>
-                    <div>
-                      <p className="text-sm font-medium">{s.username}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{s.username}</p>
                       <p className="text-xs text-gray-500">{s.followers?.toLocaleString()} followers</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <a href={s.profileUrl} target="_blank" rel="noreferrer"
                       className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
                       <ExternalLink size={14} className="text-gray-400" />
